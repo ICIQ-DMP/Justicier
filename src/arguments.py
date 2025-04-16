@@ -36,7 +36,7 @@ def parse_date(value, formatting):
     return d
 
 
-def parse_arguments():
+def get_parser():
     """Parse and validate command-line arguments"""
     parser = argparse.ArgumentParser(description="Process NAF and date range.")
 
@@ -44,7 +44,5 @@ def parse_arguments():
     parser.add_argument("-b", "--begin", type=validate_date, required=True, help="Begin date (YYYY-MM)")
     parser.add_argument("-e", "--end", type=validate_date, required=True, help="End date (YYYY-MM)")
 
-    args = parser.parse_args()
+    return parser
 
-    # Return data as a structured dictionary
-    return args

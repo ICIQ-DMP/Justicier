@@ -1,8 +1,10 @@
-
+import sys
 from pypdf import PdfReader, PdfWriter
 import pypdf
+import re
+import argparse
 
-from arguments import *
+import arguments
 from defines import *
 from filesystem import *
 
@@ -74,10 +76,15 @@ def write_page(page: pypdf.PageObject, naf, path):
 
 
 
+
 if __name__ == "__main__":
 
     # Parse args
-    args = parse_arguments()
+    parser = arguments.get_parser()
+    print(parser)
+    args = parser.parse_args()
+    print(args)
+    print(sys.argv)
 
     # Ensure output directory exists
     os.makedirs(os.path.join(ROOT_PATH, "output"), exist_ok=True)
@@ -97,7 +104,7 @@ if __name__ == "__main__":
     # Select all salary sheets that are in range with the date (begin and end date included)
     salary_files_selected = []
     for salary_file in salary_files:
-        dir_date = parse_date(salary_file[:7])
+        dir_date = arguments.parse_date(salary_file[:7])
         if args.begin <= dir_date <= args.end:
             salary_files_selected.append(salary_file)
 
@@ -120,7 +127,7 @@ if __name__ == "__main__":
     # Select all bankproof folder that are in range with the date (begin and end date included)
     bankproof_folders_selected = []
     for bankproof_folder in bankproofs_folders:
-        dir_date = parse_date(bankproof_folder[:6], r"^[0-1][0-9]\d{4}$", "%m%Y")
+        dir_date = arguments.parse_date(bankproof_folder[:6], r"^[0-1][0-9]\d{4}$", "%m%Y")
         if args.begin <= dir_date <= args.end:
             bankproof_folders_selected.append(bankproof_folder)
 
