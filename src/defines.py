@@ -10,5 +10,14 @@ INPUT_PATH = os.path.join(ROOT_PATH, "input")
 SALARIES_PATH = os.path.join(INPUT_PATH, "_salaries")
 PROOFS_PATH = os.path.join(INPUT_PATH, "_proofs")
 CONTRACTS_PATH = os.path.join(INPUT_PATH, "_contracts")
+RNTS_PATH = os.path.join(INPUT_PATH, "_RNT")
+RLCS_PATH = os.path.join(INPUT_PATH, "_RLC")
 
+SALARIES_OUTPUT_NAME = "Nòmines"
+PROOFS_OUTPUT_NAME = "Justificants"
+CONTRACTS_OUTPUT_NAME = "Contractes"
+RNTS_OUTPUT_NAME = "RNTs"
+RLCS_OUTPUT_NAME = "RLCs"
+
+NAF_TO_DNI_PATH = os.path.join(INPUT_PATH, "NAF_DNI.xlsx")
 
