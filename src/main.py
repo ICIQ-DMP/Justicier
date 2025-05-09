@@ -4,10 +4,12 @@ import pandas as pd
 from pypdf import PdfReader, PdfWriter
 import pypdf
 import re
+import json
 
 from arguments import parse_arguments, parse_date
 from defines import *
 from filesystem import *
+from NAF import NAF
 
 
 def get_matching_page(pdf_path: str, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}") -> pypdf.PageObject:
@@ -68,7 +70,7 @@ def clean_naf(naf):
     return naf.replace("/", "").replace("-", "")
 
 
-def write_page(page: pypdf.PageObject, naf, path):
+def write_page(page: pypdf.PageObject, path):
     # Create a new PDF with only this page
     writer = PdfWriter()
     writer.add_page(page)
@@ -90,28 +92,37 @@ def build_naf_to_dni(path):
     mask = naf_col.notna() & dni_col.notna()
 
     # Replace the 11th character in each NAF
-    def fix_naf(naf):
-        naf = str(naf)
-        if len(naf) == 14:
-            return naf[:11] + '-' + naf[12:]
-        raise ValueError("NAF does not have correct number of digits")
+    def parse_naf(naf):
+        return NAF(naf)
 
-    naf_fixed = naf_col.apply(fix_naf)
+    naf_fixed = naf_col.apply(parse_naf)
 
     return dict(zip(naf_fixed, dni_col))
+
+
+def flatten_dirs(folder_to_flat):
+    # List all file names in the _bank_proofs folder, in the ./input folder and remove undesired files
+    folders_year = list_dir(folder_to_flat)
+    if ".gitignore" in folders_year:
+        folders_year.remove(".gitignore")
+    # Flatten year directories (flat list of document for all years)
+    flatted_folders = []
+    for folder_year in folders_year:
+        for folder in list_dir(os.path.join(folder_to_flat, folder_year)):
+            flatted_folders.append(os.path.join(folder_year, folder))
+
+    return flatted_folders
 
 
 def process_salaries(salaries_folder_path, naf_dir, naf, begin, end):
     # Salaries
     # List all file names in the _salaries folder, in the ./input folder and remove undesired files
-    salary_files = list_dir(salaries_folder_path)
-    if ".gitignore" in salary_files:
-        salary_files.remove(".gitignore")
+    salary_files = flatten_dirs(salaries_folder_path)
 
     # Select all salary sheets that are in range with the date (begin and end date included)
     salary_files_selected = []
     for salary_file in salary_files:
-        dir_date = parse_date("20" + salary_file[:4], "%Y%m")
+        dir_date = parse_date("20" + salary_file.split("/")[1][:4], "%Y%m")
         if begin <= dir_date <= end:
             salary_files_selected.append(salary_file)
             print("Salary file " + salary_file + " is selected, because its date is " + dir_date.__str__() + ".")
@@ -120,27 +131,25 @@ def process_salaries(salaries_folder_path, naf_dir, naf, begin, end):
     salary_files_selected.sort()
     for salary_file in salary_files_selected:
         try:
-            page = get_matching_page(os.path.join(salaries_folder_path, salary_file), naf)
+            page = get_matching_page(os.path.join(salaries_folder_path, salary_file), naf.slash_dash_str())
             current_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME,
-                                               salary_file)
-            print("Detected NAF " + naf + " in PDF " + salary_file + ". Saving page in " +
+                                               salary_file.split("/")[1])
+            print("Detected NAF " + naf.__str__() + " in PDF " + salary_file + ". Saving page in " +
                   current_output_path.__str__() + ".")
-            write_page(page, naf, current_output_path)
+            write_page(page, current_output_path)
         except ValueError as e:
-            print("NAF " + naf + " was not detected in PDF " + salary_file + ".")
+            print("NAF " + naf.__str__() + " was not detected in PDF " + salary_file + ".")
 
 
 def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
-    # Bank proofs
-    # List all file names in the _bank_proofs folder, in the ./input folder and remove undesired files
-    bankproofs_folders = list_dir(proofs_folder_path)
-    if ".gitignore" in bankproofs_folders:
-        bankproofs_folders.remove(".gitignore")
+    # Flatten year directories (flat list of document for all years)
+    all_bankproof_folders = flatten_dirs(proofs_folder_path)
 
     # Select all bankproof folder that are in range with the date (begin and end date included)
     bankproof_folders_selected = []
-    for bankproof_folder in bankproofs_folders:
-        dir_date = parse_date(bankproof_folder[:6], "%m%Y")
+    for bankproof_folder in all_bankproof_folders:
+        print("name bankproof folder " + bankproof_folder)
+        dir_date = parse_date(bankproof_folder.split("/")[1][:6], "%m%Y")
         if begin <= dir_date <= end:
             bankproof_folders_selected.append(bankproof_folder)
             print("Proof folder " + bankproof_folder + " is selected, because its date is " + dir_date.__str__() + ".")
@@ -161,9 +170,9 @@ def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
                     continue
                 output_path = os.path.join(proofs_dir, bankproof_file)
                 print(
-                    "NAF " + naf + " was detected in " + bankproof_file + ". Writing page to " + output_path.__str__()
+                    "NAF " + naf.__str__() + " was detected in " + bankproof_file + ". Writing page to " + output_path.__str__()
                     + ".")
-                write_page(page, naf, output_path)
+                write_page(page, output_path)
 
         elif bank.__eq__("LA_CAIXA") or bank.__eq__("LA_CAIXA_EXTRA") or bank.__eq__("LA_CAIXA_endarreriments"):
             file_name = list_dir(os.path.join(proofs_folder_path, bankproof_folder))[0]
@@ -174,8 +183,8 @@ def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
                 # print("NAF " + naf + " not detected in " + file_name + ". Error: " + e.__str__())
                 continue
             output_path = os.path.join(proofs_dir, file_name)
-            print("NAF " + naf + " was detected in " + file_name + ". Writing page to " + output_path.__str__() + ".")
-            write_page(page, naf, output_path)
+            print("NAF " + naf.__str__() + " was detected in " + file_name + ". Writing page to " + output_path.__str__() + ".")
+            write_page(page, output_path)
         else:
             print("bad bank")
 
@@ -186,8 +195,9 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
     for contracts_file in contracts_files:
-        naf_dirty = contracts_file.split("_")[0]
+        naf_dirty = NAF(contracts_file.split("_")[0])
         dates = contracts_file.split(".")[0].split("_")
+        print("contract file: " + contracts_file)
         begin_date = parse_date("20" + dates[1], "%Y%m")
         if len(dates) == 3:  # Contract is temporary; has end date
             end_date = parse_date("20" + dates[1], "%Y%m")
@@ -198,8 +208,8 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
                   str(len(dates)) + " have been found. The file will be ignored until it has proper format.")
             continue
 
-        if naf_dirty.__eq__(clean_naf(naf)):
-            print("NAF " + naf_dirty + " of file " + contracts_file + " coincides with queried NAF. Checking dates...")
+        if naf_dirty.__eq__(naf):
+            print("NAF " + naf_dirty.__str__() + " of file " + contracts_file + " coincides with queried NAF. Checking dates...")
             # Select which contracts are valid during the range in the arguments
             # This conditional means that we select the contract if there is any coincidence in the range defined by
             # (begin, end) and (end_date, begin_date).
@@ -217,10 +227,10 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
 
 def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
     rnt_files_selected = []
-    rnt_files = list_dir(rnts_folder_path)
+    rnt_files = flatten_dirs(rnts_folder_path)
     rnt_files.sort()
     for rnt_file in rnt_files:
-        file_date = parse_date("20" + rnt_file[:4], "%Y%m")
+        file_date = parse_date("20" + rnt_file.split("/")[1][:4], "%Y%m")
         if begin <= file_date <= end:
             rnt_files_selected.append(rnt_file)
             print("RNT file " + rnt_file + " is selected, because its date is " + file_date.__str__() + ".")
@@ -228,19 +238,19 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
     rnt_files_selected.sort()
     for rnt_file in rnt_files_selected:
         try:
-            page = get_matching_page(os.path.join(rnts_folder_path, rnt_file), clean_naf(naf), "\\d{12}")
+            page = get_matching_page(os.path.join(rnts_folder_path, rnt_file), naf.__str__(), "\\d{12}")
             current_output_path = os.path.join(naf_dir, RNTS_OUTPUT_NAME,
-                                               rnt_file)
-            print("Detected NAF " + clean_naf(naf) + " in PDF " + rnt_file + ". Saving page in " +
+                                               rnt_file.split("/")[1])
+            print("Detected NAF " + naf.__str__() + " in PDF " + rnt_file + ". Saving page in " +
                   current_output_path.__str__() + ".")
-            write_page(page, naf, current_output_path)
+            write_page(page, current_output_path)
         except ValueError as e:
             print(
-                "NAF " + clean_naf(naf) + " was not detected in PDF " + rnt_file + ". \nInternal error " + e.__str__())
+                "NAF " + naf.__str__() + " was not detected in PDF " + rnt_file + ". \nInternal error " + e.__str__())
 
 
 def process_RLCs(rlcs_folder_path, naf_dir, naf, begin, end):
-    rlc_files = list_dir(rlcs_folder_path)
+    rlc_files = flatten_dirs(rlcs_folder_path)
     rlc_files.sort()
     for rlc_file in rlc_files:
         full_date = rlc_file[:4] + "20" + rlc_file[4:6]
@@ -257,9 +267,10 @@ if __name__ == "__main__":
 
     # Ensure output directory exists
     os.makedirs(os.path.join(ROOT_PATH, "output"), exist_ok=True)
-    OUTPUT_FOLDER = os.path.join(ROOT_PATH, "output")
+    OUTPUT_FOLDER = os.path.join(ROOT_PATH, "output", args.author)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    NAF_FOLDER = os.path.join(OUTPUT_FOLDER, clean_naf(args.naf))
+    NAF_FOLDER = os.path.join(OUTPUT_FOLDER, args.naf.__str__())
+    print("naf folder " + NAF_FOLDER)
     os.makedirs(NAF_FOLDER, exist_ok=True)
 
     os.makedirs(os.path.join(NAF_FOLDER, SALARIES_OUTPUT_NAME), exist_ok=True)
@@ -284,4 +295,4 @@ if __name__ == "__main__":
 
     process_RNTs(RNTS_PATH, NAF_FOLDER, args.naf, args.begin, args.end)
 
-    process_RLCs(RLCS_PATH, NAF_FOLDER, args.naf, args.begin, args.end)
+    #process_RLCs(RLCS_PATH, NAF_FOLDER, args.naf, args.begin, args.end)

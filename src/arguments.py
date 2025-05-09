@@ -1,22 +1,7 @@
 import argparse
 import datetime
-import re
 
-
-def is_naf_correct(naf):
-    """Validate that NAF has NAF format"""
-    pattern = r"\d{2}/\d{8}-\d{2}"
-    if re.search(pattern, naf):
-        return True
-    else:
-        return False
-
-
-def validate_naf(value):
-    if not is_naf_correct(value):
-        raise argparse.ArgumentTypeError("NAF must be in NAF format. Example: 43/12345678-20")
-    else:
-        return value
+from NAF import *
 
 
 def parse_date(value, formatting="%Y_%m"):
@@ -28,6 +13,14 @@ def parse_date(value, formatting="%Y_%m"):
                          + formatting + ". Datetime exception was " + e.__str__())
 
 
+def parse_author(author):
+    with open("input/users.txt", newline="", encoding="utf-8") as f:
+        for line in f.readlines():
+            if line.__eq__(author):
+                return author
+        raise ValueError("Author " + author + " is not in the accepted users.")
+
+
 def parse_arguments():
     """Parse and validate command-line arguments"""
     parser = argparse.ArgumentParser(description="Process NAF and date range.")
@@ -35,6 +28,7 @@ def parse_arguments():
     parser.add_argument("-n", "--naf", type=validate_naf, required=True, help="NAF (SS security number)")
     parser.add_argument("-b", "--begin", type=parse_date, required=True, help="Begin date (YYYY-MM)")
     parser.add_argument("-e", "--end", type=parse_date, required=True, help="End date (YYYY-MM)")
+    parser.add_argument("-a", "--author", type=parse_author, required=True, help="author's email doing request")
 
     args = parser.parse_args()
 
