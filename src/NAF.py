@@ -33,7 +33,6 @@ class NAF:
         return f"{self.province_code}/{self.middle_number}-{self.last_number}"
 
 
-
 def is_naf_correct(naf):
     """Validate that NAF has NAF format"""
     try:

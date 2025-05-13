@@ -23,6 +23,6 @@ git clone https://github.com/ICIQ-DMP/auto-justifications
 cd auto-justifications
 python3 -m venv venv
 ./venv/bin/pip3 install -r requirements.txt
-./venv/bin/python3 ./src/main.py -n 01/12345678-75 -b 2024_06 -e 2025_06
+./venv/bin/python3 ./src/main.py --naf 01/12345678-75 --begin 2024_06 --end 2025_06 --author "pepito@iciq.es"
 ```
 
