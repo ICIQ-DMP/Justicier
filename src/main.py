@@ -11,7 +11,7 @@ import json
 from arguments import parse_arguments, parse_date
 from defines import *
 from filesystem import *
-from NAF import NAF
+from NAF import NAF, build_naf_to_dni, build_naf_to_name_and_surname, NAF_TO_DNI, NAF_TO_NAME
 from logger import get_logger
 
 
@@ -99,38 +99,6 @@ def write_page(page: pypdf.PageObject, path):
     pass
 
 
-def build_naf_to_dni(path):
-    # Read the Excel file, skipping the first 3 rows
-    df = pd.read_excel(path, skiprows=3, header=None)
-
-    # Column C = index 2 (DNI), Column D = index 3 (NAF)
-    dni_col = df[2]
-    naf_col = df[3]
-
-    # Replace the 11th character in each NAF
-    def parse_naf(naf):
-        return NAF(naf)
-
-    naf_fixed = naf_col.apply(parse_naf)
-
-    return dict(zip(naf_fixed, dni_col))
-
-
-def build_naf_to_name_and_surname(path):
-    # Read the Excel file, skipping the first 3 rows
-    df = pd.read_excel(path, skiprows=3, header=None)
-
-    # Column C = index 2 (DNI), Column D = index 3 (NAF)
-    name_col = df[1]
-    naf_col = df[3]
-
-    # Replace the 11th character in each NAF
-    def parse_naf(naf):
-        return NAF(naf)
-
-    naf_fixed = naf_col.apply(parse_naf)
-
-    return dict(zip(naf_fixed, name_col))
 
 
 def flatten_dirs(folder_to_flat):
@@ -311,11 +279,7 @@ def process_RLCs(rlcs_folder_path, naf_dir, naf, begin, end):
 
 if __name__ == "__main__":
 
-    args = parse_arguments()
-
-    # Build dictionaries to translate NAF to different identifier data
-    NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
-    NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
+    args = parse_arguments(NAF_TO_DNI.keys())
 
     NOW = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 

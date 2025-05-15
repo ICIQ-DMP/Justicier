@@ -1,5 +1,9 @@
 import re
 
+import pandas as pd
+
+from defines import NAF_DATA_PATH
+
 
 class NAF:
     def __init__(self, raw_naf):
@@ -42,8 +46,52 @@ def is_naf_correct(naf):
     return True
 
 
-def validate_naf(value):
+def validate_naf(value, valid_NAFs):
     if not is_naf_correct(value):
         raise ValueError("Naf " + value + " is not valid.")
+    elif NAF(value) not in valid_NAFs:
+        print(value)
+        print(valid_NAFs)
+        raise ValueError("NAF value " + value + " is not in our NAF database (input/NAF_DNI.xlsx)")
     else:
         return NAF(value)
+
+
+def build_naf_to_dni(path):
+    # Read the Excel file, skipping the first 3 rows
+    df = pd.read_excel(path, skiprows=3, header=None)
+
+    # Column C = index 2 (DNI), Column D = index 3 (NAF)
+    dni_col = df[2]
+    naf_col = df[3]
+
+    # Replace the 11th character in each NAF
+    def parse_naf(naf):
+        return NAF(naf)
+
+    naf_fixed = naf_col.apply(parse_naf)
+
+    return dict(zip(naf_fixed, dni_col))
+
+
+def build_naf_to_name_and_surname(path):
+    # Read the Excel file, skipping the first 3 rows
+    df = pd.read_excel(path, skiprows=3, header=None)
+
+    # Column C = index 2 (DNI), Column D = index 3 (NAF)
+    name_col = df[1]
+    naf_col = df[3]
+
+    # Replace the 11th character in each NAF
+    def parse_naf(naf):
+        return NAF(naf)
+
+    naf_fixed = naf_col.apply(parse_naf)
+
+    return dict(zip(naf_fixed, name_col))
+
+
+NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
+
+# Build dictionaries to translate NAF to different identifier data
+NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
