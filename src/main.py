@@ -139,6 +139,10 @@ def is_monthly_salary(salary_page):
         return True
 
 
+def is_delayed_salary(salary_file_path):
+    return str(salary_file_path).split("/")[1].split("_")[1].split(".")[0].__eq__("Atrasos")
+
+
 def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, naf, begin, end):
     months_found = get_monthly_result_structure(begin, end)
 
@@ -179,8 +183,9 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
                                 dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
                     months_found[key][1] = True
                 else:
-                    logger.warning("Monthly salary was found in " + str(salary_file) + " but the expected L00 N RLC was "
-                                 "not found in the expected location " + str(rlc_n_path))
+                    logger.warning("Monthly salary was found in " + str(salary_file) +
+                                   " but the expected L00 N RLC was "
+                                   "not found in the expected location " + str(rlc_n_path))
 
                 p_name = month + "_L00P01.pdf"
                 rlc_p_path = os.path.join(rlc_folder_path, year, p_name)
@@ -189,10 +194,37 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
                                 dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
                     months_found[key][2] = True
                 else:
-                    logger.warning("Monthly salary was found in " + str(salary_file) + " but the expected L00 P RLC was "
-                                 "not found in the expected location " + str(rlc_n_path))
-            else:
+                    logger.warning("Monthly salary was found in " + str(salary_file) +
+                                   " but the expected L00 P RLC was "
+                                   "not found in the expected location " + str(rlc_p_path))
+            elif is_delayed_salary:  # Atrasos
+                year = "20" + salary_file.split("/")[1].split("_")[0][:2]
+                month = salary_file.split("/")[1].split("_")[0][2:]
+
+                rlc_path = os.path.join(naf_dir, RLCS_OUTPUT_NAME, year, month + "_L03")
+                suffix = 1
+                while suffix < 100:  # Accepting only suffix under 100
+                    if suffix < 10:
+                        str_suffix = "0" + str(suffix)
+                    else:
+                        str_suffix = str(suffix)
+                    rlc_path_n = rlc_path + "N" + str_suffix
+                    rlc_path_p = rlc_path + "P" + str_suffix
+
+                    if not os.path.exists(rlc_path_n) and os.path.exists(rlc_path_p):
+                        break
+                    suffix += 1
+
+
+
+
+
+            elif False:  # Finiquitos
+                pass
+            else:  # Throw exception
                 pass  # TODO Check finiquitos and atrasos
+
+
         except ValueError as exc:
             logger.debug("NAF " + naf.__str__() + " was not detected in PDF " + str(salary_file) + ". The error is " +
                          exc.__str__())
@@ -208,7 +240,6 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
     if salaries_found != len(months_found.keys()):
         logger.info("In the period from " + str(begin) + " to " + str(end) + " there are " + str(len(months_found.keys())) +
                     " months, but only " + str(salaries_found) + " regular salaries were found.")
-
 
 
 def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
