@@ -50,8 +50,6 @@ def validate_naf(value, valid_NAFs):
     if not is_naf_correct(value):
         raise ValueError("Naf " + value + " is not valid.")
     elif NAF(value) not in valid_NAFs:
-        print(value)
-        print(valid_NAFs)
         raise ValueError("NAF value " + value + " is not in our NAF database (input/NAF_DNI.xlsx)")
     else:
         return NAF(value)

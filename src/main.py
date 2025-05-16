@@ -1,6 +1,9 @@
+import argparse
+import os.path
+import sys
 from datetime import datetime
 import shutil
-from typing import Union, Dict
+from typing import Union, Dict, Tuple
 
 import pandas as pd
 from pypdf import PdfReader, PdfWriter
@@ -13,15 +16,16 @@ from defines import *
 from filesystem import *
 from NAF import NAF, build_naf_to_dni, build_naf_to_name_and_surname, NAF_TO_DNI, NAF_TO_NAME
 from logger import get_logger
+from custom_except import ArgumentAuthorError, ArgumentDateError, ArgumentNafError
 
 
-def month_range_dict(begin: datetime, end: datetime) -> Dict[int, bool]:
+def get_monthly_result_structure(begin: datetime, end: datetime) -> Dict[str, Tuple[bool, bool, bool]]:
     result = {}
     current = datetime(begin.year, begin.month, 1)
 
     while current <= end:
         key = str(current.year * 100 + current.month)
-        result[key] = False
+        result[key] = [False, False, False]  # Monthly salary found, RLC L00N found, RLC L00P found
         # Move to next month
         if current.month == 12:
             current = datetime(current.year + 1, 1, 1)
@@ -29,34 +33,6 @@ def month_range_dict(begin: datetime, end: datetime) -> Dict[int, bool]:
             current = datetime(current.year, current.month + 1, 1)
 
     return result
-
-
-def get_matching_page(pdf_path: str, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}") -> pypdf.PageObject:
-    # Open PDF
-    reader = PdfReader(pdf_path)
-
-    # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
-    pattern = re.compile(pattern)
-
-    for page_num, page in enumerate(reader.pages):
-        # Get text of the page
-        text = page.extract_text()
-        if not text:
-            continue
-
-        match = pattern.findall(text)
-        if not match:
-            continue
-
-        match_selected = None
-        for match_i in match:
-            if match_i.__eq__(query_string):
-                match_selected = match_i
-
-        if match_selected is not None:
-            return page
-
-    raise ValueError("The string " + query_string + " can't be found in the file " + pdf_path)
 
 
 def get_dni(pdf_path: str) -> str:
@@ -99,8 +75,6 @@ def write_page(page: pypdf.PageObject, path):
     pass
 
 
-
-
 def flatten_dirs(folder_to_flat):
     # List all file names in the _bank_proofs folder, in the ./input folder and remove undesired files
     folders_year = list_dir(folder_to_flat)
@@ -115,21 +89,69 @@ def flatten_dirs(folder_to_flat):
     return flatted_folders
 
 
-def process_salaries(salaries_folder_path, naf_dir, naf, begin, end):
-    num_salaries_found = 0
-    months_found = month_range_dict(begin, end)
+def get_matching_page(pdf_path: str, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}") -> pypdf.PageObject:
+    # Open PDF
+    reader = PdfReader(pdf_path)
 
-    # Salaries
+    # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
+    pattern = re.compile(pattern)
+
+    for page_num, page in enumerate(reader.pages):
+        # Get text of the page
+        text = page.extract_text()
+        if not text:
+            continue
+
+        match = pattern.findall(text)
+        if not match:
+            continue
+
+        match_selected = None
+        for match_i in match:
+            if match_i.__eq__(query_string):
+                match_selected = match_i
+
+        if match_selected is not None:
+            return page
+
+    raise ValueError("The string " + query_string + " can't be found in the file " + pdf_path)
+
+
+def is_monthly_salary(salary_page):
+    # Get text of the page
+    text = salary_page.extract_text()
+    if not text:
+        return False
+
+    pattern = r"\bMensual\b"
+    pattern = re.compile(pattern)
+
+    match = pattern.findall(text)
+    if not match:
+        return False
+
+    match_selected = None
+    for match_i in match:
+        if match_i.__eq__("Mensual"):
+            match_selected = match_i
+
+    if match_selected is not None:
+        return True
+
+
+def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, naf, begin, end):
+    months_found = get_monthly_result_structure(begin, end)
+
+    # Salaries, RLC L00, RLC L03
     # List all file names in the _salaries folder, in the ./input folder and remove undesired files
     salary_files = flatten_dirs(salaries_folder_path)
-
     # Select all salary sheets that are in range with the date (begin and end date included)
     salary_files_selected = []
     for salary_file in salary_files:
         dir_date = parse_date("20" + salary_file.split("/")[1][:4], "%Y%m")
         if begin <= dir_date <= end:
             salary_files_selected.append(salary_file)
-            logger.debug("Salary file " + salary_file + " is selected, because its date is " + dir_date.__str__() + ".")
+            logger.debug("Salary file " + str(salary_file) + " is selected, because its date is " + dir_date.__str__() + ".")
 
     # Write sheets to NAF folder that match the supplied NAF
     salary_files_selected.sort()
@@ -138,16 +160,54 @@ def process_salaries(salaries_folder_path, naf_dir, naf, begin, end):
             page = get_matching_page(os.path.join(salaries_folder_path, salary_file), naf.slash_dash_str())
             current_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME,
                                                salary_file.split("/")[1])
-            logger.info("Detected NAF " + naf.__str__() + " in PDF " + salary_file + ". Saving page in " +
+            logger.info("Detected NAF " + naf.__str__() + " in PDF " + str(salary_file) + ". Saving page in " +
                         current_output_path.__str__() + ".")
             write_page(page, current_output_path)
-            months_found[salary_file.split("_")[0]] = True
-        except ValueError as e:
-            logger.debug("NAF " + naf.__str__() + " was not detected in PDF " + salary_file + ".")
+            key = "20" + salary_file.split("/")[1].split("_")[0]
+            months_found[key][0] = True
 
+            if is_monthly_salary(page):
+                # Monthly salary, look for L00 RLC N & P
+                # Parse year
+                year = "20" + salary_file.split("/")[1].split("_")[0][:2]
+                month = salary_file.split("/")[1].split("_")[0][2:]
+
+                n_name = month + "_L00N01.pdf"
+                rlc_n_path = os.path.join(rlc_folder_path, year, n_name)
+                if os.path.exists(rlc_n_path):
+                    shutil.copy(src=rlc_n_path,
+                                dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
+                    months_found[key][1] = True
+                else:
+                    logger.warning("Monthly salary was found in " + str(salary_file) + " but the expected L00 N RLC was "
+                                 "not found in the expected location " + str(rlc_n_path))
+
+                p_name = month + "_L00P01.pdf"
+                rlc_p_path = os.path.join(rlc_folder_path, year, p_name)
+                if os.path.exists(rlc_p_path):
+                    shutil.copy(src=rlc_p_path,
+                                dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
+                    months_found[key][2] = True
+                else:
+                    logger.warning("Monthly salary was found in " + str(salary_file) + " but the expected L00 P RLC was "
+                                 "not found in the expected location " + str(rlc_n_path))
+            else:
+                pass  # TODO Check finiquitos and atrasos
+        except ValueError as exc:
+            logger.debug("NAF " + naf.__str__() + " was not detected in PDF " + str(salary_file) + ". The error is " +
+                         exc.__str__())
+
+    # Report
+    salaries_found = 0
     for key in months_found.keys():
         if not months_found[key]:
             logger.warning("Salary for NAF " + str(naf) + " was not found during period " + str(key))
+        else:
+            salaries_found += 1
+
+    if salaries_found != len(months_found.keys()):
+        logger.info("In the period from " + str(begin) + " to " + str(end) + " there are " + str(len(months_found.keys())) +
+                    " months, but only " + str(salaries_found) + " regular salaries were found.")
 
 
 
@@ -262,8 +322,9 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
             write_page(page, current_output_path)
         except ValueError as e:
             logger.warning(
-                "NAF " + naf.__str__() + " was not detected in PDF " + rnt_file.__str__() + "or another error happened."
-                                                                                            "The file " + rnt_file.__str__() + " will be ignored. The internal error trace is " + e.__str__())
+                "NAF " + naf.__str__() + " was not detected in PDF " + rnt_file.__str__() + " or another error happened."
+                                                                                            " The file " +
+                rnt_file.__str__() + " will be ignored. The internal error trace is " + e.__str__())
 
 
 def process_RLCs(rlcs_folder_path, naf_dir, naf, begin, end):
@@ -279,8 +340,6 @@ def process_RLCs(rlcs_folder_path, naf_dir, naf, begin, end):
 
 if __name__ == "__main__":
 
-    args = parse_arguments(NAF_TO_DNI.keys())
-
     NOW = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
     # Ensure existence of output directory structure
@@ -294,6 +353,24 @@ if __name__ == "__main__":
 
     os.makedirs(ADMIN_LOG_FOLDER, exist_ok=True)
 
+    try:
+        args = parse_arguments(NAF_TO_DNI.keys())
+    except (argparse.ArgumentTypeError, ArgumentAuthorError, ArgumentDateError, ArgumentNafError) as e:
+        # Admin logs
+        ADMIN_LOG_PATH = os.path.join(ADMIN_LOG_FOLDER, NOW + "_" +
+                                      "UnknownAuthor" + "_" +
+                                      "UnknownNaf"
+                                      + "_" + "UnknownName" + "_" +
+                                      "Unknown begin date" + "-" + "Unknown end date" + ".log.txt")
+        logger = get_logger("/dev/null", ADMIN_LOG_PATH, debug_mode=True)
+        logger.critical("Error parsing arguments. Program aborting. The error is: " + e.__str__())
+        logger.critical("The arguments are: " + str(sys.argv))
+        logger.critical("The program is in a uninitialized state and cannot proceed. This error will be notified to "
+                        "the admin via"
+                        "log file. We can't create log file in user author folder because user "
+                        "author could not be parsed.")
+        exit(1)
+
     # Admin logs
     ADMIN_LOG_PATH = os.path.join(ADMIN_LOG_FOLDER, NOW + "_" +
                                   args.author + "_" +
@@ -301,12 +378,14 @@ if __name__ == "__main__":
                                   + "_" + NAF_TO_NAME[args.naf] + "_" +
                                   args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m") + ".log.txt")
 
+    # Home folder of the user
     CURRENT_USER_FOLDER: str = os.path.join(GENERAL_OUTPUT_FOLDER, args.author)
     os.makedirs(CURRENT_USER_FOLDER, exist_ok=True)
 
-    justification_name = (NOW + " " + str(args.naf) + " " + NAF_TO_NAME[args.naf] + " " + str(args.begin) + "-" +
-                          str(args.end))
-
+    # Folder for the current justification
+    justification_name = (NOW + " " + str(args.naf) + " " + NAF_TO_NAME[args.naf] + " from " +
+                          str(args.begin.strftime("%Y-%m")) + " to " +
+                          str(args.end.strftime("%Y-%m")))
     JUSTIFICATION_FOLDER = os.path.join(CURRENT_USER_FOLDER, justification_name)
     os.makedirs(JUSTIFICATION_FOLDER, exist_ok=True)
 
@@ -330,7 +409,7 @@ if __name__ == "__main__":
         logger.critical("Error: NAF " + args.naf + " was not found in database. Update the file ./input/NAF_DNI.xlsx")
         exit(1)
 
-    process_salaries(SALARIES_FOLDER, JUSTIFICATION_FOLDER, args.naf, args.begin, args.end)
+    process_salaries_with_rlc(SALARIES_FOLDER, RLCS_FOLDER, JUSTIFICATION_FOLDER, args.naf, args.begin, args.end)
 
     process_proofs(PROOFS_FOLDER, JUSTIFICATION_FOLDER, args.naf, args.begin, args.end, NAF_TO_DNI)
 

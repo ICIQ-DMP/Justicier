@@ -3,14 +3,14 @@ import datetime
 from functools import partial
 
 from NAF import NAF_TO_DNI, validate_naf
-
+from custom_except import *
 
 def parse_date(value, formatting="%Y_%m"):
     """Validate date format"""
     try:
         return datetime.datetime.strptime(value, formatting)
     except Exception as e:
-        raise ValueError("The value " + value + " could not be formatted with "
+        raise ArgumentDateError("The value " + value + " could not be formatted with "
                          + formatting + ". Datetime exception was " + e.__str__())
 
 
@@ -19,14 +19,14 @@ def parse_author(author):
         for line in f.readlines():
             if line.__eq__(author):
                 return author
-        raise ValueError("Author " + author + " is not in the accepted users.")
+        raise ArgumentAuthorError("Author " + author + " is not in the accepted user list (input/users.txt).")
 
 
 def parse_naf(value):
     try:
         return validate_naf(value, NAF_TO_DNI.keys())
     except ValueError as e:
-        raise argparse.ArgumentTypeError(e.__str__())
+        raise ArgumentNafError("NAF is not valid" + e.__str__())
 
 
 def parse_arguments(valid_nafs):
