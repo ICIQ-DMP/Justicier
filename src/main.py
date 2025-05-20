@@ -89,7 +89,7 @@ def flatten_dirs(folder_to_flat):
     return flatted_folders
 
 
-def get_matching_page(pdf_path: str, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}") -> pypdf.PageObject:
+def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}") -> pypdf.PageObject:
     # Open PDF
     reader = PdfReader(pdf_path)
 
@@ -115,6 +115,28 @@ def get_matching_page(pdf_path: str, query_string: str, pattern: str = r"\d{2}/\
             return page
 
     raise ValueError("The string " + query_string + " can't be found in the file " + pdf_path)
+
+
+def parse_date_from_delayed_salary(page):
+    # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
+    query_str = "PERIODO"
+    pattern = re.compile(query_str)
+
+    text = page.extract_text()
+    if not text:
+        pass  # TODO exceptions
+
+    match = pattern.findall(text)
+    if not match:
+        pass  # TODO exceptions
+
+    match_selected = None
+    for match_i in match:
+        if match_i.__eq__(query_str):
+            return match_i
+
+    raise ValueError("The string can't be found in the page")
+
 
 
 def is_monthly_salary(salary_page):
@@ -143,6 +165,24 @@ def is_delayed_salary(salary_file_path):
     return str(salary_file_path).split("/")[1].split("_")[1].split(".")[0].__eq__("Atrasos")
 
 
+def parse_salary_type(salary_file_path):
+    return salary_file_path.split(".")[0].split("_")[1]
+
+
+def parse_year_salary_path(salary_file):
+    return "20" + salary_file.split("/")[1].split("_")[0][:2]
+
+
+def parse_month_salary_path(salary_file):
+    return salary_file.split("/")[1].split("_")[0][2:]
+
+
+def parse_salary_filename_from_salary_path(salary_path):
+    return salary_path.split("/")[1]
+
+
+
+
 def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, naf, begin, end):
     months_found = get_monthly_result_structure(begin, end)
 
@@ -161,44 +201,24 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
     salary_files_selected.sort()
     for salary_file in salary_files_selected:
         try:
-            page = get_matching_page(os.path.join(salaries_folder_path, salary_file), naf.slash_dash_str())
-            current_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME,
-                                               salary_file.split("/")[1])
+            salary_file_path = os.path.join(salaries_folder_path, salary_file)
+            salary_file_name = parse_salary_filename_from_salary_path(salary_file_path)
+            salary_page = get_matching_page(salary_file_path, naf.slash_dash_str())
+            salary_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME, salary_file_name)
+            write_page(salary_page, salary_output_path)
+
+            # Mark it as found
+            key = parse_year_salary_path(salary_file) + parse_month_salary_path(salary_file)
+            print("Key is " + key)
+            months_found[key][0] = True  # Month salary is found
             logger.info("Detected NAF " + naf.__str__() + " in PDF " + str(salary_file) + ". Saving page in " +
-                        current_output_path.__str__() + ".")
-            write_page(page, current_output_path)
-            key = "20" + salary_file.split("/")[1].split("_")[0]
-            months_found[key][0] = True
+                        salary_output_path.__str__() + ".")
 
-            if is_monthly_salary(page):
-                # Monthly salary, look for L00 RLC N & P
-                # Parse year
-                year = "20" + salary_file.split("/")[1].split("_")[0][:2]
-                month = salary_file.split("/")[1].split("_")[0][2:]
-
-                n_name = month + "_L00N01.pdf"
-                rlc_n_path = os.path.join(rlc_folder_path, year, n_name)
-                if os.path.exists(rlc_n_path):
-                    shutil.copy(src=rlc_n_path,
-                                dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
-                    months_found[key][1] = True
-                else:
-                    logger.warning("Monthly salary was found in " + str(salary_file) +
-                                   " but the expected L00 N RLC was "
-                                   "not found in the expected location " + str(rlc_n_path))
-
-                p_name = month + "_L00P01.pdf"
-                rlc_p_path = os.path.join(rlc_folder_path, year, p_name)
-                if os.path.exists(rlc_p_path):
-                    shutil.copy(src=rlc_p_path,
-                                dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
-                    months_found[key][2] = True
-                else:
-                    logger.warning("Monthly salary was found in " + str(salary_file) +
-                                   " but the expected L00 P RLC was "
-                                   "not found in the expected location " + str(rlc_p_path))
-            elif is_delayed_salary:  # Atrasos
-                year = "20" + salary_file.split("/")[1].split("_")[0][:2]
+            # Now check if salary_file is delay, so we need to proceed to L03 procedure
+            if parse_salary_type(salary_file_path).__eq__(SalaryType.DELAY.value):  # If Delay, process L03 RLCs
+                date = parse_date_from_delayed_salary(page)
+                input()
+                year = parse_year_salary_path(salary_file)
                 month = salary_file.split("/")[1].split("_")[0][2:]
 
                 rlc_path = os.path.join(naf_dir, RLCS_OUTPUT_NAME, year, month + "_L03")
@@ -215,9 +235,35 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
                         break
                     suffix += 1
 
+            if is_monthly_salary(salary_page):
+                # Monthly salary, look for L00 RLC N & P
+                # Parse year
+                year = "20" + salary_file.split("/")[1].split("_")[0][:2]
+                month = salary_file.split("/")[1].split("_")[0][2:]
 
+                n_name = month + "_L00N01.pdf"
+                rlc_n_path = os.path.join(rlc_folder_path, year, n_name)
+                if os.path.exists(rlc_n_path):
+                    shutil.copy(src=rlc_n_path,
+                                dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
+                    months_found[key][1] = True  # RLC L00 is found
+                else:
+                    logger.warning("Monthly salary was found in " + str(salary_file) +
+                                   " but the expected L00 N RLC was "
+                                   "not found in the expected location " + str(rlc_n_path))
 
-
+                p_name = month + "_L00P01.pdf"
+                rlc_p_path = os.path.join(rlc_folder_path, year, p_name)
+                if os.path.exists(rlc_p_path):
+                    shutil.copy(src=rlc_p_path,
+                                dst=os.path.join(naf_dir, RLCS_OUTPUT_NAME))
+                    months_found[key][2] = True
+                else:
+                    logger.warning("Monthly salary was found in " + str(salary_file) +
+                                   " but the expected L00 P RLC was "
+                                   "not found in the expected location " + str(rlc_p_path))
+            elif is_delayed_salary:  # Atrasos
+                pass
 
             elif False:  # Finiquitos
                 pass

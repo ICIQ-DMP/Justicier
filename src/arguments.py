@@ -5,6 +5,7 @@ from functools import partial
 from NAF import NAF_TO_DNI, validate_naf
 from custom_except import *
 
+
 def parse_date(value, formatting="%Y_%m"):
     """Validate date format"""
     try:

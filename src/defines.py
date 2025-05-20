@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 
 # Get absolute path to the root of the project
 ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,3 +28,14 @@ RLCS_OUTPUT_NAME = "RLCs"
 
 NAF_DATA_PATH = os.path.join(INPUT_FOLDER, "NAF_DNI.xlsx")
 
+
+class RLCType(Enum):
+    REGULAR = "regular"
+    DELAY = "delay"
+    SETTLEMENT = "settlement"
+
+
+class SalaryType(Enum):
+    REGULAR = "Nomines"
+    DELAY = "Atrasos"
+    EXTRA = "Extres"
