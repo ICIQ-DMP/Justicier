@@ -5,7 +5,7 @@ from functools import partial
 
 from NAF import NAF_TO_DNI, validate_parse_naf
 from custom_except import *
-from defines import NAF_DATA_PATH, DocType
+from defines import NAF_DATA_PATH, DocType, from_string
 
 
 def get_compact_init():
@@ -39,8 +39,12 @@ def parse_naf(value):
 def parse_compact(value):
     to_compact = get_compact_init()
     try:
-        for s in value.split(","):
-            doc_type = DocType.from_string(s)
+        if "," in value:
+            for s in value.split(","):
+                doc_type = from_string(s)
+                to_compact[doc_type] = True
+        else:
+            doc_type = from_string(value)
             to_compact[doc_type] = True
         return to_compact
     except ValueError as e:
@@ -58,7 +62,7 @@ def parse_arguments(valid_nafs):
     parser.add_argument("-e", "--end", type=parse_date, required=True, help="End date (YYYY-MM)")
     parser.add_argument("-a", "--author", type=parse_author, required=True, help="author's email doing request")
 
-    parser.add_argument("-c", "--compact", type=parse_compact, required=False, default=get_compact_init() , help="Comma separated list of values "
+    parser.add_argument("-c", "--compact", type=parse_compact, required=False, default=get_compact_init(), help="Comma separated list of values "
                                                                           "that indicate "
                         "which documents need to be merged in one signle PDF in the output. Possible values are: " + ",".join([dt.value.__str__() for dt in DocType]))
 

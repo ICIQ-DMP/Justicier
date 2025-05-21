@@ -1,4 +1,5 @@
-PyPDF2
+pypdf
+PyPDF2  # This does not work for extracting text in some cases
 pandas
 openpyxl
 PyCryptodome

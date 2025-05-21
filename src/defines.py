@@ -37,19 +37,20 @@ class DocType(Enum):
     RNT = "RNT"
     PROOFS = "proofs"
 
-    _aliases = {
-        SALARY: {"salary", "SALARY", "Salary", "payslip"},
-        CONTRACT: {"contract", "CONTRACT", "Contract", "agreement"},
-        RLC: {"RLC", "rlc", "R.L.C."},
-        RNT: {"RNT", "rnt", "R.N.T."},
-    }
 
-    @classmethod
-    def from_string(cls, value: str):
-        for doctype, aliases in cls._aliases:
-            if value.strip() in aliases:
-                return doctype
-        raise ValueError(f"Unknown document type: {value}")
+def from_string(value: str):
+    _aliases = {
+        DocType.SALARY: {"salary", "salaries", "SALARY", "Salary", "payslip"},
+        DocType.CONTRACT: {"contract", "CONTRACT", "Contract", "agreement"},
+        DocType.RLC: {"RLC", "rlc", "R.L.C."},
+        DocType.RNT: {"RNT", "rnt", "R.N.T."},
+    }
+    for doctype in _aliases:
+        print("value is " + value.__str__())
+
+        if value.strip() in _aliases[doctype]:
+            return doctype
+    raise ValueError(f"Unknown document type: {value}")
 
 
 class RLCType(Enum):
@@ -62,4 +63,10 @@ class SalaryType(Enum):
     REGULAR = "Nomines"
     DELAY = "Atrasos"
     EXTRA = "Extres"
+
+
+class RegularSalaryType(Enum):
+    SETTLEMENT = "Settlement"
+    MONTHLY = "Monthly"
+
 

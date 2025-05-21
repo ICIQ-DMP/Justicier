@@ -26,6 +26,18 @@ def list_dir(input_folder):
     return file_names
 
 
+def flatten_dirs(folder_to_flat):
+    # List all file names in the _bank_proofs folder, in the ./input folder and remove undesired files
+    subfolder_year = list_dir(folder_to_flat)
+    if ".gitignore" in subfolder_year:
+        subfolder_year.remove(".gitignore")
+    # Flatten year directories (flat list of document for all years)
+    flatted_folders = []
+    for folder_year in subfolder_year:
+        for folder in list_dir(os.path.join(folder_to_flat, folder_year)):
+            flatted_folders.append(os.path.join(folder_year, folder))
+
+    return flatted_folders
 
 
 def compute_paths(args):

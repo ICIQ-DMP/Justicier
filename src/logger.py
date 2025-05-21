@@ -101,3 +101,9 @@ def unformatted_logger(logger):
     return logger
 
 
+def set_logger(logger_instance):
+    global base_logger
+    base_logger = logger_instance
+
+
+base_logger = None  # will be set later by main

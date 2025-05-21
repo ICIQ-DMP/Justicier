@@ -13,3 +13,9 @@ class ArgumentAuthorError(Exception):
 
 class ArgumentNafInvalid(Exception):
     pass
+
+
+class UndefinedRegularSalaryType(Exception):
+    pass
+
+
