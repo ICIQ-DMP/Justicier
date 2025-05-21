@@ -3,9 +3,13 @@ class ArgumentDateError(Exception):
     pass
 
 
-class ArgumentNafError(Exception):
+class ArgumentNafNotPresent(Exception):
     pass
 
 
 class ArgumentAuthorError(Exception):
+    pass
+
+
+class ArgumentNafInvalid(Exception):
     pass

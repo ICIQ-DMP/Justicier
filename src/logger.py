@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from contextlib import contextmanager
 
 # ANSI escape codes for colors
 COLOR_CODES = {
@@ -20,10 +21,7 @@ class ColorFormatter(logging.Formatter):
         return f"{color}{message}{RESET_CODE}"
 
 
-def get_logger(user_report_file, admin_log_file, name="justicier", debug_mode=False):
-    os.makedirs(os.path.dirname(user_report_file), exist_ok=True)
-    os.makedirs(os.path.dirname(admin_log_file), exist_ok=True)
-
+def get_logger(user_report_file, admin_log_file, supervisor_log_file, name="justicier", debug_mode=False):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
@@ -31,8 +29,8 @@ def get_logger(user_report_file, admin_log_file, name="justicier", debug_mode=Fa
         return logger  # Prevent re-adding handlers
 
     # Formatters
-    plain_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    color_formatter = ColorFormatter('%(asctime)s - %(levelname)s - %(message)s')
+    plain_formatter = logging.Formatter('%(asctime)s - %(process_name)s - %(levelname)s - %(message)s')
+    color_formatter = ColorFormatter('%(asctime)s - %(process_name)s - %(levelname)s - %(message)s')
 
     # User log (INFO+)
     user_handler = logging.FileHandler(user_report_file)
@@ -49,7 +47,57 @@ def get_logger(user_report_file, admin_log_file, name="justicier", debug_mode=Fa
     console_handler.setLevel(logging.DEBUG if debug_mode else logging.WARNING)
     console_handler.setFormatter(color_formatter)
 
-    for handler in [user_handler, admin_handler, console_handler]:
+    # Supervisor log
+    supervisor_handler = logging.FileHandler(supervisor_log_file)
+    supervisor_handler.setLevel(logging.INFO)
+    supervisor_handler.setFormatter(color_formatter)
+
+    for handler in [user_handler, admin_handler, console_handler, supervisor_handler]:
         logger.addHandler(handler)
 
     return logger
+
+
+def get_raw_logger(user_report_file, admin_log_file, supervisor_log_file, name="raw", debug_mode=False):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    if logger.handlers:
+        return logger  # Prevent re-adding handlers
+
+    # User log (INFO+)
+    user_handler = logging.FileHandler(user_report_file)
+    user_handler.setLevel(logging.INFO)
+    user_handler.setFormatter(None)
+
+    # Admin/system log (DEBUG+ if debug_mode, else ERROR+)
+    admin_handler = logging.FileHandler(admin_log_file)
+    admin_handler.setLevel(logging.DEBUG if debug_mode else logging.ERROR)
+    admin_handler.setFormatter(None)
+
+    # Console log (DEBUG+ if debug_mode, else WARNING+), with colors
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG if debug_mode else logging.WARNING)
+    console_handler.setFormatter(None)
+
+    # Supervisor log
+    supervisor_handler = logging.FileHandler(supervisor_log_file)
+    supervisor_handler.setLevel(logging.INFO)
+    supervisor_handler.setFormatter(None)
+
+    for handler in [user_handler, admin_handler, console_handler, supervisor_handler]:
+        logger.addHandler(handler)
+
+    return logger
+
+
+def get_process_logger(base_logger, process_name):
+    return logging.LoggerAdapter(base_logger, {'process_name': process_name})
+
+
+def unformatted_logger(logger):
+    for h in logger.handlers:
+        h.setFormatter(None)
+    return logger
+
+

@@ -11,7 +11,8 @@ GENERAL_OUTPUT_FOLDER: str = os.path.join(ROOT_FOLDER, "output")
 INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
 
 # Admin logs
-ADMIN_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_logs")
+ADMIN_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_admin_logs")
+SUPERVISOR_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_supervisor_logs")
 
 # Obtain absolute paths for each input directory
 SALARIES_FOLDER = os.path.join(INPUT_FOLDER, "_salaries")

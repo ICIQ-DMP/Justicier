@@ -3,6 +3,7 @@ import re
 import pandas as pd
 
 from defines import NAF_DATA_PATH
+from custom_except import ArgumentNafInvalid, ArgumentNafNotPresent
 
 
 class NAF:
@@ -46,13 +47,18 @@ def is_naf_correct(naf):
     return True
 
 
-def validate_naf(value, valid_nafs):
+def validate_parse_naf(value, valid_nafs):
     if not is_naf_correct(value):
-        raise ValueError("Naf " + value + " is not valid.")
+        raise ArgumentNafInvalid("Naf " + value + " is not valid.")
     elif NAF(value) not in valid_nafs:
-        raise ValueError("NAF value " + value + " is not in our NAF database (input/NAF_DNI.xlsx)")
+        raise ArgumentNafNotPresent("NAF value " + value + " is not in our NAF database (input/NAF_DNI.xlsx)")
     else:
         return NAF(value)
+
+
+def clean_naf(naf):
+    "Removes symbols that are not numbers in a SS number"
+    return naf.replace("/", "").replace("-", "")
 
 
 def build_naf_to_dni(path):

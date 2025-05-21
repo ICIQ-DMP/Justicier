@@ -1,5 +1,6 @@
-pypdf
+PyPDF2
 pandas
 openpyxl
-
+PyCryptodome
 Office365-REST-Python-Client
+pyfiglet
