@@ -26,6 +26,8 @@ def list_dir(input_folder):
     return file_names
 
 
+
+
 def compute_paths(args):
     NOW = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 

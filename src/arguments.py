@@ -5,7 +5,11 @@ from functools import partial
 
 from NAF import NAF_TO_DNI, validate_parse_naf
 from custom_except import *
-from defines import NAF_DATA_PATH
+from defines import NAF_DATA_PATH, DocType
+
+
+def get_compact_init():
+    return {DocType.SALARY: False, DocType.PROOFS: False, DocType.CONTRACT: False, DocType.RNT: False}
 
 
 def parse_date(value, formatting="%Y_%m"):
@@ -32,6 +36,18 @@ def parse_naf(value):
         raise ArgumentNafNotPresent("NAF is not valid" + e.__str__())
 
 
+def parse_compact(value):
+    to_compact = get_compact_init()
+    try:
+        for s in value.split(","):
+            doc_type = DocType.from_string(s)
+            to_compact[doc_type] = True
+        return to_compact
+    except ValueError as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
 def parse_arguments(valid_nafs):
     """Parse and validate command-line arguments"""
     parser = argparse.ArgumentParser(description="Process NAF and date range.")
@@ -41,6 +57,10 @@ def parse_arguments(valid_nafs):
     parser.add_argument("-b", "--begin", type=parse_date, required=True, help="Begin date (YYYY-MM)")
     parser.add_argument("-e", "--end", type=parse_date, required=True, help="End date (YYYY-MM)")
     parser.add_argument("-a", "--author", type=parse_author, required=True, help="author's email doing request")
+
+    parser.add_argument("-c", "--compact", type=parse_compact, required=False, default=get_compact_init() , help="Comma separated list of values "
+                                                                          "that indicate "
+                        "which documents need to be merged in one signle PDF in the output. Possible values are: " + ",".join([dt.value.__str__() for dt in DocType]))
 
     args = parser.parse_args()
 

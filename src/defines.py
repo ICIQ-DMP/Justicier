@@ -30,6 +30,28 @@ RLCS_OUTPUT_NAME = "RLCs"
 NAF_DATA_PATH = os.path.join(INPUT_FOLDER, "NAF_DNI.xlsx")
 
 
+class DocType(Enum):
+    SALARY = "salary"
+    CONTRACT = "contract"
+    RLC = "RLC"
+    RNT = "RNT"
+    PROOFS = "proofs"
+
+    _aliases = {
+        SALARY: {"salary", "SALARY", "Salary", "payslip"},
+        CONTRACT: {"contract", "CONTRACT", "Contract", "agreement"},
+        RLC: {"RLC", "rlc", "R.L.C."},
+        RNT: {"RNT", "rnt", "R.N.T."},
+    }
+
+    @classmethod
+    def from_string(cls, value: str):
+        for doctype, aliases in cls._aliases:
+            if value.strip() in aliases:
+                return doctype
+        raise ValueError(f"Unknown document type: {value}")
+
+
 class RLCType(Enum):
     REGULAR = "regular"
     DELAY = "delay"
@@ -40,3 +62,4 @@ class SalaryType(Enum):
     REGULAR = "Nomines"
     DELAY = "Atrasos"
     EXTRA = "Extres"
+
