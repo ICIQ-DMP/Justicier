@@ -12,14 +12,14 @@ def format_line(content: str, width: int = 119) -> str:
 
 def get_initial_user_report(args):
     figlet = Figlet(font='slant')
-    ascii_logo_normal = figlet.renderText('El Justicier').strip("\n").rstrip(" ")
+    ascii_logo_normal = figlet.renderText('Justicier').strip("\n").rstrip(" ")
     ascii_logo = ""
     for line in ascii_logo_normal.split("\n"):
         # Ensure the line is at least 120 characters long before slicing
         if len(line) >= 120:
-            line = "=                              " + line[:84] + "   ="  # Replace char at index 120
+            line = "=                                     " + line[:77] + "   ="  # Replace char at index 120
         else:
-            line = "=                              " + line.ljust(84) + "   ="  # Pad to 120 and then add "="
+            line = "=                                     " + line.ljust(77) + "   ="  # Pad to 120 and then add "="
         ascii_logo += line + "\n"
 
     compact_something = any(args.compact.values())
@@ -34,10 +34,10 @@ def get_initial_user_report(args):
     user_report += "=======================================================================================================================\n"
     user_report += "" + ascii_logo
     user_report += "=======================================================================================================================\n"
-    user_report += "                                  :: El Justicier ::   Version: " + version + "\n"
-    user_report += "                        Copyright © 2025-2025 Institut Català d'Investigació Química (ICIQ)\n"
+    user_report += "                                        :: Justicier ::   Version: " + version + "\n"
+    user_report += "                          Copyright © 2025-2025 Institut Català d'Investigació Química (ICIQ)\n"
     user_report += "                                            This program is free software\n"
-    user_report += "                                   Proudly distributed with ♥ under the GPLv3 license\n"
+    user_report += "                                  Proudly distributed with ♥ under the GPLv3 license\n"
     user_report += "***********************************************************************************************************************\n"
     user_report += "* Solution Arquitect and Maintainer: Aleix Mariné Tena (AleixMT), ICIQ, Data Steward                                  *\n"
     user_report += "* Product Owner: Carles de la Cuadra, ICIQ, Assistant Financial Manager                                               *\n"
