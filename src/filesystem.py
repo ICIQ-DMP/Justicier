@@ -60,7 +60,7 @@ def compute_paths(args):
 
     USER_REPORT_FILE = os.path.join(CURRENT_JUSTIFICATION_FOLDER, NOW + "_" +
                                     args.naf.__str__()
-                                    + "_" + NAF_TO_NAME[args.naf] + "_" +
+                                    + "_" + NAF_TO_NAME[args.naf].replace(" ", "_") + "_" +
                                     args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m") + ".log.txt")
     return CURRENT_USER_FOLDER, CURRENT_JUSTIFICATION_FOLDER, USER_REPORT_FILE, ADMIN_LOG_PATH, SUPERVISOR_LOG_PATH
 

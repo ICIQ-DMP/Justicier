@@ -9,7 +9,7 @@ from defines import NAF_DATA_PATH, DocType, from_string
 
 
 def get_compact_init():
-    return {DocType.SALARY: False, DocType.PROOFS: False, DocType.CONTRACT: False, DocType.RNT: False}
+    return {DocType.SALARY: False, DocType.PROOFS: False, DocType.CONTRACT: False, DocType.RNT: False, DocType.RLC: False}
 
 
 def parse_date(value, formatting="%Y_%m"):
@@ -62,9 +62,10 @@ def parse_arguments(valid_nafs):
     parser.add_argument("-e", "--end", type=parse_date, required=True, help="End date (YYYY-MM)")
     parser.add_argument("-a", "--author", type=parse_author, required=True, help="author's email doing request")
 
-    parser.add_argument("-c", "--compact", type=parse_compact, required=False, default=get_compact_init(), help="Comma separated list of values "
-                                                                          "that indicate "
-                        "which documents need to be merged in one signle PDF in the output. Possible values are: " + ",".join([dt.value.__str__() for dt in DocType]))
+    parser.add_argument("-c", "--compact", type=parse_compact, required=False, default=get_compact_init(),
+                        help="Comma separated list of values that indicate which documents need to be merged in one "
+                             "single PDF in the output. Possible values are: " +
+                             ",".join([dt.value.__str__() for dt in DocType]))
 
     args = parser.parse_args()
 

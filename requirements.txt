@@ -1,7 +1,7 @@
-pypdf
-PyPDF2  # This does not work for extracting text in some cases
-pandas
+pypdf~=5.5.0
+PyPDF2~=3.0.1
+pandas~=2.0.3
 openpyxl
 PyCryptodome
 Office365-REST-Python-Client
-pyfiglet
+pyfiglet~=0.8.post1

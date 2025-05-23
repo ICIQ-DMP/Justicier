@@ -1,4 +1,5 @@
 import locale
+import logging
 import os
 import re
 import shutil
@@ -10,7 +11,7 @@ from pypdf import PdfReader, PdfWriter
 
 from data import unparse_month
 from filesystem import list_dir
-from logger import base_logger
+from logger import get_logger, get_logger_instance, get_process_logger
 from custom_except import UndefinedRegularSalaryType
 from defines import RegularSalaryType
 
@@ -106,8 +107,9 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
 
 
 def parse_dates_from_delayed_salary(page):
+    logger = get_process_logger(get_logger_instance(), "parse_dates_from_delayed_salary")
     # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
-    query_str = "Atrasos 20.*"  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
+    query_str = '\\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2} a \\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
     # restricting the search with the beginning of the year, which appears in the line that
     # we are interested in, which contains the date.
     pattern = re.compile(query_str)
@@ -116,21 +118,19 @@ def parse_dates_from_delayed_salary(page):
     if not text:
         pass  # TODO exceptions
 
-    match = pattern.findall(text)
+    match = pattern.search(text)
     if not match:
         pass  # TODO exceptions
 
-    if len(match) > 1:
-        base_logger.error("More than one match was detected in page, defaulting to the first match detected")
-    match = match[0]
+    logger.debug("Match is " + str(match))
+
+    match = match.group(0)
 
     # Set locale to Spanish (you may need to install it depending on your OS)
     locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
 
-    date_text = " ".join(match.__str__().split("-")[1].strip(" ").split(" ")[0:-1])
-
     # Split the string by ' a '
-    start_str, end_str = date_text.split(' a ')
+    start_str, end_str = match.split(' a ')
 
     # Parse both dates
     start_date = datetime.strptime(start_str.strip(), '%d %B %Y')
@@ -209,6 +209,7 @@ def merge_pdfs(pdf_paths, output_path):
 
 
 def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path):
+    logger = get_process_logger(get_logger_instance(), "Salaries and RLCs L03 is_date_present_in_rlc_delay")
     reader = PdfReader(document_path)
     query_string = (unparse_month(delay_begin) + "/" + delay_begin.year.__str__() + " - " + unparse_month(delay_end)
                     + "/" + delay_end.year.__str__())
@@ -223,11 +224,12 @@ def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path):
         if not match:
             continue
 
+        logger.debug("Detected this matches: " + str(match))
         for match_i in match:
             if match_i.__eq__(query_string):
                 return True
 
-    raise ValueError("The string " + query_string + " can't be found in the file " + document_path)
+    return False
 
 
 def compact_folder(path_folder):
@@ -239,7 +241,12 @@ def compact_folder(path_folder):
     Remove folder path_folder
     create merged PDF path_folder + ".pdf"
     """
+    logger = get_process_logger(get_logger_instance(), "Folder compactation")
     paths = list_dir(path_folder)
+    if len(paths) == 0:
+        logger.warning("Refusing to compact folder " + path_folder + " because it is empty. Aborting compression.")
+        return
+
     paths.sort()
     for i in range(len(paths)):
         paths[i] = os.path.join(path_folder, paths[i])

@@ -37,17 +37,15 @@ class DocType(Enum):
     RNT = "RNT"
     PROOFS = "proofs"
 
-
 def from_string(value: str):
     _aliases = {
         DocType.SALARY: {"salary", "salaries", "SALARY", "Salary", "payslip"},
         DocType.CONTRACT: {"contract", "CONTRACT", "Contract", "agreement"},
         DocType.RLC: {"RLC", "rlc", "R.L.C."},
         DocType.RNT: {"RNT", "rnt", "R.N.T."},
+        DocType.PROOFS: {"proof", "bankproof", "proofs", "bankproofs"}
     }
     for doctype in _aliases:
-        print("value is " + value.__str__())
-
         if value.strip() in _aliases[doctype]:
             return doctype
     raise ValueError(f"Unknown document type: {value}")
