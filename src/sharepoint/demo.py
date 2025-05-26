@@ -1,6 +1,7 @@
 import os
 import json
 
+
 def demo_request():
     from . import get_request_ctx
 

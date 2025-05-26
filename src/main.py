@@ -55,7 +55,7 @@ def process_generic_rlc(rlc_type, salary_date, salary_file_path, rlc_folder_path
                      + " will be skipped.")
         return
 
-    pdf_path_list = [salary_output_path, rlc_n_path, rlc_p_path]
+    pdf_path_list = [rlc_n_path, rlc_p_path]
     pdf_merged_name = salary_date.year.__str__() + unparse_month(salary_date) + "_L" + rlc_type + "Merge.pdf"
     merge_pdfs(pdf_path_list, os.path.join(naf_dir, RLCS_OUTPUT_NAME, pdf_merged_name))
 
@@ -100,7 +100,7 @@ def process_rlc_l03(salary_file_path, salary_page_number, salary_page, salary_da
                 logger.debug("Breaking out of the bucle because " + rlc_path_p +
                              "does not exist.")
             months_found[salary_date][2] = True  # Delay salary P is found
-            pdf_path_list.append(salary_output_path)
+            # pdf_path_list.append(salary_output_path)  # Do not add salary to RLC merge
             pdf_path_list.append(rlc_path_n)
             pdf_path_list.append(rlc_path_p)
             merge_pdfs(pdf_path_list, pdf_output_path)
@@ -242,17 +242,18 @@ def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
                 write_page(page, output_path)
 
         elif bank.__eq__("LA_CAIXA") or bank.__eq__("LA_CAIXA_EXTRA") or bank.__eq__("LA_CAIXA_endarreriments"):
-            file_name = list_dir(os.path.join(proofs_folder_path, bankproof_folder))[0]
-            try:
-                page = get_matching_page(os.path.join(proofs_folder_path, bankproof_folder, file_name),
-                                         naf_to_dni[naf], "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]")
-            except ValueError as e:
-                logger.debug("NAF " + naf.__str__() + " not detected in " + file_name + ". Error: " + e.__str__())
-                continue
-            output_path = os.path.join(proofs_dir, file_name)
-            logger.info(
-                "NAF " + naf.__str__() + " was detected in " + file_name + ". Writing page to " + output_path.__str__() + ".")
-            write_page(page, output_path)
+            file_names = list_dir(os.path.join(proofs_folder_path, bankproof_folder))
+            for file_name in file_names:
+                try:
+                    page = get_matching_page(os.path.join(proofs_folder_path, bankproof_folder, file_name),
+                                             naf_to_dni[naf], "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]")
+                except ValueError as e:
+                    logger.debug("NAF " + naf.__str__() + " not detected in " + file_name + ". Error: " + e.__str__())
+                    continue
+                output_path = os.path.join(proofs_dir, file_name)
+                logger.info(
+                    "NAF " + naf.__str__() + " was detected in " + file_name + ". Writing page to " + output_path.__str__() + ".")
+                write_page(page, output_path)
         else:
             logger.error(bank.__str__() + " is a bad bank. Skipping to next bank proof.")
             continue
@@ -313,14 +314,24 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
         file_date = parse_date("20" + rnt_file.split("/")[1][:4], "%Y%m")
         if begin <= file_date <= end:
             rnt_file_name = rnt_file.split("/")[1]
+            rnt_file_name_without_extension = rnt_file_name.split(".")[0]
             rnt_path = os.path.join(rnts_folder_path, file_date.year.__str__(), rnt_file_name)
-            rnt_path_destination = os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_file_name)
+            rnt_partial_path_destination = os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_file_name)
             logger.info("RNT file " + rnt_path.__str__() + " is selected, because its date is " +
                         unparse_date(file_date) + "."
-                                                  " It will be copied into " + rnt_path_destination)
-            shutil.copy(src=rnt_path,
-                        dst=rnt_path_destination)
-            rnts_found[file_date] = True
+                                                  " It will be copied into " + rnt_partial_path_destination)
+            try:
+                pages = get_matching_pages(rnt_path, naf.__str__(), r"\d{12}")
+            except ValueError as e:
+                logger.debug("NAF " + naf.__str__() + " not detected in " + rnt_path + ". Error: " + e.__str__())
+                continue
+            for page, page_num in pages:
+                rnt_path_destination = os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_file_name_without_extension + "_" + str(page_num) + ".pdf")
+                logger.info(
+                    "NAF " + naf.__str__() + " was detected in " + rnt_path + " in page " + str(page_num + 1) +
+                    ". Writing page to " + rnt_path_destination.__str__() + ".")
+                write_page(page, rnt_path_destination)
+                rnts_found[file_date] = True
         else:
             logger.debug("RNT file " + rnt_file.__str__() + " is not selected, because its date is " +
                          unparse_date(file_date) + ".")
