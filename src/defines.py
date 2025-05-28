@@ -9,6 +9,8 @@ GENERAL_OUTPUT_FOLDER: str = os.path.join(ROOT_FOLDER, "output")
 
 # Obtain absolute path to the input directory
 INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
+# Obtain absolute path to the valid user list
+USER_LIST_DATA_PATH = os.path.join(INPUT_FOLDER, "input")
 
 # Admin logs
 ADMIN_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_admin_logs")
@@ -36,6 +38,7 @@ class DocType(Enum):
     RLC = "RLC"
     RNT = "RNT"
     PROOFS = "proofs"
+
 
 def from_string(value: str):
     _aliases = {

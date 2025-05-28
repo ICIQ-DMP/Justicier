@@ -19,3 +19,6 @@ class UndefinedRegularSalaryType(Exception):
     pass
 
 
+class UndefinedInputType(Exception):
+    pass
+

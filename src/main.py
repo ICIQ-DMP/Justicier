@@ -2,9 +2,10 @@ import os.path
 import os.path
 import os.path
 import shutil
+import time
 
-from NAF import NAF, NAF_TO_DNI
-from arguments import parse_date, process_arguments
+from NAF import NAF, build_naf_to_dni, build_naf_to_name_and_surname
+from arguments import parse_date, process_parse_arguments
 from data import get_rlc_monthly_result_structure, parse_date_from_salary_filename, \
     parse_salary_filename_from_salary_path, unparse_date, parse_salary_type, unparse_month
 from defines import *
@@ -15,6 +16,8 @@ from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, 
     merge_pdfs, compact_folder, parse_regular_salary_type, get_matching_pages
 from report import get_end_user_report, get_initial_user_report
 from custom_except import UndefinedRegularSalaryType
+from sharepoint import ensure_input_folder
+from chrono import elapsed_time
 
 
 def process_rlc_aux(salary_date, rlc_folder_path, months_found, rlc_subtype: str, rlc_type: str):
@@ -32,9 +35,9 @@ def process_rlc_aux(salary_date, rlc_folder_path, months_found, rlc_subtype: str
         return rlc_n_path
     else:
         logger.error("Monthly salary was found, but the expected L" + rlc_type + " RLC of type " + rlc_subtype + " was "
-                                                                                                                 "not found in the "
-                                                                                                                 "expected location "
-                                                                                                                 "" + str(
+                                                                                                     "not found in the "
+                                                                                                     "expected location "
+                                                                                                     "" + str(
             rlc_n_path) + ". Skipping merge of this salary file.")
         raise ValueError("File was not detected")  # TODO custom except
 
@@ -340,10 +343,22 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
 
 
 def main():
-    args = process_arguments()
+    start_time = time.time()
+
+    args = process_parse_arguments()
+
+    # Ensure fresh input data
+    if args.input == "sharepoint":
+        ensure_input_folder(INPUT_FOLDER)
+    elif args.input == "local":
+        pass
+
+    start_time = time.time()
+
+    NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
 
     current_user_folder, current_justification_folder, user_report_file, admin_log_path, supervisor_log_path = (
-        compute_paths(args))
+        compute_paths(args, NAF_TO_DNI))
 
     ensure_file_structure(current_user_folder, current_justification_folder)
 
@@ -357,6 +372,14 @@ def main():
 
     raw_logger.info(get_initial_user_report(args))
 
+    end_time = elapsed_time(start_time)
+    raw_logger.info("Time elapsed for downloading and validating input data: " + str(end_time) + ".")
+    start_time = time.time()
+
+    # Build dictionaries to translate NAF to different identifier data
+    NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
+
+    # Begin processing
     reports = {}
     # Salaries & RLC
     reports[DocType.SALARY] = process_salaries_with_rlc(SALARIES_FOLDER, RLCS_FOLDER, current_justification_folder,
@@ -391,6 +414,12 @@ def main():
     final_logger = get_process_logger(logger_instance, "Final report")
     report_text = get_end_user_report(reports, args)
     final_logger.info(report_text)
+
+    end_time = elapsed_time(start_time)
+    raw_logger.info("Time elapsed for doing this justification: " + str(end_time) + ".")
+    start_time = time.time()
+    elapsed_time(start_time)
+
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import os
+import shutil
 from datetime import datetime
 
-from NAF import NAF_TO_NAME
 from defines import GENERAL_OUTPUT_FOLDER, ADMIN_LOG_FOLDER, SUPERVISOR_LOG_FOLDER, SALARIES_OUTPUT_NAME, \
     PROOFS_OUTPUT_NAME, CONTRACTS_OUTPUT_NAME, RNTS_OUTPUT_NAME, RLCS_OUTPUT_NAME
 
@@ -107,10 +107,10 @@ def flatten_dirs(folder_to_flat):
     return flatted_folders
 
 
-def compute_paths(args):
+def compute_paths(args, naf_to_name):
     NOW = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
-    id_str = (NOW + "_" + args.author + "_" + args.naf.__str__() + "_" + NAF_TO_NAME[args.naf] + "_" +
+    id_str = (NOW + "_" + args.author + "_" + args.naf.__str__() + "_" + naf_to_name[args.naf] + "_" +
               args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m") + ".log.txt")
     # Admin logs
     ADMIN_LOG_PATH = os.path.join(ADMIN_LOG_FOLDER, id_str)
@@ -120,16 +120,26 @@ def compute_paths(args):
     CURRENT_USER_FOLDER: str = os.path.join(GENERAL_OUTPUT_FOLDER, args.author)
 
     # Folder for the current justification
-    justification_name = (NOW + " " + str(args.naf) + " " + NAF_TO_NAME[args.naf] + " from " +
+    justification_name = (NOW + " " + str(args.naf) + " " + naf_to_name[args.naf] + " from " +
                           str(args.begin.strftime("%Y-%m")) + " to " +
                           str(args.end.strftime("%Y-%m")))
     CURRENT_JUSTIFICATION_FOLDER = os.path.join(CURRENT_USER_FOLDER, justification_name)
 
     USER_REPORT_FILE = os.path.join(CURRENT_JUSTIFICATION_FOLDER, NOW + "_" +
                                     args.naf.__str__()
-                                    + "_" + NAF_TO_NAME[args.naf].replace(" ", "_") + "_" +
+                                    + "_" + naf_to_name[args.naf].replace(" ", "_") + "_" +
                                     args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m") + ".log.txt")
     return CURRENT_USER_FOLDER, CURRENT_JUSTIFICATION_FOLDER, USER_REPORT_FILE, ADMIN_LOG_PATH, SUPERVISOR_LOG_PATH
+
+
+def remove_folder(folder_path):
+    """Remove the folder at the given path if it exists. Do nothing if it doesn't."""
+    try:
+        shutil.rmtree(folder_path)
+    except FileNotFoundError:
+        pass  # Do nothing if the folder does not exist
+    except Exception as e:
+        print(f"Error removing folder {folder_path}: {e}")
 
 
 def ensure_file_structure(CURRENT_USER_FOLDER, CURRENT_JUSTIFICATION_FOLDER):

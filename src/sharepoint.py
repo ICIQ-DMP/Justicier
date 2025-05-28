@@ -1,11 +1,11 @@
 import os
-import time
+import chrono
 
 import requests
 from requests.exceptions import HTTPError
 
 from secret import read_secret
-
+from filesystem import remove_folder
 
 
 def get_access_token(tenant_id, client_id, client_secret):
@@ -98,7 +98,7 @@ def download_folder_recursive(access_token, drive_id, remote_path, local_root):
             download_file(access_token, drive_id, item_path, local_path)
 
 
-def demo():
+def ensure_input_folder(input_path):
     tenant_id = read_secret('TENANT_ID')
     client_id = read_secret('CLIENT_ID')
     client_secret = read_secret('CLIENT_SECRET')
@@ -107,16 +107,13 @@ def demo():
     site_name = read_secret('SITE_NAME')                 # ej. 'RecursosHumanos'
     carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER")
 
-    carpeta_local = 'descargas_input'
-
     access_token = get_access_token(tenant_id, client_id, client_secret)
     site_id = get_site_id(access_token, sharepoint_domain, site_name)
     drive_id = get_drive_id(access_token, site_id)
 
+    remove_folder(input_path)
+
     print("Comenzando descarga recursiva de SharePoint...")
-    download_folder_recursive(access_token, drive_id, carpeta_sharepoint, carpeta_local)
+    download_folder_recursive(access_token, drive_id, carpeta_sharepoint, input_path)
     print("✅ Descarga completada.")
 
-
-if __name__ == "__main__":
-    demo()

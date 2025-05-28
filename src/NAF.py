@@ -38,7 +38,7 @@ class NAF:
         return f"{self.province_code}/{self.middle_number}-{self.last_number}"
 
 
-def is_naf_correct(naf):
+def is_naf_format_correct(naf):
     """Validate that NAF has NAF format"""
     try:
         NAF(naf)  # Parse using constructor
@@ -47,13 +47,8 @@ def is_naf_correct(naf):
     return True
 
 
-def validate_parse_naf(value, valid_nafs):
-    if not is_naf_correct(value):
-        raise ArgumentNafInvalid("Naf " + value + " is not valid.")
-    elif NAF(value) not in valid_nafs:
-        raise ArgumentNafNotPresent("NAF value " + value + " is not in our NAF database (input/NAF_DNI.xlsx)")
-    else:
-        return NAF(value)
+def is_naf_present(value, valid_nafs):
+    return NAF(value) in valid_nafs
 
 
 def clean_naf(naf):
@@ -95,7 +90,4 @@ def build_naf_to_name_and_surname(path):
     return dict(zip(naf_fixed, name_col))
 
 
-NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
 
-# Build dictionaries to translate NAF to different identifier data
-NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
