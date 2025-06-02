@@ -176,5 +176,3 @@ cython_debug/
 # own rules
 *.zip
 output.zip
-demo
-demo/
