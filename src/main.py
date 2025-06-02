@@ -1,11 +1,12 @@
 import os.path
 import os.path
 import os.path
-import shutil
 import time
 
 from NAF import NAF, build_naf_to_dni, build_naf_to_name_and_surname
 from arguments import parse_date, process_parse_arguments
+from chrono import elapsed_time
+from custom_except import UndefinedRegularSalaryType
 from data import get_rlc_monthly_result_structure, parse_date_from_salary_filename, \
     parse_salary_filename_from_salary_path, unparse_date, parse_salary_type, unparse_month
 from defines import *
@@ -15,9 +16,8 @@ from logger import set_logger
 from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, is_date_present_in_rlc_delay, \
     merge_pdfs, compact_folder, parse_regular_salary_type, get_matching_pages
 from report import get_end_user_report, get_initial_user_report
-from custom_except import UndefinedRegularSalaryType
-from sharepoint import ensure_input_folder
-from chrono import elapsed_time
+from sharepoint import download_input_folder, upload_folder_recursive, request_tokens, upload_file
+from secret import read_secret
 
 
 def process_rlc_aux(salary_date, rlc_folder_path, months_found, rlc_subtype: str, rlc_type: str):
@@ -35,9 +35,9 @@ def process_rlc_aux(salary_date, rlc_folder_path, months_found, rlc_subtype: str
         return rlc_n_path
     else:
         logger.error("Monthly salary was found, but the expected L" + rlc_type + " RLC of type " + rlc_subtype + " was "
-                                                                                                     "not found in the "
-                                                                                                     "expected location "
-                                                                                                     "" + str(
+                                                                                                                 "not found in the "
+                                                                                                                 "expected location "
+                                                                                                                 "" + str(
             rlc_n_path) + ". Skipping merge of this salary file.")
         raise ValueError("File was not detected")  # TODO custom except
 
@@ -173,7 +173,7 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
                 except UndefinedRegularSalaryType as e:
                     logger.error("Salary file " + salary_file_path + " page " +
                                  str(salary_page_number + 1) + " is a type not supported or can not be recognized. "
-                                 "Skipping to next page. Internal error is: " + e.__str__())
+                                                               "Skipping to next page. Internal error is: " + e.__str__())
                     continue
                 if regular_salary_type == RegularSalaryType.MONTHLY:
                     logger.info("Salary file " + salary_file_path + " page " +
@@ -329,7 +329,8 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
                 logger.debug("NAF " + naf.__str__() + " not detected in " + rnt_path + ". Error: " + e.__str__())
                 continue
             for page, page_num in pages:
-                rnt_path_destination = os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_file_name_without_extension + "_" + str(page_num) + ".pdf")
+                rnt_path_destination = os.path.join(naf_dir, RNTS_OUTPUT_NAME,
+                                                    rnt_file_name_without_extension + "_" + str(page_num) + ".pdf")
                 logger.info(
                     "NAF " + naf.__str__() + " was detected in " + rnt_path + " in page " + str(page_num + 1) +
                     ". Writing page to " + rnt_path_destination.__str__() + ".")
@@ -349,16 +350,24 @@ def main():
 
     # Ensure fresh input data
     if args.input == "sharepoint":
-        ensure_input_folder(INPUT_FOLDER)
+        remove_folder(INPUT_FOLDER)
+        download_input_folder(INPUT_FOLDER)
     elif args.input == "local":
         pass
 
     start_time = time.time()
 
     NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
+    # Build dictionaries to translate NAF to different identifier data
+    NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
+
+    now = datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
+
+    id_str = compute_id(now, args, NAF_TO_NAME)
+    impersonal_id_str = compute_impersonal_id(now, args, NAF_TO_NAME)
 
     current_user_folder, current_justification_folder, user_report_file, admin_log_path, supervisor_log_path = (
-        compute_paths(args, NAF_TO_DNI))
+        compute_paths(args, id_str, impersonal_id_str))
 
     ensure_file_structure(current_user_folder, current_justification_folder)
 
@@ -375,9 +384,6 @@ def main():
     end_time = elapsed_time(start_time)
     raw_logger.info("Time elapsed for downloading and validating input data: " + str(end_time) + ".")
     start_time = time.time()
-
-    # Build dictionaries to translate NAF to different identifier data
-    NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
 
     # Begin processing
     reports = {}
@@ -420,6 +426,23 @@ def main():
     start_time = time.time()
     elapsed_time(start_time)
 
+    access_token, site_id, drive_id = request_tokens()
+
+    upload_folder_recursive(
+        access_token=access_token,
+        drive_id=drive_id,
+        local_folder_path=current_justification_folder,
+        remote_folder_path=read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/" + args.author + "/" + impersonal_id_str
+    )
+
+    SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
+    upload_file(access_token, drive_id, SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
+    upload_file(access_token, drive_id, SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path), supervisor_log_path)
+
+    end_time = elapsed_time(start_time)
+    raw_logger.info("Time elapsed for uploading data: " + str(end_time) + ".")
+    start_time = time.time()
+    elapsed_time(start_time)
 
 
 if __name__ == "__main__":

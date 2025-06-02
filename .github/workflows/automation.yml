@@ -1,0 +1,57 @@
+name: Run Justicier Script
+
+on:
+  workflow_dispatch:
+    inputs:
+      naf:
+        description: 'NAF code'
+        required: true
+      begin:
+        description: 'Begin date (YYYY-MM)'
+        required: true
+      end:
+        description: 'End date (YYYY-MM)'
+        required: true
+      author:
+        description: 'Author username/email'
+        required: true
+      compact:
+        description: 'Compact (custom string)'
+        required: false
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Justicier
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: 🚀 Run script
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
+          SITE_NAME: ${{ secrets.SITE_NAME }}
+          SHAREPOINT_DOMAIN: ${{ secrets.SHAREPOINT_DOMAIN }}
+          SHAREPOINT_FOLDER_INPUT: ${{ secrets.SHAREPOINT_FOLDER_INPUT }}
+          SHAREPOINT_FOLDER_OUTPUT: ${{ secrets.SHAREPOINT_FOLDER_OUTPUT }}
+        run: |
+          python3 ./src/main.py \
+            --naf "${{ github.event.inputs.naf }}" \
+            --begin "${{ github.event.inputs.begin }}" \
+            --end "${{ github.event.inputs.end }}" \
+            --author "${{ github.event.inputs.author }}" \
+            --input sharepoint

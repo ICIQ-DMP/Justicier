@@ -107,28 +107,31 @@ def flatten_dirs(folder_to_flat):
     return flatted_folders
 
 
-def compute_paths(args, naf_to_name):
-    NOW = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+def compute_id(now, args, naf_to_name):
+    return (now + "_" + args.author + "_" + args.naf.__str__() + "_" + naf_to_name[args.naf] + "_" +
+            args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m"))
 
-    id_str = (NOW + "_" + args.author + "_" + args.naf.__str__() + "_" + naf_to_name[args.naf] + "_" +
-              args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m") + ".log.txt")
+
+def compute_impersonal_id(now, args, naf_to_name):
+    return (now + "_" + args.naf.__str__() + "_" + naf_to_name[args.naf] + "_" +
+            args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m"))
+
+def compute_paths(args, id_str, impersonal_id_str):
+    log_filename = id_str + ".log.txt"
+    log_filename_impersonal = impersonal_id_str + ".log.txt"
+
     # Admin logs
-    ADMIN_LOG_PATH = os.path.join(ADMIN_LOG_FOLDER, id_str)
-    SUPERVISOR_LOG_PATH = os.path.join(SUPERVISOR_LOG_FOLDER, id_str)
+    ADMIN_LOG_PATH = os.path.join(ADMIN_LOG_FOLDER, log_filename)
+    SUPERVISOR_LOG_PATH = os.path.join(SUPERVISOR_LOG_FOLDER, log_filename)
 
     # Home folder of the user
     CURRENT_USER_FOLDER: str = os.path.join(GENERAL_OUTPUT_FOLDER, args.author)
 
     # Folder for the current justification
-    justification_name = (NOW + " " + str(args.naf) + " " + naf_to_name[args.naf] + " from " +
-                          str(args.begin.strftime("%Y-%m")) + " to " +
-                          str(args.end.strftime("%Y-%m")))
+    justification_name = id_str
     CURRENT_JUSTIFICATION_FOLDER = os.path.join(CURRENT_USER_FOLDER, justification_name)
 
-    USER_REPORT_FILE = os.path.join(CURRENT_JUSTIFICATION_FOLDER, NOW + "_" +
-                                    args.naf.__str__()
-                                    + "_" + naf_to_name[args.naf].replace(" ", "_") + "_" +
-                                    args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m") + ".log.txt")
+    USER_REPORT_FILE = os.path.join(CURRENT_JUSTIFICATION_FOLDER, log_filename_impersonal)
     return CURRENT_USER_FOLDER, CURRENT_JUSTIFICATION_FOLDER, USER_REPORT_FILE, ADMIN_LOG_PATH, SUPERVISOR_LOG_PATH
 
 
