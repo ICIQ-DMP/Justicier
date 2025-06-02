@@ -22,9 +22,6 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: Justicier
 
     steps:
       - name: 📥 Checkout repo
@@ -37,7 +34,7 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r ./requirements.txt
 
       - name: 🚀 Run script
         env:
