@@ -11,7 +11,7 @@ from pypdf import PdfReader, PdfWriter
 
 from data import unparse_month
 from filesystem import list_dir
-from logger import get_logger, get_logger_instance, get_process_logger
+from logger import get_logger, get_logger_instance, build_process_logger
 from custom_except import UndefinedRegularSalaryType
 from defines import RegularSalaryType
 
@@ -107,7 +107,7 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
 
 
 def parse_dates_from_delayed_salary(page):
-    logger = get_process_logger(get_logger_instance(), "parse_dates_from_delayed_salary")
+    logger = build_process_logger(get_logger_instance(), "parse_dates_from_delayed_salary")
     # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
     query_str = '\\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2} a \\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
     # restricting the search with the beginning of the year, which appears in the line that
@@ -209,7 +209,7 @@ def merge_pdfs(pdf_paths, output_path):
 
 
 def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path):
-    logger = get_process_logger(get_logger_instance(), "Salaries and RLCs L03 is_date_present_in_rlc_delay")
+    logger = build_process_logger(get_logger_instance(), "Salaries and RLCs L03 is_date_present_in_rlc_delay")
     reader = PdfReader(document_path)
     query_string = (unparse_month(delay_begin) + "/" + delay_begin.year.__str__() + " - " + unparse_month(delay_end)
                     + "/" + delay_end.year.__str__())
@@ -241,7 +241,7 @@ def compact_folder(path_folder):
     Remove folder path_folder
     create merged PDF path_folder + ".pdf"
     """
-    logger = get_process_logger(get_logger_instance(), "Folder compactation")
+    logger = build_process_logger(get_logger_instance(), "Folder compactation")
     paths = list_dir(path_folder)
     if len(paths) == 0:
         logger.warning("Refusing to compact folder " + path_folder + " because it is empty. Aborting compression.")
