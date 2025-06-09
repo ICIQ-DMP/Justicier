@@ -15,7 +15,7 @@ def get_compact_init():
 # Parser functions that validate the format and type of the data
 
 
-def parse_date(value, formatting="%Y_%m"):
+def parse_date(value, formatting="%Y-%m-%d"):
     """Validate date format"""
     try:
         return datetime.datetime.strptime(value, formatting)
