@@ -66,8 +66,8 @@ def parse_arguments():
 
     parser.add_argument("-n", "--naf", type=parse_naf, required=True,
                         help="NAF (SS security number)")
-    parser.add_argument("-b", "--begin", type=parse_date, required=True, help="Begin date (YYYY-MM)")
-    parser.add_argument("-e", "--end", type=parse_date, required=True, help="End date (YYYY-MM)")
+    parser.add_argument("-b", "--begin", type=parse_date, required=True, help="Begin date (YYYY-MM-DD)")
+    parser.add_argument("-e", "--end", type=parse_date, required=True, help="End date (YYYY-MM-DD)")
     parser.add_argument("-a", "--author", type=parse_author, required=True, help="author's email doing request")
 
     parser.add_argument("-c", "--compact", type=parse_compact_options, required=False, default=get_compact_init(),

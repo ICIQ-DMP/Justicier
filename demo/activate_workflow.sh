@@ -8,8 +8,8 @@ curl -X POST \
     \"ref\": \"master\",
     \"inputs\": {
       \"naf\": \"$1\",
-      \"begin\": \"2023_04\",
-      \"end\": \"2023_06\",
-      \"author\": \"pepito\"
+      \"begin\": \"2023-04-03\",
+      \"end\": \"2023-06-03\",
+      \"author\": \"pepito@iciq.es\"
     }
   }"
