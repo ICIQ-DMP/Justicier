@@ -4,7 +4,7 @@ import time
 import requests
 from requests.exceptions import HTTPError
 
-from TokenManager import TokenManager
+from TokenManager import TokenManager, get_token_manager
 
 
 def get_site_id(token_manager, domain, site_name):
@@ -12,7 +12,10 @@ def get_site_id(token_manager, domain, site_name):
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return response.json()['id']
+    the_id = response.json()['id']
+    #print(response.json())
+    #print(the_id)
+    return the_id
 
 
 def get_drive_id(token_manager, site_id, drive_name="Documents"):
@@ -143,3 +146,34 @@ def upload_folder_recursive(token_manager, drive_id, local_folder_path, remote_f
             remote_file = f"{sharepoint_current_path}/{file_name}".strip("/")
             print("local file: " + local_file + " remote file: " + remote_file)
             upload_file(token_manager, drive_id, remote_file, local_file)
+
+
+def get_element_from_list(sharepoint_domain, site_name, list_name, job_id):
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+
+    print(site_id)
+    # Get list items
+    list_resp = requests.get(
+
+        f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items?expand=fields",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    list_resp.raise_for_status()
+    items = list_resp.json()["value"]
+
+    # Search for the job ID
+    for item in items:
+        fields = item["fields"]
+        if str(fields.get("id")) == str(job_id):
+            print(fields)
+            return {
+                'naf': fields.get('naf'),
+                'begin': fields.get('begin'),
+                'end': fields.get('end'),
+                'author': fields.get('author')
+            }
+
+    raise ValueError(f"Job ID {job_id} not found in SharePoint List")

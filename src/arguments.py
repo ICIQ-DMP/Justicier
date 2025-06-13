@@ -6,6 +6,8 @@ from functools import partial
 from NAF import is_naf_present, NAF, build_naf_to_dni
 from custom_except import *
 from defines import NAF_DATA_PATH, DocType, from_string
+from secret import read_secret
+from sharepoint import get_element_from_list
 
 
 def get_compact_init():
@@ -13,6 +15,8 @@ def get_compact_init():
 
 
 # Parser functions that validate the format and type of the data
+def parse_id(value):
+    return value
 
 
 def parse_date(value, formatting="%Y-%m-%d"):
@@ -60,9 +64,19 @@ def parse_input_type(value):
         raise UndefinedInputType("The type supplied for input type \"" + value + "\" is not defined.")
 
 
+def expand_job_id(job_id):
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    list_name = read_secret("SHAREPOINT_LIST_NAME")
+
+    return get_element_from_list(sharepoint_domain, site_name, list_name, job_id)
+
+
 def parse_arguments():
     """Parse and validate command-line arguments"""
     parser = argparse.ArgumentParser(description="Process NAF and date range.")
+
+    parser.add_argument("-j", '--job-id', "--id", type=parse_id, help='ID of the justification request in Microsoft List')
 
     parser.add_argument("-n", "--naf", type=parse_naf, required=True,
                         help="NAF (SS security number)")
@@ -81,6 +95,16 @@ def parse_arguments():
                              " folder in the repository root folder.")
     args = parser.parse_args()
 
+    # Manual validation of inputs
+    if args.job_id:
+        config = expand_job_id(args.job_id)
+        args.naf = config['naf']
+        args.begin = config['begin']
+        args.end = config['end']
+        args.author = config['author']
+
+    print(args)
+    input()
     return args
 
 

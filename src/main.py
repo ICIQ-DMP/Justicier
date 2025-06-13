@@ -4,7 +4,7 @@ import os.path
 import time
 
 from NAF import NAF, build_naf_to_dni, build_naf_to_name_and_surname
-from TokenManager import TokenManager
+from TokenManager import TokenManager, get_token_manager
 from arguments import parse_date, process_parse_arguments
 from chrono import elapsed_time
 from custom_except import UndefinedRegularSalaryType
@@ -350,10 +350,7 @@ def main():
 
     args = process_parse_arguments()
 
-    tenant_id = read_secret('TENANT_ID')
-    client_id = read_secret('CLIENT_ID')
-    client_secret = read_secret('CLIENT_SECRET')
-    token_manager = TokenManager(tenant_id=tenant_id, client_id=client_id, client_secret=client_secret)
+    token_manager = get_token_manager()
     sharepoint_domain = read_secret('SHAREPOINT_DOMAIN')
     site_name = read_secret('SITE_NAME')
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
