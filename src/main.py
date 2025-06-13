@@ -324,8 +324,7 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
             rnt_path = os.path.join(rnts_folder_path, file_date.year.__str__(), rnt_file_name)
             rnt_partial_path_destination = os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_file_name)
             proc_logger.info("RNT file " + rnt_path.__str__() + " is selected, because its date is " +
-                        unparse_date(file_date) + "."
-                                                  " It will be copied into " + rnt_partial_path_destination)
+                        unparse_date(file_date) + ".")
             try:
                 pages = get_matching_pages(rnt_path, naf.__str__(), r"\d{12}")
             except ValueError as e:
