@@ -176,3 +176,5 @@ cython_debug/
 # own rules
 *.zip
 output.zip
+src/petitions.sh
+
