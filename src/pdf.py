@@ -13,7 +13,7 @@ from data import unparse_month
 from filesystem import list_dir
 from logger import get_logger, get_logger_instance, build_process_logger
 from custom_except import UndefinedRegularSalaryType
-from defines import RegularSalaryType
+from defines import RegularSalaryType, SALARIES_AND_PROOFS_OUTPUT_NAME
 
 
 def get_dni(pdf_path: str) -> str:
@@ -82,7 +82,7 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
     # Open PDF
     reader = PdfReader(pdf_path)
 
-    # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
+    # Define regex pattern to search for extract matches
     pattern = re.compile(pattern)
 
     for page_num, page in enumerate(reader.pages):
@@ -97,7 +97,10 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
 
         match_selected = None
         for match_i in match:
-            if match_i.__eq__(query_string):
+            if str(match_i) == query_string:
+                #print("text is: " + str(text))
+                #print("match is: " + str(match_i))
+                #print("query string is: " + str(query_string))
                 match_selected = match_i
 
         if match_selected is not None:
@@ -252,3 +255,27 @@ def compact_folder(path_folder):
         paths[i] = os.path.join(path_folder, paths[i])
     merge_pdfs(paths, path_folder + ".pdf")
     shutil.rmtree(path_folder)
+
+
+def merge_equal_files_from_two_folders(folder1, folder2, folder_out):
+    print("entering merge")
+    logger = build_process_logger(get_logger_instance(), "Merge salaries and bankproofs")
+    files1 = list_dir(folder1)
+    if len(files1) == 0:
+        logger.warning("Refusing to compact folders because" + folder1 + " is empty. Aborting compression.")
+        return
+    files2 = list_dir(folder2)
+    if len(files2) == 0:
+        logger.warning("Refusing to compact folders because " + folder2 + " is empty. Aborting compression.")
+        return
+
+    for i in range(len(files1)):
+        for j in range(len(files2)):
+            print(files1[i])
+            print(files2[j])
+            if files1[i] == files2[j]:
+                print("match " + files1[i])
+                paths = []
+                paths.append(os.path.join(folder1, files1[i]))
+                paths.append(os.path.join(folder2, files2[j]))
+                merge_pdfs(paths, os.path.join(folder_out, files1[i]))

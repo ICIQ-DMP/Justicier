@@ -25,6 +25,7 @@ RLCS_FOLDER = os.path.join(INPUT_FOLDER, "_RLC")
 
 SALARIES_OUTPUT_NAME = "Nòmines"
 PROOFS_OUTPUT_NAME = "Justificants"
+SALARIES_AND_PROOFS_OUTPUT_NAME = "Nòmines i Justificants"
 CONTRACTS_OUTPUT_NAME = "Contractes"
 RNTS_OUTPUT_NAME = "RNTs"
 RLCS_OUTPUT_NAME = "RLCs"
@@ -69,5 +70,6 @@ class SalaryType(Enum):
 class RegularSalaryType(Enum):
     SETTLEMENT = "Settlement"
     MONTHLY = "Monthly"
+
 
 

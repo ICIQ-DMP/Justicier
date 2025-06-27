@@ -4,6 +4,7 @@ import pandas as pd
 
 from defines import NAF_DATA_PATH
 from custom_except import ArgumentNafInvalid, ArgumentNafNotPresent
+from DNI import parse_dni
 
 
 class NAF:
@@ -56,38 +57,36 @@ def clean_naf(naf):
     return naf.replace("/", "").replace("-", "")
 
 
-def build_naf_to_dni(path):
-    # Read the Excel file, skipping the first 3 rows
-    df = pd.read_excel(path, skiprows=3, header=None)
-
+def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_value=None):
     # Column C = index 2 (DNI), Column D = index 3 (NAF)
-    dni_col = df[2]
-    naf_col = df[3]
+    val_col = df[value]
+    key_col = df[key]
 
-    # Replace the 11th character in each NAF
-    def parse_naf(naf):
-        return NAF(naf)
+    if func_apply_value is not None:
+        val_col = val_col.apply(func_apply_value)
+    if func_apply_key is not None:
+        key_col = key_col.apply(func_apply_key)
 
-    naf_fixed = naf_col.apply(parse_naf)
+    return dict(zip(key_col, val_col))
 
-    return dict(zip(naf_fixed, dni_col))
+
+def read_dataframe(path, skiprows, header):
+    # Read the Excel file, skipping the first 3 rows
+    return pd.read_excel(path, skiprows=skiprows, header=header)
+
+
+def build_naf_to_dni(path):
+    df = read_dataframe(path, 3, None)
+    return parse_two_columns(df, 3, 2, parse_naf, parse_dni)
 
 
 def build_naf_to_name_and_surname(path):
-    # Read the Excel file, skipping the first 3 rows
-    df = pd.read_excel(path, skiprows=3, header=None)
-
-    # Column C = index 2 (DNI), Column D = index 3 (NAF)
-    name_col = df[1]
-    naf_col = df[3]
-
-    # Replace the 11th character in each NAF
-    def parse_naf(naf):
-        return NAF(naf)
-
-    naf_fixed = naf_col.apply(parse_naf)
-
-    return dict(zip(naf_fixed, name_col))
+    df = read_dataframe(path, 3, None)
+    return parse_two_columns(df, 3, 1, parse_naf)
 
 
-
+def parse_naf(value):
+    try:
+        return NAF(value)
+    except ValueError as e:
+        raise ArgumentNafInvalid("NAF is not valid" + e.__str__())

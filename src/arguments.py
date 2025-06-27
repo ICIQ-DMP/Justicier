@@ -1,17 +1,18 @@
 import argparse
 import datetime
 import sys
-from functools import partial
 
-from NAF import is_naf_present, NAF, build_naf_to_dni
+from NAF import is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import *
-from defines import NAF_DATA_PATH, DocType, from_string
+from defines import DocType, from_string
 from secret import read_secret
-from sharepoint import get_element_from_list
+from sharepoint import get_parameters_from_list
+from DNI import parse_dni
 
 
 def get_compact_init():
-    return {DocType.SALARY: False, DocType.PROOFS: False, DocType.CONTRACT: False, DocType.RNT: False, DocType.RLC: False}
+    return {DocType.SALARY: False, DocType.PROOFS: False, DocType.CONTRACT: False, DocType.RNT: False,
+            DocType.RLC: False}
 
 
 # Parser functions that validate the format and type of the data
@@ -25,18 +26,11 @@ def parse_date(value, formatting="%Y-%m-%d"):
         return datetime.datetime.strptime(value, formatting)
     except Exception as e:
         raise ArgumentDateError("The value " + value + " could not be formatted with "
-                         + formatting + ". Datetime exception was " + e.__str__())
+                                + formatting + ". Datetime exception was " + e.__str__())
 
 
 def parse_author(author):
     return author
-
-
-def parse_naf(value):
-    try:
-        return NAF(value)
-    except ValueError as e:
-        raise ArgumentNafInvalid("NAF is not valid" + e.__str__())
 
 
 def parse_compact_options(value):
@@ -55,6 +49,21 @@ def parse_compact_options(value):
         exit(1)
 
 
+def parse_boolean(value):
+    if value is True:
+        return value
+    elif value is False:
+        return value
+    print("the value " + str(value))
+    if value is bool:
+        return value
+    if value == "True":
+        return True
+    elif value == "False":
+        return False
+    raise ValueError("The value " + str(value) + " can not be parsed into a boolean. It should be 'True' or 'False'")
+
+
 def parse_input_type(value):
     if value == "sharepoint":
         return value
@@ -64,48 +73,113 @@ def parse_input_type(value):
         raise UndefinedInputType("The type supplied for input type \"" + value + "\" is not defined.")
 
 
+def parse_name(value):
+    return value
+
+
 def expand_job_id(job_id):
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
 
-    return get_element_from_list(sharepoint_domain, site_name, list_name, job_id)
+    return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
+
+
+def parse_arguments_helper(arg_text: str):
+    print(f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
+          f"select request ID. The provided {arg_text} via argument will ge ignored and the {arg_text} from "
+          f"the corresponding row of the provided Microsoft List will be used.")
 
 
 def parse_arguments():
     """Parse and validate command-line arguments"""
-    parser = argparse.ArgumentParser(description="Process NAF and date range.")
+    parser = argparse.ArgumentParser(description="")
 
-    parser.add_argument("-j", '--job-id', "--id", type=parse_id, help='ID of the justification request in Microsoft List')
+    parser.add_argument("-r", "--request", type=parse_id, required=False,
+                        help='ID of the justification request in Microsoft List of Peticions Justificacions. If you use'
+                             ' this argument you can\'t use any other argument to submit data to the algorithm except '
+                             ' for -l / --location ')
 
-    parser.add_argument("-n", "--naf", type=parse_naf, required=True,
-                        help="NAF (SS security number)")
-    parser.add_argument("-b", "--begin", type=parse_date, required=True, help="Begin date (YYYY-MM-DD)")
-    parser.add_argument("-e", "--end", type=parse_date, required=True, help="End date (YYYY-MM-DD)")
-    parser.add_argument("-a", "--author", type=parse_author, required=True, help="author's email doing request")
+    parser.add_argument("-l", "--location", type=parse_input_type, required=False, default="sharepoint",
+                        help="Location of the input data. Possible values are: \"sharepoint\" to download from "
+                             "sharepoint location and \"local\" to use the local file system storage and read the input"
+                             " folder in the repository root folder.")
 
-    parser.add_argument("-c", "--compact", type=parse_compact_options, required=False, default=get_compact_init(),
+    parser.add_argument("-n", "--naf", "--NAF", type=parse_naf, required=False,
+                        help="NAF (SS security number) of the employee to justify")
+    parser.add_argument("-N", "--name", type=parse_name, required=False,
+                        help="Name of the employee to ")
+    parser.add_argument("-d", "--dni", "--DNI", type=parse_dni, required=False,
+                        help="Name of the employee to justify")
+
+    parser.add_argument("-b", "--begin", type=parse_date, required=False, help="Begin date (YYYY-MM-DD)")
+    parser.add_argument("-e", "--end", type=parse_date, required=False, help="End date (YYYY-MM-DD)")
+    parser.add_argument("-a", "--author", type=parse_author, required=False, help="author's email doing"
+                                                                                  " request")
+
+    parser.add_argument("-s", "--merge-salary", type=parse_boolean, required=False, default=False,
+                        help="Merge each salary with the corresponding bank proof")
+    parser.add_argument("-m", "--merge-result", type=parse_boolean, required=False,
+                        default=get_compact_init(),
+                        help="Merge each salary with the corresponding bank proof")
+    parser.add_argument("-R", "--merge-rlc", type=parse_boolean, required=False, default=False,
                         help="Comma separated list of values that indicate which documents need to be merged in one "
                              "single PDF in the output. Possible values are: " +
                              ",".join([dt.value.__str__() for dt in DocType]))
 
-    parser.add_argument("-i", "--input", type=parse_input_type, required=False, default="sharepoint",
-                        help="Location of the input data. Possible values are: \"sharepoint\" to download from "
-                             "sharepoint location and \"local\" to use the local file system storage adn read the input"
-                             " folder in the repository root folder.")
     args = parser.parse_args()
-
-    # Manual validation of inputs
-    if args.job_id:
-        config = expand_job_id(args.job_id)
-        args.naf = config['naf']
-        args.begin = config['begin']
-        args.end = config['end']
-        args.author = config['author']
-
-    print(args)
-    input()
     return args
+
+
+def parse_sharepoint_arguments(args, common):
+    if args.naf:
+        parse_arguments_helper("NAF")
+    if args.name:
+        parse_arguments_helper("name")
+    if args.dni:
+        parse_arguments_helper("DNI")
+    if args.begin:
+        parse_arguments_helper("begin date")
+    if args.end:
+        parse_arguments_helper("end date")
+    if args.author:
+        parse_arguments_helper("author")
+    if args.merge_result != get_compact_init():
+        parse_arguments_helper("merge result")
+    if args.merge_salary:
+        parse_arguments_helper("merge salary")
+    if args.merge_rlc:
+        parse_arguments_helper("merge rlc")
+    config = expand_job_id(args.request)
+    try:
+        if config['NAF']:
+            args.naf = parse_naf(config['NAF'])
+        if config['name']:
+            args.name = parse_name(config['name'])
+        if config['DNI']:
+            args.dni = parse_dni(config['DNI'])
+        args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ")
+        args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ")
+        args.author = parse_author(config['author'])
+        args.merge_salary = parse_boolean(config['merge_salary_bankproof'])
+        if parse_boolean(config['merge_results']):
+            compact_default = get_compact_init()
+            for key in compact_default.keys():
+                compact_default[key] = True
+            args.merge_results = compact_default
+        args.merge_rlc = parse_boolean(config['merge_RLC_RNT'])
+    except ArgumentNafInvalid as e:
+        print("The NAF provided is invalid. Internal error is " + e.__str__())
+        print(common)
+        exit(2)
+    except ArgumentDateError as e:
+        print("The dates provided are invalid. Internal error is " + e.__str__())
+        print(common)
+        exit(3)
+    except argparse.ArgumentTypeError as e:
+        print("Arguments could not have been parsed. Internal error is " + e.__str__())
+        print(common)
+        exit(5)
 
 
 def process_parse_arguments():
@@ -116,10 +190,6 @@ def process_parse_arguments():
     try:
         args = parse_arguments()
 
-    except ArgumentNafNotPresent as e:
-        print("The NAF provided is valid but is not present in " + NAF_DATA_PATH + ". Internal error is " + e.__str__())
-        print(common)
-        exit(1)
     except ArgumentNafInvalid as e:
         print("The NAF provided is invalid. Internal error is " + e.__str__())
         print(common)
@@ -128,14 +198,18 @@ def process_parse_arguments():
         print("The dates provided are invalid. Internal error is " + e.__str__())
         print(common)
         exit(3)
-    except ArgumentAuthorError as e:
-        print("The author is not present in the accepted user list. Internal error is " + e.__str__())
-        print(common)
-        exit(4)
     except argparse.ArgumentTypeError as e:
         print("Arguments could not have been parsed. Internal error is " + e.__str__())
         print(common)
         exit(5)
+
+    # Manual validation of inputs from sharepoint list
+    if args.request:
+        parse_sharepoint_arguments(args, common)
+
+    # TODO merge checks
+    if args.begin >= args.end:
+        raise ValueError("Begin date " + str(args.begin) + " can not be after " + str(args.end))
     return args
 
 

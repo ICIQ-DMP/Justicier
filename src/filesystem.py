@@ -3,7 +3,7 @@ import shutil
 from datetime import datetime
 
 from defines import GENERAL_OUTPUT_FOLDER, ADMIN_LOG_FOLDER, SUPERVISOR_LOG_FOLDER, SALARIES_OUTPUT_NAME, \
-    PROOFS_OUTPUT_NAME, CONTRACTS_OUTPUT_NAME, RNTS_OUTPUT_NAME, RLCS_OUTPUT_NAME
+    PROOFS_OUTPUT_NAME, CONTRACTS_OUTPUT_NAME, RNTS_OUTPUT_NAME, RLCS_OUTPUT_NAME, SALARIES_AND_PROOFS_OUTPUT_NAME
 
 
 def read_env_var(var_name):
@@ -116,6 +116,7 @@ def compute_impersonal_id(now, args, naf_to_name):
     return (now + "_" + args.naf.__str__() + "_" + naf_to_name[args.naf] + "_" +
             args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m"))
 
+
 def compute_paths(args, id_str, impersonal_id_str):
     log_filename = id_str + ".log.txt"
     log_filename_impersonal = impersonal_id_str + ".log.txt"
@@ -160,4 +161,5 @@ def ensure_file_structure(CURRENT_USER_FOLDER, CURRENT_JUSTIFICATION_FOLDER):
     os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, CONTRACTS_OUTPUT_NAME), exist_ok=True)
     os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, RNTS_OUTPUT_NAME), exist_ok=True)
     os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, RLCS_OUTPUT_NAME), exist_ok=True)
+    os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, SALARIES_AND_PROOFS_OUTPUT_NAME), exist_ok=True)
 

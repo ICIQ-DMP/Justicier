@@ -22,9 +22,9 @@ def get_initial_user_report(args):
             line = "=                                     " + line.ljust(77) + "   ="  # Pad to 120 and then add "="
         ascii_logo += line + "\n"
 
-    compact_something = any(args.compact.values())
+    compact_something = any(args.merge_result.values())
     if compact_something:
-        compact_text = ",".join(str(key.value) for key in args.compact.keys())
+        compact_text = ",".join(str(key.value) for key in args.merge_result.keys())
     else:
         compact_text = "No document categories to merge"
 

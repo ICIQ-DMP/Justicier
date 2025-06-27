@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -5,6 +6,7 @@ import requests
 from requests.exceptions import HTTPError
 
 from TokenManager import TokenManager, get_token_manager
+from logger import build_process_logger
 
 
 def get_site_id(token_manager, domain, site_name):
@@ -13,8 +15,6 @@ def get_site_id(token_manager, domain, site_name):
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     the_id = response.json()['id']
-    #print(response.json())
-    #print(the_id)
     return the_id
 
 
@@ -57,7 +57,7 @@ def download_file(token_mananger, drive_id, item_path, local_path, max_retries=5
                     if chunk:
                         f.write(chunk)
             print(f"✅ Descargado: {item_path}")
-            return  # Éxito, salimos de la función
+            return
 
         except HTTPError as e:
             if response is None:
@@ -95,7 +95,10 @@ def download_input_folder(token_manager, drive_id, remote_path, input_path):
 
 # Upload functions
 def upload_file(token_manager, drive_id, remote_path, local_file_path):
-    print("Uploading from local path " + local_file_path + " to " + remote_path)
+    logger_instance = logging.getLogger("justicier")
+    logger = build_process_logger(logger_instance, "upload_file")
+
+    logger.info("Uploading from local path " + local_file_path + " to " + remote_path)
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
@@ -107,7 +110,7 @@ def upload_file(token_manager, drive_id, remote_path, local_file_path):
 
     response = requests.put(url, headers=headers, data=data)
     response.raise_for_status()
-    print(f"✅ Subido: {remote_path}")
+    logger.info(f"✅ Upload Done")
 
 
 def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
@@ -130,50 +133,56 @@ def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
 
 
 def upload_folder_recursive(token_manager, drive_id, local_folder_path, remote_folder_path):
+    logger_instance = logging.getLogger("justicier")
+    logger = build_process_logger(logger_instance, "Upload data results")
+
     for root, dirs, files in os.walk(local_folder_path):
         if len(files) == 0 and len(dirs) == 0:  # Ignore empty folders because they cause issue
             continue
 
-        print("root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files))
+        logger.debug("root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files))
         rel_path = os.path.relpath(root, local_folder_path)
-        print("rel path: " + str(rel_path))
+        logger.debug("rel path: " + str(rel_path))
         sharepoint_current_path = os.path.normpath(os.path.join(remote_folder_path, rel_path)).replace("\\", "/")
-        print("sharepoint current path: " + str(sharepoint_current_path))
+        logger.debug("sharepoint current path: " + str(sharepoint_current_path))
 
         # Subir archivos
         for file_name in files:
             local_file = os.path.join(root, file_name)
             remote_file = f"{sharepoint_current_path}/{file_name}".strip("/")
-            print("local file: " + local_file + " remote file: " + remote_file)
             upload_file(token_manager, drive_id, remote_file, local_file)
 
 
-def get_element_from_list(sharepoint_domain, site_name, list_name, job_id):
+def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
 
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
 
-    print(site_id)
     # Get list items
     list_resp = requests.get(
-
-        f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items?expand=fields",
+    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items?expand=fields($select="
+        f"Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,"
+        f"Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,id),createdBy",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     list_resp.raise_for_status()
-    items = list_resp.json()["value"]
 
     # Search for the job ID
-    for item in items:
-        fields = item["fields"]
-        if str(fields.get("id")) == str(job_id):
-            print(fields)
-            return {
-                'naf': fields.get('naf'),
-                'begin': fields.get('begin'),
-                'end': fields.get('end'),
-                'author': fields.get('author')
+    for item in list_resp.json()["value"]:
+        if str(item["fields"].get("id")) == str(job_id):
+            data = {
+                'id_type': item["fields"].get('Tipusdidentificador'),
+                'NAF': item["fields"].get('NAF'),
+                'name': item["fields"].get('Nomdelapersona'),
+                'DNI': item["fields"].get('DNI'),
+                'begin': item["fields"].get('DataInici'),
+                'end': item["fields"].get('Datafinal'),
+                'author': item["createdBy"].get('user').get('email'),
+                'merge_salary_bankproof': item["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
+                'merge_results': item["fields"].get('juntarpdfs'),
+                'merge_RLC_RNT': item["fields"].get('Fusi_x00f3_RLCRNT')
             }
+            return data
 
     raise ValueError(f"Job ID {job_id} not found in SharePoint List")

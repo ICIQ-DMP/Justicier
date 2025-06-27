@@ -4,7 +4,7 @@ import os.path
 import time
 
 from NAF import NAF, build_naf_to_dni, build_naf_to_name_and_surname
-from TokenManager import TokenManager, get_token_manager
+from TokenManager import get_token_manager
 from arguments import parse_date, process_parse_arguments
 from chrono import elapsed_time
 from custom_except import UndefinedRegularSalaryType
@@ -15,7 +15,7 @@ from filesystem import *
 from logger import build_process_logger, get_logger
 from logger import set_logger
 from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, is_date_present_in_rlc_delay, \
-    merge_pdfs, compact_folder, parse_regular_salary_type, get_matching_pages
+    merge_pdfs, compact_folder, parse_regular_salary_type, get_matching_pages, merge_equal_files_from_two_folders
 from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
 from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id
@@ -141,13 +141,15 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         salary_file_path = os.path.join(salaries_folder_path, salary_file)
         salary_file_name = parse_salary_filename_from_salary_path(salary_file_path)
         salary_date = parse_date_from_salary_filename(salary_file_name)
+        salary_output_filename = (salary_date.year.__str__() + unparse_month(salary_date) + '_' +
+                                  salary_file_name.split('_')[1])
         salary_pages = get_matching_pages(salary_file_path, naf.slash_dash_str())
         if len(salary_pages) == 0:
             proc_logger.debug("NAF " + naf.__str__() + " was not detected in PDF " + str(salary_file) +
                          ". Skipping document.")
             continue
         for salary_page, salary_page_number in salary_pages:
-            salary_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME, salary_file_name)
+            salary_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME, salary_output_filename)
 
             index = 2
             while os.path.exists(salary_output_path):
@@ -211,7 +213,23 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
     return r
 
 
-def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
+def compute_path(partial_path, extension):
+    suffix = 1
+    output_path = partial_path + extension
+    while os.path.exists(output_path):
+        if suffix < 100:
+            str_suffix = "00" + str(suffix)
+        elif suffix < 10:
+            str_suffix = "0" + str(suffix)
+        else:
+            str_suffix = str(suffix)
+        output_path = partial_path + "_" + str_suffix + extension
+        suffix += 1
+
+    return output_path
+
+
+def process_proofs(proofs_folder_path, proofs_output_path, naf, begin, end, naf_to_dni):
     proc_logger = build_process_logger(logger, "Bank proofs")
     # Flatten year directories (flat list of document for all years)
     all_bankproof_folders = flatten_dirs(proofs_folder_path)
@@ -227,24 +245,35 @@ def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
                                                                                                          "-") + ".")
 
     # Write sheets to NAF folder that match the DNI
-    proofs_dir = os.path.join(naf_dir, PROOFS_OUTPUT_NAME)
     for bankproof_folder in bankproof_folders_selected:
         bank = "_".join(bankproof_folder.split("_")[1:])
+        proof_date = parse_date(bankproof_folder.split("/")[1][:6], "%m%Y")
         proc_logger.debug("Working with folder " + bankproof_folder + ". Bank type is " + bank)
         if (bank.__eq__("BBVA") or bank.__eq__("BBVA_endarreriments") or bank.__eq__("BBVA_endarreriments") or
                 bank.__eq__("BBVA_FINIQUITO")):
             for bankproof_file in list_dir(os.path.join(proofs_folder_path, bankproof_folder)):
                 try:
                     page = get_matching_page(os.path.join(proofs_folder_path, bankproof_folder, bankproof_file),
-                                             naf_to_dni[naf], "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]")
+                                             naf_to_dni[naf].no_dash_str(), "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]")
                 except ValueError as e:
                     proc_logger.debug(
-                        "NAF " + naf.__str__() + " not detected in " + bankproof_file + ". Error: " + e.__str__())
+                        "DNI " + str(naf_to_dni[naf]) + " not detected in " +
+                        os.path.join(proofs_folder_path, bankproof_folder, bankproof_file) + ". Error: " + e.__str__())
                     continue
-                output_path = os.path.join(proofs_dir, bankproof_file)
+                if bank.__eq__("BBVA_endarreriments") or bank.__eq__("BBVA_endarreriments"):
+                    suffix = "Atrasos"
+                elif bank.__eq__("BBVA"):
+                    suffix = "Nomines"
+                elif bank.__eq__("BBVA_FINIQUITO"):
+                    suffix = "Extra"
+                else:
+                    suffix = "BBVA-UnknownSalaryType"
+                output_partial_path = os.path.join(proofs_output_path, proof_date.strftime("%Y%m"))
+                output_path = compute_path(output_partial_path, "_" + suffix + ".pdf")
                 proc_logger.info(
-                    "NAF " + naf.__str__() + " was detected in " + bankproof_file + ". Writing page to " + output_path.__str__()
-                    + ".")
+                    "DNI " + str(naf_to_dni[naf]) + " was detected in " +
+                    os.path.join(proofs_folder_path, bankproof_folder, bankproof_file) + ". Writing page to " +
+                    output_path.__str__() + ".")
                 write_page(page, output_path)
 
         elif bank.__eq__("LA_CAIXA") or bank.__eq__("LA_CAIXA_EXTRA") or bank.__eq__("LA_CAIXA_endarreriments"):
@@ -252,13 +281,26 @@ def process_proofs(proofs_folder_path, naf_dir, naf, begin, end, naf_to_dni):
             for file_name in file_names:
                 try:
                     page = get_matching_page(os.path.join(proofs_folder_path, bankproof_folder, file_name),
-                                             naf_to_dni[naf], "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]")
+                                             naf_to_dni[naf].no_dash_str(), "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]")
                 except ValueError as e:
-                    proc_logger.debug("NAF " + naf.__str__() + " not detected in " + file_name + ". Error: " + e.__str__())
+                    proc_logger.debug("DNI " + str(naf_to_dni[naf]) + " not detected in " +
+                                      os.path.join(proofs_folder_path, bankproof_folder, file_name) + ". Error: "
+                                      + e.__str__())
                     continue
-                output_path = os.path.join(proofs_dir, file_name)
+                if bank.__eq__("LA_CAIXA_endarreriments"):
+                    suffix = "Atrasos"
+                elif bank.__eq__("LA_CAIXA"):
+                    suffix = "Nomines"
+                elif bank.__eq__("LA_CAIXA_EXTRA"):
+                    suffix = "Extra"
+                else:
+                    suffix = "LACAIXA-UnknownSalaryType"
+                output_partial_path = os.path.join(proofs_output_path, proof_date.strftime("%Y%m"))
+                output_path = compute_path(output_partial_path, "_" + suffix + ".pdf")
                 proc_logger.info(
-                    "NAF " + naf.__str__() + " was detected in " + file_name + ". Writing page to " + output_path.__str__() + ".")
+                    "DNI " + str(naf_to_dni[naf]) + " was detected in " +
+                    os.path.join(proofs_folder_path, bankproof_folder, file_name) + ". Writing page to " +
+                    output_path.__str__() + ".")
                 write_page(page, output_path)
         else:
             proc_logger.error(bank.__str__() + " is a bad bank. Skipping to next bank proof.")
@@ -345,6 +387,42 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
     return rnts_found
 
 
+def reverse_dict(d: dict):
+    r = {}
+    for key in d.keys():
+        r[d[key]] = key
+    return r
+
+
+def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
+    if args.naf:
+        if not args.dni:
+            args.dni = NAF_TO_DNI[args.naf]
+        else:
+            print("WARNING: DNI is defined but NAF is also defined. DNI will be ignored")
+        if not args.name:
+            args.name = NAF_TO_NAME[args.naf]
+        else:
+            print("WARNING: Name is defined but NAF is also defined. Name will be ignored")
+        return
+    if args.dni:
+        if not args.naf:
+            args.naf = DNI_TO_NAF[args.dni]
+        if not args.name:
+            args.name = NAF_TO_NAME[args.naf]
+        else:
+            print("WARNING: Name is defined but DNI is also defined. Name will be ignored")
+        return
+    if args.name:
+        if not args.naf:
+            print(NAME_TO_NAF.keys())
+            args.naf = NAME_TO_NAF[args.name]
+        if not args.name:
+            args.name = NAF_TO_NAME[args.naf]
+        return
+    raise ValueError("An employee identifier was not supplied (NAF, DNI or name). Aborting.")
+
+
 def main():
     start_time = time.time()
 
@@ -358,17 +436,21 @@ def main():
     carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
 
     # Ensure fresh input data
-    if args.input == "sharepoint":
+    if args.location == "sharepoint":
         remove_folder(INPUT_FOLDER)
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, INPUT_FOLDER)
-    elif args.input == "local":
+    elif args.location == "local":
         pass
 
     start_time = time.time()
 
+    # Build dictionaries to translate between different identifier data
     NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
-    # Build dictionaries to translate NAF to different identifier data
+    DNI_TO_NAF = reverse_dict(NAF_TO_DNI)
     NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
+    NAME_TO_NAF = reverse_dict(NAF_TO_NAME)
+
+    complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME)
 
     now = datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
 
@@ -397,33 +479,41 @@ def main():
     # Begin processing
     reports = {}
     # Salaries & RLC
+    salary_output_path = os.path.join(current_justification_folder, SALARIES_OUTPUT_NAME)
     reports[DocType.SALARY] = process_salaries_with_rlc(SALARIES_FOLDER, RLCS_FOLDER, current_justification_folder,
                                                         args.naf, args.begin, args.end)
-    salary_output_path = os.path.join(current_justification_folder, SALARIES_OUTPUT_NAME)
-    rlc_output_path = os.path.join(current_justification_folder, RLCS_OUTPUT_NAME)
-    if args.compact[DocType.SALARY]:
-        compact_folder(salary_output_path)
-    if args.compact[DocType.RLC]:
-        compact_folder(rlc_output_path)
 
     # Bank proofs
-    reports[DocType.PROOFS] = process_proofs(PROOFS_FOLDER, current_justification_folder, args.naf, args.begin,
-                                             args.end, NAF_TO_DNI)
     proof_output_path = os.path.join(current_justification_folder, PROOFS_OUTPUT_NAME)
-    if args.compact[DocType.PROOFS]:
+    reports[DocType.PROOFS] = process_proofs(PROOFS_FOLDER, proof_output_path, args.naf, args.begin,
+                                             args.end, NAF_TO_DNI)
+
+    rlc_output_path = os.path.join(current_justification_folder, RLCS_OUTPUT_NAME)
+    print("before")
+    if args.merge_salary:
+        print("entering")
+        salaries_and_bankproofs_output_path = os.path.join(current_justification_folder,
+                                                           SALARIES_AND_PROOFS_OUTPUT_NAME)
+        merge_equal_files_from_two_folders(salary_output_path, proof_output_path, salaries_and_bankproofs_output_path)
+    # Process general after processing merge salary + bank proof
+    if args.merge_result[DocType.SALARY]:
+        compact_folder(salary_output_path)
+    if args.merge_result[DocType.RLC]:
+        compact_folder(rlc_output_path)
+    if args.merge_result[DocType.PROOFS]:
         compact_folder(proof_output_path)
 
     # Contracts
     reports[DocType.CONTRACT] = process_contracts(CONTRACTS_FOLDER, current_justification_folder, args.naf,
                                                   args.begin, args.end)
     contract_output_path = os.path.join(current_justification_folder, CONTRACTS_OUTPUT_NAME)
-    if args.compact[DocType.CONTRACT]:
+    if args.merge_result[DocType.CONTRACT]:
         compact_folder(contract_output_path)
 
     # RNTs
     reports[DocType.RNT] = process_RNTs(RNTS_FOLDER, current_justification_folder, args.naf, args.begin, args.end)
     rnt_output_path = os.path.join(current_justification_folder, RNTS_OUTPUT_NAME)
-    if args.compact[DocType.RNT]:
+    if args.merge_result[DocType.RNT]:
         compact_folder(rnt_output_path)
 
     final_logger = build_process_logger(logger_instance, "Final report")
