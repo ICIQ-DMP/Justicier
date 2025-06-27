@@ -7,6 +7,7 @@ from requests.exceptions import HTTPError
 
 from TokenManager import TokenManager, get_token_manager
 from logger import build_process_logger
+from secret import read_secret
 
 
 def get_site_id(token_manager, domain, site_name):
@@ -153,6 +154,56 @@ def upload_folder_recursive(token_manager, drive_id, local_folder_path, remote_f
             upload_file(token_manager, drive_id, remote_file, local_file)
 
 
+def print_columns():
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    list_name = read_secret("SHAREPOINT_LIST_NAME")
+
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+
+    # Get list items
+    list_resp = requests.get(
+    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items?expand=fields,createdBy",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    list_resp.raise_for_status()
+
+    print(list_resp.json())
+
+
+def update_list_item_field(item_id, updated_fields: dict):
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    list_name = read_secret("SHAREPOINT_LIST_NAME")
+
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+
+    # Endpoint to patch the item's fields
+    patch_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{item_id}/fields"
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.patch(
+        patch_url,
+        headers=headers,
+        json=updated_fields
+    )
+
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to update item {item_id}: {response.status_code} - {response.text}")
+
+    return response.json()
+
+
 def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
@@ -161,7 +212,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
 
     # Get list items
     list_resp = requests.get(
-    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items?expand=fields($select="
+    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{job_id}?expand=fields($select="
         f"Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,"
         f"Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,id),createdBy",
         headers={"Authorization": f"Bearer {access_token}"}
@@ -169,20 +220,21 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     list_resp.raise_for_status()
 
     # Search for the job ID
-    for item in list_resp.json()["value"]:
-        if str(item["fields"].get("id")) == str(job_id):
-            data = {
-                'id_type': item["fields"].get('Tipusdidentificador'),
-                'NAF': item["fields"].get('NAF'),
-                'name': item["fields"].get('Nomdelapersona'),
-                'DNI': item["fields"].get('DNI'),
-                'begin': item["fields"].get('DataInici'),
-                'end': item["fields"].get('Datafinal'),
-                'author': item["createdBy"].get('user').get('email'),
-                'merge_salary_bankproof': item["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
-                'merge_results': item["fields"].get('juntarpdfs'),
-                'merge_RLC_RNT': item["fields"].get('Fusi_x00f3_RLCRNT')
-            }
-            return data
+    if str(list_resp.json()["fields"].get("id")) == str(job_id):
+        data = {
+            'id_type': list_resp.json()["fields"].get('Tipusdidentificador'),
+            'NAF': list_resp.json()["fields"].get('NAF'),
+            'name': list_resp.json()["fields"].get('Nomdelapersona'),
+            'DNI': list_resp.json()["fields"].get('DNI'),
+            'begin': list_resp.json()["fields"].get('DataInici'),
+            'end': list_resp.json()["fields"].get('Datafinal'),
+            'author': list_resp.json()["createdBy"].get('user').get('email'),
+            'merge_salary_bankproof': list_resp.json()["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
+            'merge_results': list_resp.json()["fields"].get('juntarpdfs'),
+            'merge_RLC_RNT': list_resp.json()["fields"].get('Fusi_x00f3_RLCRNT')
+        }
+        return data
 
     raise ValueError(f"Job ID {job_id} not found in SharePoint List")
+
+

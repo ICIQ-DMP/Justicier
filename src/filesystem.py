@@ -108,12 +108,12 @@ def flatten_dirs(folder_to_flat):
 
 
 def compute_id(now, args, naf_to_name):
-    return (now + "_" + args.author + "_" + args.naf.__str__() + "_" + naf_to_name[args.naf] + "_" +
+    return (now + "_" + args.author + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]) + "_" +
             args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m"))
 
 
 def compute_impersonal_id(now, args, naf_to_name):
-    return (now + "_" + args.naf.__str__() + "_" + naf_to_name[args.naf] + "_" +
+    return (now + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]) + "_" +
             args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m"))
 
 

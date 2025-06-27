@@ -5,6 +5,7 @@ import pandas as pd
 from defines import NAF_DATA_PATH
 from custom_except import ArgumentNafInvalid, ArgumentNafNotPresent
 from DNI import parse_dni
+from Name import parse_name_a3
 
 
 class NAF:
@@ -80,9 +81,9 @@ def build_naf_to_dni(path):
     return parse_two_columns(df, 3, 2, parse_naf, parse_dni)
 
 
-def build_naf_to_name_and_surname(path):
+def build_naf_to_name(path):
     df = read_dataframe(path, 3, None)
-    return parse_two_columns(df, 3, 1, parse_naf)
+    return parse_two_columns(df, 3, 1, parse_naf, parse_name_a3)
 
 
 def parse_naf(value):

@@ -8,6 +8,7 @@ from defines import DocType, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list
 from DNI import parse_dni
+from Name import parse_name_sharepoint
 
 
 def get_compact_init():
@@ -73,10 +74,6 @@ def parse_input_type(value):
         raise UndefinedInputType("The type supplied for input type \"" + value + "\" is not defined.")
 
 
-def parse_name(value):
-    return value
-
-
 def expand_job_id(job_id):
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
@@ -107,7 +104,7 @@ def parse_arguments():
 
     parser.add_argument("-n", "--naf", "--NAF", type=parse_naf, required=False,
                         help="NAF (SS security number) of the employee to justify")
-    parser.add_argument("-N", "--name", type=parse_name, required=False,
+    parser.add_argument("-N", "--name", type=parse_name_sharepoint, required=False,
                         help="Name of the employee to ")
     parser.add_argument("-d", "--dni", "--DNI", type=parse_dni, required=False,
                         help="Name of the employee to justify")
@@ -155,7 +152,7 @@ def parse_sharepoint_arguments(args, common):
         if config['NAF']:
             args.naf = parse_naf(config['NAF'])
         if config['name']:
-            args.name = parse_name(config['name'])
+            args.name = parse_name_sharepoint(config['name'])
         if config['DNI']:
             args.dni = parse_dni(config['DNI'])
         args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ")

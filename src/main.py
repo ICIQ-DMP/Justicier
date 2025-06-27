@@ -1,9 +1,10 @@
 import os.path
 import os.path
 import os.path
+import sys
 import time
 
-from NAF import NAF, build_naf_to_dni, build_naf_to_name_and_surname
+from NAF import NAF, build_naf_to_dni, build_naf_to_name
 from TokenManager import get_token_manager
 from arguments import parse_date, process_parse_arguments
 from chrono import elapsed_time
@@ -18,7 +19,8 @@ from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, 
     merge_pdfs, compact_folder, parse_regular_salary_type, get_matching_pages, merge_equal_files_from_two_folders
 from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
-from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id
+from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id, \
+    update_list_item_field, print_columns
 
 logger = None
 
@@ -37,11 +39,12 @@ def process_rlc_aux(salary_date, rlc_folder_path, months_found, rlc_subtype: str
             months_found[salary_date][2] = True  # RLC L00 of type P is found
         return rlc_n_path
     else:
-        proc_logger.error("Monthly salary was found, but the expected L" + rlc_type + " RLC of type " + rlc_subtype + " was "
-                                                                                                                 "not found in the "
-                                                                                                                 "expected location "
-                                                                                                                 "" + str(
-            rlc_n_path) + ". Skipping merge of this salary file.")
+        proc_logger.error(
+            "Monthly salary was found, but the expected L" + rlc_type + " RLC of type " + rlc_subtype + " was "
+                                                                                                        "not found in the "
+                                                                                                        "expected location "
+                                                                                                        "" + str(
+                rlc_n_path) + ". Skipping merge of this salary file.")
         raise ValueError("File was not detected")  # TODO custom except
 
 
@@ -58,7 +61,7 @@ def process_generic_rlc(rlc_type, salary_date, salary_file_path, rlc_folder_path
         proc_logger.debug("Expected RLC P path is: " + rlc_p_path)
     except ValueError:
         proc_logger.error("Some of the RLC documents (N or P) has not been found. The salary file " + salary_file_path
-                     + " will be skipped.")
+                          + " will be skipped.")
         return
 
     pdf_path_list = [rlc_n_path, rlc_p_path]
@@ -71,16 +74,16 @@ def process_rlc_l03(salary_file_path, salary_page_number, salary_page, salary_da
     proc_logger = build_process_logger(logger, "Salaries and RLCs L03")
 
     proc_logger.info("Salary file " + salary_file_path + " page " +
-                str(salary_page_number + 1) + " has been selected as delay salary for date " +
-                unparse_date(salary_date))
+                     str(salary_page_number + 1) + " has been selected as delay salary for date " +
+                     unparse_date(salary_date))
     try:
         delay_initial_date, delay_end_date = parse_dates_from_delayed_salary(salary_page)
     except ValueError as exc:
         proc_logger.error("The delay date could not be parsed from the delay salary page. This document will be "
-                     "skipped from search. The internal error is " + exc.__str__())
+                          "skipped from search. The internal error is " + exc.__str__())
         return
     proc_logger.debug("Initial date is " + unparse_date(delay_initial_date, "-") + " and end date is " +
-                 unparse_date(delay_end_date, "-"))
+                      unparse_date(delay_end_date, "-"))
 
     rlc_partial_path = os.path.join(naf_dir, rlc_folder_path, salary_date.year.__str__(),
                                     unparse_month(salary_date) + "_L03")
@@ -92,19 +95,16 @@ def process_rlc_l03(salary_file_path, salary_page_number, salary_page, salary_da
             str_suffix = str(suffix)
         rlc_path_n = rlc_partial_path + "N" + str_suffix + ".pdf"
         if not os.path.exists(rlc_path_n):
-            proc_logger.debug("Breaking out of the bucle because " + rlc_path_n +
-                         "does not exist.")
+            proc_logger.debug(f"Breaking out of the bucle because {rlc_path_n} does not exist.")
             break
         if is_date_present_in_rlc_delay(delay_initial_date, delay_end_date, rlc_path_n):
             months_found[salary_date][1] = True  # Delay salary N found
-            rlc_path_p = rlc_partial_path + "P" + str_suffix + ".pdf"
+            rlc_path_p = f"{rlc_partial_path}P{str_suffix}.pdf"
             pdf_path_list = []
-            pdf_merged_name = salary_date.year.__str__() + unparse_month(
-                salary_date) + "_L03Merge" + str_suffix + ".pdf"
+            pdf_merged_name = f"{salary_date.year}{unparse_month(salary_date)}_L03Merge{str_suffix}.pdf"
             pdf_output_path = os.path.join(naf_dir, RLCS_OUTPUT_NAME, pdf_merged_name)
             if not os.path.exists(rlc_path_p):
-                proc_logger.debug("Breaking out of the bucle because " + rlc_path_p +
-                             "does not exist.")
+                proc_logger.debug(f"Breaking out of the bucle because {rlc_path_p} does not exist.")
             months_found[salary_date][2] = True  # Delay salary P is found
             # pdf_path_list.append(salary_output_path)  # Do not add salary to RLC merge
             pdf_path_list.append(rlc_path_n)
@@ -116,12 +116,14 @@ def process_rlc_l03(salary_file_path, salary_page_number, salary_page, salary_da
 
 def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, naf, begin, end):
     proc_logger = build_process_logger(logger, "Salaries and RLCs")
-    regular_monthly_salaries_rlcs_found = get_rlc_monthly_result_structure(begin,
-                                                                           end)  # regular monthly salary, RLC-N, RLC-P
-    regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(begin,
-                                                                              end)  # regular settlement salary, RLC-N, RLC-P
-    delay_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)  # delay salary, RLC-N, RLC-P
-    # Salaries, RLC L00, RLC L03
+
+    # regular monthly salary, RLC-N, RLC-P
+    regular_monthly_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
+    # regular settlement salary, RLC-N, RLC-P
+    regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
+    # delay salary, RLC-N, RLC-P
+    delay_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
+
     # List all file names in the _salaries folder, in the ./input folder and remove undesired files
     salary_files = flatten_dirs(salaries_folder_path)
     # Select all salary sheets that are in range with the date (begin and end date included)
@@ -131,22 +133,20 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         if begin <= dir_date <= end:
             salary_files_selected.append(salary_file)
             proc_logger.debug(
-                "Salary file " + str(salary_file) + " is selected, because its date is " + unparse_date(dir_date,
-                                                                                                        "-") + ".")
+                f"Salary file {salary_file} is selected, because its date is {unparse_date(dir_date,'-')}.")
 
+    # Salaries, RLC L00, RLC L03
     # Write sheets to NAF folder that match the supplied NAF
     salary_files_selected.sort()
     for salary_file in salary_files_selected:
-        proc_logger.debug("Processing file " + salary_file)
+        proc_logger.debug(f"Processing file {salary_file}")
         salary_file_path = os.path.join(salaries_folder_path, salary_file)
         salary_file_name = parse_salary_filename_from_salary_path(salary_file_path)
         salary_date = parse_date_from_salary_filename(salary_file_name)
-        salary_output_filename = (salary_date.year.__str__() + unparse_month(salary_date) + '_' +
-                                  salary_file_name.split('_')[1])
+        salary_output_filename = f"{str(salary_date.year)}{unparse_month(salary_date)}_{salary_file_name.split('_')[1]}"
         salary_pages = get_matching_pages(salary_file_path, naf.slash_dash_str())
         if len(salary_pages) == 0:
-            proc_logger.debug("NAF " + naf.__str__() + " was not detected in PDF " + str(salary_file) +
-                         ". Skipping document.")
+            proc_logger.debug(f"NAF {str(naf)} was not detected in PDF {str(salary_file)}. Skipping document.")
             continue
         for salary_page, salary_page_number in salary_pages:
             salary_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME, salary_output_filename)
@@ -159,9 +159,9 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
 
             write_page(salary_page, salary_output_path)
 
-            proc_logger.info("Detected NAF " + naf.__str__() + " in PDF salary " + str(salary_file_path) + ", page " +
-                        str(salary_page_number + 1) + ". Saving page in " +
-                        salary_output_path.__str__() + " and further processing it.")
+            proc_logger.info(f"Detected NAF {str(naf)} in PDF salary {str(salary_file_path)}, page "
+                             f"{str(salary_page_number + 1)} . Saving page in {str(salary_output_path)} and "
+                             f"further processing it.")
 
             # Now check if salary_file is delay, so we need to proceed to L03 or regular (L00 or L13) procedure
             salary_type = parse_salary_type(salary_file_path)
@@ -170,27 +170,23 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
                 process_rlc_l03(salary_file_path, salary_page_number, salary_page, salary_date,
                                 naf_dir, rlc_folder_path, salary_output_path, delay_salaries_rlcs_found)
             elif salary_type == SalaryType.REGULAR:  # process L00 and L13 RLCs
-                proc_logger.info("Salary file " + salary_file_path + " page " +
-                            str(salary_page_number + 1) + " has been selected as regular salary for date " +
-                            unparse_date(salary_date))
+                proc_logger.info(f"Salary file {salary_file_path} page {str(salary_page_number + 1)} has been selected "
+                                 f"as regular salary for date {unparse_date(salary_date)}")
                 try:
                     regular_salary_type = parse_regular_salary_type(salary_page)
                 except UndefinedRegularSalaryType as e:
-                    proc_logger.error("Salary file " + salary_file_path + " page " +
-                                 str(salary_page_number + 1) + " is a type not supported or can not be recognized. "
-                                                               "Skipping to next page. Internal error is: " + e.__str__())
+                    proc_logger.error(f"Salary file {salary_file_path} page {str(salary_page_number + 1)} is a type "
+                                      f"not supported or can not be recognized. Skipping to next page. Internal error "
+                                      f"is: {str(e)}")
                     continue
                 if regular_salary_type == RegularSalaryType.MONTHLY:
-                    proc_logger.info("Salary file " + salary_file_path + " page " +
-                                str(salary_page_number + 1) + " has been selected as regular monthly salary for date " +
-                                unparse_date(salary_date))
+                    proc_logger.info(f"Salary file {salary_file_path} page {str(salary_page_number + 1)} has been "
+                                     f"selected as regular monthly salary for date {unparse_date(salary_date)}")
                     process_generic_rlc("00", salary_date, salary_file_path, rlc_folder_path, naf_dir,
                                         salary_output_path, regular_monthly_salaries_rlcs_found)
                 elif regular_salary_type == RegularSalaryType.SETTLEMENT:
-                    proc_logger.info("Salary file " + salary_file_path + " page " +
-                                str(salary_page_number + 1) + " has been selected as regular settlement salary for "
-                                                              "date " +
-                                unparse_date(salary_date))
+                    proc_logger.info(f"Salary file {salary_file_path} page {str(salary_page_number + 1)} has been "
+                                     f"selected as regular settlement salary for date {unparse_date(salary_date)}")
                     process_generic_rlc("13", salary_date, salary_file_path, rlc_folder_path, naf_dir,
                                         salary_output_path, regular_settlement_salaries_rlcs_found)
                 else:
@@ -198,14 +194,12 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
                     continue
 
             elif salary_type.__eq__(SalaryType.EXTRA):
-                proc_logger.info("Salary file " + salary_file_path + " page " +
-                            str(salary_page_number + 1) + " has been selected as extra salary for date " +
-                            unparse_date(salary_date))
+                proc_logger.info(f"Salary file {salary_file_path} page {str(salary_page_number + 1)} has been selected "
+                                 f"as extra salary for date {unparse_date(salary_date)}")
                 continue
             else:
-                proc_logger.error(
-                    "Detected type " + salary_type.__str__() + " that is not a recognized type. The current salary "
-                                                               "file will be ignored")
+                proc_logger.error(f"Detected type {str(salary_type)} that is not a recognized type. The current salary "
+                                  f"file will be ignored")
 
     r = {RLCType.REGULAR: regular_monthly_salaries_rlcs_found,
          RLCType.SETTLEMENT: regular_settlement_salaries_rlcs_found, RLCType.DELAY: delay_salaries_rlcs_found}
@@ -325,7 +319,8 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
             end_date = datetime.max
         else:
             proc_logger.error("expected 3 fields in the name of the file " + contracts_file + " but " +
-                         str(len(dates)) + " have been found. The file will be ignored until it has proper format.")
+                              str(len(
+                                  dates)) + " have been found. The file will be ignored until it has proper format.")
             continue
 
         if naf_dirty.__eq__(naf):
@@ -345,8 +340,13 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
                                 dst=os.path.join(naf_dir, CONTRACTS_OUTPUT_NAME))
                     found = True
                 except Exception as e:
-                    proc_logger.critical("An error happened program will abort" + e)
-                    exit(2)
+                    err_msg = f"An error happened while copying " \
+                              f"{os.path.join(contracts_folder_path, contracts_file)} to " \
+                              f"{os.path.join(naf_dir, CONTRACTS_OUTPUT_NAME)}. The program will abort. " \
+                              f"Error is: {str(e)}"
+                    proc_logger.critical(err_msg)
+                    raise Exception(err_msg)
+
     if not found:
         proc_logger.warning("Contract not found with NAF " + str(naf))
     return found
@@ -366,7 +366,7 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
             rnt_path = os.path.join(rnts_folder_path, file_date.year.__str__(), rnt_file_name)
             rnt_partial_path_destination = os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_file_name)
             proc_logger.info("RNT file " + rnt_path.__str__() + " is selected, because its date is " +
-                        unparse_date(file_date) + ".")
+                             unparse_date(file_date) + ".")
             try:
                 pages = get_matching_pages(rnt_path, naf.__str__(), r"\d{12}")
             except ValueError as e:
@@ -382,7 +382,7 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
                 rnts_found[file_date] = True
         else:
             proc_logger.debug("RNT file " + rnt_file.__str__() + " is not selected, because its date is " +
-                         unparse_date(file_date) + ".")
+                              unparse_date(file_date) + ".")
 
     return rnts_found
 
@@ -398,6 +398,7 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
     if args.naf:
         if not args.dni:
             args.dni = NAF_TO_DNI[args.naf]
+            update_list_item_field(args.request, {"DNI": str(args.dni)})
         else:
             print("WARNING: DNI is defined but NAF is also defined. DNI will be ignored")
         if not args.name:
@@ -408,17 +409,31 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
     if args.dni:
         if not args.naf:
             args.naf = DNI_TO_NAF[args.dni]
+            update_list_item_field(args.request, {"NAF": str(args.naf)})
         if not args.name:
             args.name = NAF_TO_NAME[args.naf]
+
+            update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
+            print("name upd")
+            input()
         else:
             print("WARNING: Name is defined but DNI is also defined. Name will be ignored")
         return
     if args.name:
         if not args.naf:
-            print(NAME_TO_NAF.keys())
-            args.naf = NAME_TO_NAF[args.name]
-        if not args.name:
-            args.name = NAF_TO_NAME[args.naf]
+            if args.name in NAME_TO_NAF:
+                args.naf = NAME_TO_NAF[args.name]
+                update_list_item_field(args.request, {"NAF": str(args.naf)})
+            else:
+                raise ValueError(f"Only name was supplied, but the name {str(args.name)} can not be found in the "
+                                 "database. The program "
+                                 "can not continue and will abort. Remember that "
+                                 "identifying employees using name is fragile and should be avoided. Using NAF for "
+                                 "employee "
+                                 "identification is the recommended configuration. Another option better than name but "
+                                 "worse than NAF is DNI.")
+        if not args.dni:
+            args.name = NAF_TO_DNI[args.naf]
         return
     raise ValueError("An employee identifier was not supplied (NAF, DNI or name). Aborting.")
 
@@ -428,7 +443,11 @@ def main():
 
     args = process_parse_arguments()
 
+    if args.request:
+        update_list_item_field(args.request, {"Estatworkflow": "En execució"})
+
     token_manager = get_token_manager()
+
     sharepoint_domain = read_secret('SHAREPOINT_DOMAIN')
     site_name = read_secret('SITE_NAME')
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
@@ -447,7 +466,7 @@ def main():
     # Build dictionaries to translate between different identifier data
     NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
     DNI_TO_NAF = reverse_dict(NAF_TO_DNI)
-    NAF_TO_NAME = build_naf_to_name_and_surname(NAF_DATA_PATH)
+    NAF_TO_NAME = build_naf_to_name(NAF_DATA_PATH)
     NAME_TO_NAF = reverse_dict(NAF_TO_NAME)
 
     complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME)
@@ -465,6 +484,7 @@ def main():
     # Define logger
     logger_instance = get_logger(user_report_file, admin_log_path, supervisor_log_path, debug_mode=True)
     set_logger(logger_instance)
+
     global logger
     logger = build_process_logger(logger_instance, "main process")
 
@@ -489,9 +509,7 @@ def main():
                                              args.end, NAF_TO_DNI)
 
     rlc_output_path = os.path.join(current_justification_folder, RLCS_OUTPUT_NAME)
-    print("before")
     if args.merge_salary:
-        print("entering")
         salaries_and_bankproofs_output_path = os.path.join(current_justification_folder,
                                                            SALARIES_AND_PROOFS_OUTPUT_NAME)
         merge_equal_files_from_two_folders(salary_output_path, proof_output_path, salaries_and_bankproofs_output_path)
@@ -504,8 +522,14 @@ def main():
         compact_folder(proof_output_path)
 
     # Contracts
-    reports[DocType.CONTRACT] = process_contracts(CONTRACTS_FOLDER, current_justification_folder, args.naf,
-                                                  args.begin, args.end)
+    try:
+        reports[DocType.CONTRACT] = process_contracts(CONTRACTS_FOLDER, current_justification_folder, args.naf,
+                                                      args.begin, args.end)
+    except Exception as e:
+        if args.request:
+            update_list_item_field(args.request, {"Estatworkflow": "Error", "Missatge_x0020_error":
+                str(e)})
+        sys.exit(2)
     contract_output_path = os.path.join(current_justification_folder, CONTRACTS_OUTPUT_NAME)
     if args.merge_result[DocType.CONTRACT]:
         compact_folder(contract_output_path)
@@ -533,13 +557,19 @@ def main():
     )
 
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
-    upload_file(token_manager, drive_id, SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
-    upload_file(token_manager, drive_id, SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path), supervisor_log_path)
+    upload_file(token_manager, drive_id,
+                SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
+    upload_file(token_manager, drive_id,
+                SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path),
+                supervisor_log_path)
 
     end_time = elapsed_time(start_time)
     logger.info("Time elapsed for uploading data: " + str(end_time) + ".")
     start_time = time.time()
     elapsed_time(start_time)
+
+    if args.request:
+        update_list_item_field(args.request, {"Estatworkflow": "Completat"})
 
 
 if __name__ == "__main__":
