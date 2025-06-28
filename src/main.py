@@ -425,7 +425,8 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
                 args.naf = NAME_TO_NAF[args.name]
                 update_list_item_field(args.request, {"NAF": str(args.naf)})
             else:
-                print(NAME_TO_NAF.keys().__str__())
+                for k in NAME_TO_NAF.keys():
+                    print(k)
                 print("name to naf")
                 print(args.name)
 

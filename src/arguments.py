@@ -8,7 +8,7 @@ from defines import DocType, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list
 from DNI import parse_dni
-from Name import parse_name_sharepoint
+from Name import parse_name_sharepoint, parse_name_a3
 
 
 def get_compact_init():
@@ -104,7 +104,7 @@ def parse_arguments():
 
     parser.add_argument("-n", "--naf", "--NAF", type=parse_naf, required=False,
                         help="NAF (SS security number) of the employee to justify")
-    parser.add_argument("-N", "--name", type=parse_name_sharepoint, required=False,
+    parser.add_argument("-N", "--name", type=parse_name_a3, required=False,
                         help="Name of the employee to ")
     parser.add_argument("-d", "--dni", "--DNI", type=parse_dni, required=False,
                         help="Name of the employee to justify")
