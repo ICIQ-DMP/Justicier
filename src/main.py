@@ -425,6 +425,9 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
                 args.naf = NAME_TO_NAF[args.name]
                 update_list_item_field(args.request, {"NAF": str(args.naf)})
             else:
+                print(args.name)
+                print("name to naf")
+                print(NAME_TO_NAF)
                 raise ValueError(f"Only name was supplied, but the name {str(args.name)} can not be found in the "
                                  "database. The program "
                                  "can not continue and will abort. Remember that "
