@@ -154,7 +154,8 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
             index = 2
             while os.path.exists(salary_output_path):
                 salary_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME,
-                                                  salary_file_name.split(".")[0] + "_" + str(index) + ".pdf")
+                                                  f"{str(salary_date.year)}{unparse_month(salary_date)}_"
+                                                  f"{salary_file_name.split('_')[1].split('.')[0]}_{str(index)}.pdf")
                 index += 1
 
             write_page(salary_page, salary_output_path)
@@ -398,7 +399,8 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
     if args.naf:
         if not args.dni:
             args.dni = NAF_TO_DNI[args.naf]
-            update_list_item_field(args.request, {"DNI": str(args.dni)})
+            if args.request:
+                update_list_item_field(args.request, {"DNI": str(args.dni)})
         else:
             print("WARNING: DNI is defined but NAF is also defined. DNI will be ignored")
         if not args.name:
@@ -409,11 +411,12 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
     if args.dni:
         if not args.naf:
             args.naf = DNI_TO_NAF[args.dni]
-            update_list_item_field(args.request, {"NAF": str(args.naf)})
+            if args.request:
+                update_list_item_field(args.request, {"NAF": str(args.naf)})
         if not args.name:
             args.name = NAF_TO_NAME[args.naf]
-
-            update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
+            if args.request:
+                update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
             print("name upd")
             input()
         else:
@@ -423,7 +426,8 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
         if not args.naf:
             if args.name in NAME_TO_NAF:
                 args.naf = NAME_TO_NAF[args.name]
-                update_list_item_field(args.request, {"NAF": str(args.naf)})
+                if args.request:
+                    update_list_item_field(args.request, {"NAF": str(args.naf)})
             else:
                 for k in NAME_TO_NAF.keys():
                     print(k)

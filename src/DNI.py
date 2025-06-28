@@ -34,10 +34,12 @@ class DNI:
 
         if match.group("dni_number") and match.group("dni_letter"):
             self.is_nie = False
+            self.is_temporal = False
             self.number = match.group("dni_number")
             self.letter = match.group("dni_letter").upper()
         elif match.group("nie_initial") and match.group("nie_number") and match.group("nie_number"):
             self.is_nie = True
+            self.is_temporal = False
             self.initial = match.group("nie_initial").upper()
             self.number = match.group("nie_number")
             self.letter = match.group("nie_letter").upper()
