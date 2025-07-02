@@ -7,21 +7,9 @@ ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # The directory where the output folder for each user will be
 GENERAL_OUTPUT_FOLDER: str = os.path.join(ROOT_FOLDER, "output")
 
-# Obtain absolute path to the input directory
-INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
-# Obtain absolute path to the valid user list
-USER_LIST_DATA_PATH = os.path.join(INPUT_FOLDER, "input")
-
 # Admin logs
 ADMIN_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_admin_logs")
 SUPERVISOR_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_supervisor_logs")
-
-# Obtain absolute paths for each input directory
-SALARIES_FOLDER = os.path.join(INPUT_FOLDER, "_salaries")
-PROOFS_FOLDER = os.path.join(INPUT_FOLDER, "_proofs")
-CONTRACTS_FOLDER = os.path.join(INPUT_FOLDER, "_contracts")
-RNTS_FOLDER = os.path.join(INPUT_FOLDER, "_RNT")
-RLCS_FOLDER = os.path.join(INPUT_FOLDER, "_RLC")
 
 SALARIES_OUTPUT_NAME = "Nòmines"
 PROOFS_OUTPUT_NAME = "Justificants"
@@ -30,7 +18,6 @@ CONTRACTS_OUTPUT_NAME = "Contractes"
 RNTS_OUTPUT_NAME = "RNTs"
 RLCS_OUTPUT_NAME = "RLCs"
 
-NAF_DATA_PATH = os.path.join(INPUT_FOLDER, "NAF_DNI.xlsx")
 
 
 class DocType(Enum):

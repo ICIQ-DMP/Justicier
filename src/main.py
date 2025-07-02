@@ -3,6 +3,7 @@ import os.path
 import os.path
 import sys
 import time
+from datetime import datetime
 
 from NAF import NAF, build_naf_to_dni, build_naf_to_name
 from TokenManager import get_token_manager
@@ -20,7 +21,7 @@ from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, 
 from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
 from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id, \
-    update_list_item_field, print_columns
+    update_list_item_field
 
 logger = None
 
@@ -133,7 +134,7 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         if begin <= dir_date <= end:
             salary_files_selected.append(salary_file)
             proc_logger.debug(
-                f"Salary file {salary_file} is selected, because its date is {unparse_date(dir_date,'-')}.")
+                f"Salary file {salary_file} is selected, because its date is {unparse_date(dir_date, '-')}.")
 
     # Salaries, RLC L00, RLC L03
     # Write sheets to NAF folder that match the supplied NAF
@@ -451,9 +452,26 @@ def main():
     start_time = time.time()
 
     args = process_parse_arguments()
+    if args.input_location:
+        INPUT_FOLDER = args.input_location
+    else:
+        INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
 
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
+
+
+    # Obtain absolute path to the valid user list
+    USER_LIST_DATA_PATH = os.path.join(INPUT_FOLDER, "input")
+
+    # Obtain absolute paths for each input directory
+    SALARIES_FOLDER = os.path.join(INPUT_FOLDER, "_salaries")
+    PROOFS_FOLDER = os.path.join(INPUT_FOLDER, "_proofs")
+    CONTRACTS_FOLDER = os.path.join(INPUT_FOLDER, "_contracts")
+    RNTS_FOLDER = os.path.join(INPUT_FOLDER, "_RNT")
+    RLCS_FOLDER = os.path.join(INPUT_FOLDER, "_RLC")
+
+    NAF_DATA_PATH = os.path.join(INPUT_FOLDER, "NAF_DNI.xlsx")
 
     token_manager = get_token_manager()
 
@@ -463,14 +481,13 @@ def main():
     drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
     carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
 
+    start_time = time.time()
     # Ensure fresh input data
     if args.location == "sharepoint":
         remove_folder(INPUT_FOLDER)
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, INPUT_FOLDER)
     elif args.location == "local":
         pass
-
-    start_time = time.time()
 
     # Build dictionaries to translate between different identifier data
     NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
@@ -502,7 +519,7 @@ def main():
 
     # Stop timer for download process
     end_time = elapsed_time(start_time)
-    logger.info("Time elapsed for downloading and validating input data: " + str(end_time) + ".")
+    logger.info("Time elapsed for obtaining and validating input data: " + str(end_time) + ".")
     start_time = time.time()
 
     # Begin processing

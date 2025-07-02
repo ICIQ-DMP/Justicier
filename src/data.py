@@ -3,10 +3,10 @@ Frontier
 '''
 import os
 from datetime import datetime
-from typing import Dict, Tuple, List
+from typing import Dict, List
 
-from defines import SalaryType
 import logger
+from defines import SalaryType
 
 
 def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_structure=None) -> Dict[str, List[bool]]:

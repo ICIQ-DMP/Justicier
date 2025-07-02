@@ -2,10 +2,9 @@ import re
 
 import pandas as pd
 
-from defines import NAF_DATA_PATH
-from custom_except import ArgumentNafInvalid, ArgumentNafNotPresent
 from DNI import parse_dni
 from Name import parse_name_a3
+from custom_except import ArgumentNafInvalid
 
 
 class NAF:

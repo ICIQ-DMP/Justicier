@@ -1,10 +1,11 @@
 import argparse
 import datetime
+import os.path
 import sys
 
 from NAF import is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import *
-from defines import DocType, from_string
+from defines import DocType, from_string, ROOT_FOLDER
 from secret import read_secret
 from sharepoint import get_parameters_from_list
 from DNI import parse_dni
@@ -88,11 +89,19 @@ def parse_arguments_helper(arg_text: str):
           f"the corresponding row of the provided Microsoft List will be used.")
 
 
+def parse_input_location(value):
+    if not os.path.exists(value):
+        raise ValueError(f"Path {value} does not exist")
+    if not os.path.isdir(value):
+        raise ValueError(f"Path {value} is not a directory")
+    return value
+
+
 def parse_arguments():
     """Parse and validate command-line arguments"""
     parser = argparse.ArgumentParser(description="")
 
-    parser.add_argument("-r", "--request", type=parse_id, required=False,
+    parser.add_argument("-r", "--request", "--id", type=parse_id, required=False,
                         help='ID of the justification request in Microsoft List of Peticions Justificacions. If you use'
                              ' this argument you can\'t use any other argument to submit data to the algorithm except '
                              ' for -l / --location ')
@@ -101,6 +110,9 @@ def parse_arguments():
                         help="Location of the input data. Possible values are: \"sharepoint\" to download from "
                              "sharepoint location and \"local\" to use the local file system storage and read the input"
                              " folder in the repository root folder.")
+    parser.add_argument("-L", "--input-location", type=parse_input_location, required=False,
+                        default=os.path.join(ROOT_FOLDER, "input"),
+                        help="Path location of input data. If used, --location local is assumed.")
 
     parser.add_argument("-n", "--naf", "--NAF", type=parse_naf, required=False,
                         help="NAF (SS security number) of the employee to justify")
@@ -203,6 +215,9 @@ def process_parse_arguments():
     # Manual validation of inputs from sharepoint list
     if args.request:
         parse_sharepoint_arguments(args, common)
+
+    if args.input_location:
+        args.location = "local"
 
     # TODO merge checks
     if args.begin >= args.end:

@@ -1,8 +1,6 @@
 import time
 from datetime import timedelta
 
-from logger import build_process_logger, get_logger_instance
-
 
 def elapsed_time(start_time):
 

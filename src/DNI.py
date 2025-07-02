@@ -1,9 +1,6 @@
 import re
 
-import pandas as pd
-
-from defines import NAF_DATA_PATH
-from custom_except import ArgumentNafInvalid, ArgumentNafNotPresent
+from custom_except import ArgumentNafInvalid
 
 
 class DNI:
