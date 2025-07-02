@@ -316,7 +316,11 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
         proc_logger.debug("contract file: " + contracts_file)
         begin_date = parse_date("20" + dates[1], "%Y%m")
         if len(dates) == 3:  # Contract is temporary; has end date
-            end_date = parse_date("20" + dates[1], "%Y%m")
+            if dates[2] == "A":
+                # Addenda
+                end_date = datetime.max
+            else:
+                end_date = parse_date("20" + dates[1], "%Y%m")
         elif len(dates) == 2:  # Contract is undefined; has no end date
             end_date = datetime.max
         else:
