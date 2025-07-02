@@ -39,7 +39,7 @@ pipeline {
             steps {
                 echo "Creando entorno virtual y actualizando dependencias..."
                 sh '''
-                    cp -r /home/jenkins/agent/secrets /home/jenkins/agent/workspace/run-justicier/secrets
+                    cp -r /home/jenkins/agent/secrets /home/jenkins/agent/workspace/run-justicier
                 '''
             }
         }
