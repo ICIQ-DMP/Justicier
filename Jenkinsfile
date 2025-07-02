@@ -35,6 +35,15 @@ pipeline {
             }
         }
 
+        stage('Copiar secretos') {
+            steps {
+                echo "Creando entorno virtual y actualizando dependencias..."
+                sh '''
+                    cp /home/jenkins/agent/secrets /home/jenkins/agent/workspace/run-justicier/secrets
+                '''
+            }
+        }
+
         stage('Verificar directorio de entrada') {
             steps {
                 echo "Verificando existencia de: ${INPUT_LOCATION}"

@@ -1,7 +1,0 @@
-
-.env
-secrets
-onedrive_conf
-onedrive_data
-jenkins_home
-jenkins_agent_keys

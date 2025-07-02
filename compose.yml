@@ -16,6 +16,7 @@ services:
       - 2022:22
     volumes:
       - ./onedrive_data:/home/jenkins/agent/onedrive_data
+      - ./secrets:/home/jenkins/agent/secrets
       - type: bind
         source: ./jenkins_agent_keys
         target: /home/jenkins/.ssh
