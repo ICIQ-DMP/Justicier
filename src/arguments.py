@@ -219,6 +219,9 @@ def process_parse_arguments():
     if args.input_location:
         args.location = "local"
 
+    # Set time to first second of day, so we do select all documents produced the same day as the beginning
+    args.begin = args.begin.replace(hour=0, minute=0, second=0, microsecond=0)
+    args.end = args.end.replace(hour=23, minute=59, second=59, microsecond=999999)
     # TODO merge checks
     if args.begin >= args.end:
         raise ValueError("Begin date " + str(args.begin) + " can not be after " + str(args.end))

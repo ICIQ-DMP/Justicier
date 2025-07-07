@@ -133,8 +133,14 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         dir_date = parse_date_from_salary_filename(parse_salary_filename_from_salary_path(salary_file))
         if begin <= dir_date <= end:
             salary_files_selected.append(salary_file)
-            proc_logger.debug(
+            proc_logger.info(
                 f"Salary file {salary_file} is selected, because its date is {unparse_date(dir_date, '-')}.")
+        else:
+            proc_logger.debug(
+                f"Salary file {salary_file} is not selected, because its date is {unparse_date(dir_date, '-')}.")
+            #print(begin)
+            #print(dir_date)
+            #print(end)
 
     # Salaries, RLC L00, RLC L03
     # Write sheets to NAF folder that match the supplied NAF
@@ -236,7 +242,7 @@ def process_proofs(proofs_folder_path, proofs_output_path, naf, begin, end, naf_
         dir_date = parse_date(bankproof_folder.split("/")[1][:6], "%m%Y")
         if begin <= dir_date <= end:
             bankproof_folders_selected.append(bankproof_folder)
-            proc_logger.debug(
+            proc_logger.info(
                 "Proof folder " + bankproof_folder + " is selected, because its date is " + unparse_date(dir_date,
                                                                                                          "-") + ".")
 
@@ -500,6 +506,8 @@ def main():
     NAME_TO_NAF = reverse_dict(NAF_TO_NAME)
 
     complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME)
+
+    print(args.begin)
 
     now = datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
 
