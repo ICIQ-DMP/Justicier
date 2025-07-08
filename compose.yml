@@ -5,7 +5,7 @@ services:
       - 8080:8080
       - 50000:50000
     volumes:
-      - ./jenkins_home:/var/jenkins_home
+      - ./service/jenkins_home:/var/jenkins_home
 
   agent:
     build:
@@ -15,24 +15,54 @@ services:
     ports:
       - 2022:22
     volumes:
-      - ./onedrive_data:/home/jenkins/agent/onedrive_data
-      - ./secrets:/home/jenkins/agent/secrets
+      - ./service/onedrive_data:/home/jenkins/agent/onedrive_data
       - type: bind
-        source: ./jenkins_agent_keys
+        source: ./service/jenkins_agent_keys
         target: /home/jenkins/.ssh
         read_only: false
     environment:
       - JENKINS_AGENT_SSH_PUBKEY=${JENKINS_AGENT_SSH_PUBKEY}
+    secrets:
+      - CLIENT_ID
+      - CLIENT_SECRET
+      - SHAREPOINT_DOMAIN
+      - SHAREPOINT_FOLDER_INPUT
+      - SHAREPOINT_FOLDER_OUTPUT
+      - SHAREPOINT_LIST_GUID
+      - SHAREPOINT_LIST_NAME
+      - SITE_NAME
+      - TENANT_ID
 
   onedrive:
     image: docker.io/driveone/onedrive:edge
     userns_mode: keep-id
     restart: always
     volumes:
-      - ./onedrive_conf:/onedrive/conf
-      - ./onedrive_data:/onedrive/data
+      - ./service/onedrive_conf:/onedrive/conf
+      - ./service/onedrive_data:/onedrive/data
     environment:
       - ONEDRIVE_DOWNLOADONLY=1
       - ONEDRIVE_CLEANUPLOCAL=1
     labels:
       io.containers.autoupdate: "image"
+
+
+secrets:
+  CLIENT_ID:
+    file: ./secrets/CLIENT_ID
+  CLIENT_SECRET:
+    file: ./secrets/CLIENT_SECRET
+  SHAREPOINT_DOMAIN:
+    file: ./secrets/SHAREPOINT_DOMAIN
+  SHAREPOINT_FOLDER_INPUT:
+    file: ./secrets/SHAREPOINT_FOLDER_INPUT
+  SHAREPOINT_FOLDER_OUTPUT:
+    file: ./secrets/SHAREPOINT_FOLDER_OUTPUT
+  SHAREPOINT_LIST_GUID:
+    file: ./secrets/SHAREPOINT_LIST_GUID
+  SHAREPOINT_LIST_NAME:
+    file: ./secrets/SHAREPOINT_LIST_NAME
+  SITE_NAME:
+    file: ./secrets/SITE_NAME
+  TENANT_ID:
+    file: ./secrets/TENANT_ID

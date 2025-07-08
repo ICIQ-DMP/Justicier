@@ -12,10 +12,3 @@ ENV LANG=es_ES.UTF-8
 ENV LANGUAGE=es_ES:es
 ENV LC_ALL=es_ES.UTF-8
 
-COPY ./jenkins_agent_keys/id_rsa /home/jenkins/.ssh/id_rsa
-COPY ./jenkins_agent_keys/id_rsa.pub /home/jenkins/.ssh/id_rsa.pub
-COPY ./jenkins_agent_keys/authorized_keys /home/jenkins/.ssh/authorized_keys
-
-RUN chown jenkins:jenkins -R "/home/jenkins/.ssh" && \
-    chown jenkins:jenkins "/home/jenkins/.ssh/id_rsa.pub" && \
-    chown jenkins:jenkins "/home/jenkins/.ssh/authorized_keys"
