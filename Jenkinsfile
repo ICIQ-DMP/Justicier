@@ -38,8 +38,8 @@ pipeline {
         stage('Verificar directorio de entrada') {
             steps {
                 echo "Verificando existencia de: ${INPUT_LOCATION}"
-                ls "${INPUT_LOCATION}"
                 sh '''
+	            ls "${INPUT_LOCATION}"
                     if [ ! -d "${INPUT_LOCATION}" ]; then
                         echo "ERROR: No existe el directorio de entrada: ${INPUT_LOCATION}"
                         exit 1
