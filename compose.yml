@@ -2,6 +2,7 @@ services:
   jenkins:
     container_name: jenkins
     image: docker.io/jenkins/jenkins:lts
+    user: "1002:1002"
     expose:
       - ${JENKINS_PORT_INTERNAL}
     volumes:
