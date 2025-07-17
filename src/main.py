@@ -21,7 +21,7 @@ from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, 
 from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
 from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id, \
-    update_list_item_field
+    update_list_item_field, get_sharepoint_web_url, print_columns
 
 logger = None
 
@@ -522,6 +522,9 @@ def main():
     logger.info("Time elapsed for obtaining and validating input data: " + str(end_time) + ".")
     start_time = time.time()
 
+    #print_columns()
+    #input()
+
     # Begin processing
     reports = {}
     # Salaries & RLC
@@ -584,6 +587,10 @@ def main():
         remote_folder_path=read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/" + args.author + "/" + impersonal_id_str
     )
 
+    link = get_sharepoint_web_url(token_manager, site_id, drive_id,
+                                  read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/" + args.author + "/" + impersonal_id_str)
+    logger.info(f"Clickable SharePoint URL: {link}")
+
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(token_manager, drive_id,
                 SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
@@ -597,7 +604,12 @@ def main():
     elapsed_time(start_time)
 
     if args.request:
+        logger.debug("Updating list element state to Completed")
         update_list_item_field(args.request, {"Estatworkflow": "Completat"})
+        logger.debug("Updating list element error message to no error message")
+        update_list_item_field(args.request, {"Missatge_x0020_error": "-"})
+        logger.debug("Updating list element link to result")
+        update_list_item_field(args.request, {"Resultat": {'Url': str(link), 'Description': "Link a la carpeta de la justificacio"}})
 
 
 if __name__ == "__main__":

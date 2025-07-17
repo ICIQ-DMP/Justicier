@@ -238,3 +238,19 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     raise ValueError(f"Job ID {job_id} not found in SharePoint List")
 
 
+def get_sharepoint_web_url(token_manager, site_id, drive_id, folder_path):
+    """
+    Given a folder path inside the drive, returns its webUrl for user access.
+    Example path: Shared Documents/_output/amarine@iciq.es
+    """
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives/{drive_id}/root:/{folder_path}"
+    headers = {
+        "Authorization": f"Bearer {token_manager.get_token()}",
+    }
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    item = response.json()
+    return item.get("webUrl")
+
+
