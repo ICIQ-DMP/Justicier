@@ -194,7 +194,6 @@ def merge_pdfs(pdf_paths, output_path, all_pages=False):
     :param pdf_paths: List of paths to PDF files to merge.
     :param output_path: Path to save the merged PDF.
     """
-    print(pdf_paths)
     # Assigning the pdfWriter() function to pdfWriter.
     pdfWriter = PyPDF2.PdfWriter()
     for filename in pdf_paths:  # Starting a for loop.
