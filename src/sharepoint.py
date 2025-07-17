@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -8,6 +9,16 @@ from requests.exceptions import HTTPError
 from TokenManager import TokenManager, get_token_manager
 from logger import build_process_logger
 from secret import read_secret
+
+
+def get_list_id(token_manager, site_id, list_name):
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}"
+    headers = {
+        "Authorization": f"Bearer {token_manager.get_token()}"
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()["id"]
 
 
 def get_site_id(token_manager, domain, site_name):
@@ -154,6 +165,75 @@ def upload_folder_recursive(token_manager, drive_id, local_folder_path, remote_f
             upload_file(token_manager, drive_id, remote_file, local_file)
 
 
+def update_resultat_sharepoint_rest(item_id, link):
+    """
+    Updates the 'Resultat' hyperlink field in a SharePoint list item using SharePoint REST API.
+    Reads configuration from your secret store.
+    """
+    # Load secrets
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    list_name = read_secret("SHAREPOINT_LIST_NAME")
+
+    # Get token
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    # Step 1: Get ListItemEntityTypeFullName
+    meta_url = f"https://{sharepoint_domain}/sites/{site_name}/_api/web/lists/getbytitle('{list_name}')"
+    meta_headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json;odata=verbose"
+    }
+
+    meta_resp = requests.get(meta_url, headers=meta_headers)
+    meta_resp.raise_for_status()
+    entity_type = meta_resp.json()["d"]["ListItemEntityTypeFullName"]
+
+    # Step 2: Update the item
+    update_url = f"https://{sharepoint_domain}/sites/{site_name}/_api/web/lists/getbytitle('{list_name}')/items({item_id})"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json;odata=verbose",
+        "Content-Type": "application/json;odata=verbose",
+        "IF-MATCH": "*",
+        "X-HTTP-Method": "MERGE"
+    }
+
+    payload = {
+        "__metadata": { "type": entity_type },
+        "Resultats": {
+            "__metadata": { "type": "SP.FieldUrlValue" },
+            "Url": str(link),
+            "Description": "Link a la carpeta de la justificacio"
+        }
+    }
+
+    response = requests.post(update_url, headers=headers, json=payload)
+    response.raise_for_status()
+    print("✅ Successfully updated 'Resultat' field via SharePoint REST API.")
+
+
+def get_result_column(item_id):
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    list_name = read_secret("SHAREPOINT_LIST_NAME")
+
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+
+    # Get list items
+    list_resp = requests.get(
+    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{item_id}/fields",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    list_resp.raise_for_status()
+
+    print(list_resp.json())
+
+
 def print_columns():
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
@@ -172,6 +252,36 @@ def print_columns():
     list_resp.raise_for_status()
 
     print(list_resp.json())
+
+
+def get_list_columns():
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    list_name = read_secret("SHAREPOINT_LIST_NAME")
+
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/columns"
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    columns = response.json().get("value", [])
+    for col in columns:
+        print(f"🔹 Display Name: {col.get('displayName')}")
+        print(f"   Internal Name: {col.get('name')}")
+        print(f"   Type: {col.get('columnType')}")
+        print(f"   Readonly: {col.get('readOnly')}")
+        print(f"   Hidden: {col.get('hidden')}")
+        print(f"   Full JSON: {json.dumps(col, indent=2)}")
+        print("---")
+
+    return columns
 
 
 def update_list_item_field(item_id, updated_fields: dict):

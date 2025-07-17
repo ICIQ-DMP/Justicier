@@ -21,7 +21,7 @@ from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, 
 from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
 from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id, \
-    update_list_item_field, get_sharepoint_web_url, print_columns
+    update_list_item_field, get_sharepoint_web_url, update_resultat_sharepoint_rest
 
 logger = None
 
@@ -522,9 +522,6 @@ def main():
     logger.info("Time elapsed for obtaining and validating input data: " + str(end_time) + ".")
     start_time = time.time()
 
-    #print_columns()
-    #input()
-
     # Begin processing
     reports = {}
     # Salaries & RLC
@@ -609,7 +606,10 @@ def main():
         logger.debug("Updating list element error message to no error message")
         update_list_item_field(args.request, {"Missatge_x0020_error": "-"})
         logger.debug("Updating list element link to result")
-        update_list_item_field(args.request, {"Resultat": {'Url': str(link), 'Description': "Link a la carpeta de la justificacio"}})
+        #update_resultat_sharepoint_rest(args.request, link)  # TODO: When field Resultat is URL or image, I need more
+                                                              # permissions to update it using sharepoint API, can't use
+                                                              # graph api
+        update_list_item_field(args.request, {"Resultat": link})
 
 
 if __name__ == "__main__":
