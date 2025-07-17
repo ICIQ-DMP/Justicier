@@ -14,7 +14,7 @@ from Name import parse_name_sharepoint, parse_name_a3
 
 def get_compact_init():
     return {DocType.SALARY: False, DocType.PROOFS: False, DocType.CONTRACT: False, DocType.RNT: False,
-            DocType.RLC: False}
+            DocType.RLC: False, DocType.SALARIES_AND_PROOFS: False}
 
 
 # Parser functions that validate the format and type of the data

@@ -507,8 +507,6 @@ def main():
 
     complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME)
 
-    print(args.begin)
-
     now = datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
 
     id_str = compute_id(now, args, NAF_TO_NAME)

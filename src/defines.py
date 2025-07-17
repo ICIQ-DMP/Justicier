@@ -19,13 +19,13 @@ RNTS_OUTPUT_NAME = "RNTs"
 RLCS_OUTPUT_NAME = "RLCs"
 
 
-
 class DocType(Enum):
     SALARY = "salary"
     CONTRACT = "contract"
     RLC = "RLC"
     RNT = "RNT"
     PROOFS = "proofs"
+    SALARIES_AND_PROOFS = "salaries with proofs"
 
 
 def from_string(value: str):
