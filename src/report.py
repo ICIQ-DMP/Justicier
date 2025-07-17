@@ -54,19 +54,10 @@ def get_initial_user_report(args):
     user_report += format_line("- End date: " + unparse_date(args.end))
     user_report += "* OPTIONS:                                                                                                            *\n"
     user_report += format_line("- Merge salaries with corresponding bankproof: " + str(args.merge_salary))
-    user_report += format_line("- Merge documents: ")
-    user_report += format_line("  * Merge salaries: " + str(args.merge_result[DocType.SALARY]))
-    user_report += format_line("  * Merge bankproofs: " + str(args.merge_result[DocType.PROOFS]))
-    user_report += format_line("  * Merge contracts: " + str(args.merge_result[DocType.CONTRACT]))
-    user_report += format_line("  * Merge RLCs: " + str(args.merge_result[DocType.RLC]))
-    user_report += format_line("  * Merge RNTs: " + str(args.merge_result[DocType.RNT]))
-    user_report += format_line("  * Merge salaries with bankproofs: " + str(args.merge_result[DocType.SALARIES_AND_PROOFS]))
-    user_report += format_line("OPTIONS:")
-    user_report += format_line("- Document categories of the document type to merge: " + compact_text)
-
+    user_report += format_line("- Document categories to merge: " + compact_text)
+    user_report += "* IDENTIFICATION:                                                                                                     *\n"
     user_report += format_line("- Email of the user doing the request: " + args.author)
     user_report += format_line("- Request id: " + str(args.request))
-
     user_report += "***********************************************************************************************************************\n"
     user_report += "\n"
 

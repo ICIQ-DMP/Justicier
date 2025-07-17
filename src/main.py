@@ -138,9 +138,6 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         else:
             proc_logger.debug(
                 f"Salary file {salary_file} is not selected, because its date is {unparse_date(dir_date, '-')}.")
-            #print(begin)
-            #print(dir_date)
-            #print(end)
 
     # Salaries, RLC L00, RLC L03
     # Write sheets to NAF folder that match the supplied NAF
@@ -428,8 +425,6 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
             args.name = NAF_TO_NAME[args.naf]
             if args.request:
                 update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
-            print("name upd")
-            input()
         else:
             print("WARNING: Name is defined but DNI is also defined. Name will be ignored")
         return
@@ -440,11 +435,6 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
                 if args.request:
                     update_list_item_field(args.request, {"NAF": str(args.naf)})
             else:
-                for k in NAME_TO_NAF.keys():
-                    print(k)
-                print("name to naf")
-                print(args.name)
-
                 raise ValueError(f"Only name was supplied, but the name {str(args.name)} can not be found in the "
                                  "database. The program "
                                  "can not continue and will abort. Remember that "
@@ -549,6 +539,8 @@ def main():
         salaries_and_bankproofs_output_path = os.path.join(current_justification_folder,
                                                            SALARIES_AND_PROOFS_OUTPUT_NAME)
         merge_equal_files_from_two_folders(salary_output_path, proof_output_path, salaries_and_bankproofs_output_path)
+        if args.merge_result[DocType.SALARIES_AND_PROOFS]:
+            compact_folder(salaries_and_bankproofs_output_path)
     # Process general after processing merge salary + bank proof
     if args.merge_result[DocType.SALARY]:
         compact_folder(salary_output_path)

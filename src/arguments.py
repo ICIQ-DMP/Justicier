@@ -175,7 +175,7 @@ def parse_sharepoint_arguments(args, common):
             compact_default = get_compact_init()
             for key in compact_default.keys():
                 compact_default[key] = True
-            args.merge_results = compact_default
+            args.merge_result = compact_default
         args.merge_rlc = parse_boolean(config['merge_RLC_RNT'])
     except ArgumentNafInvalid as e:
         print("The NAF provided is invalid. Internal error is " + e.__str__())
