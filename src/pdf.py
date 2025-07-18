@@ -109,10 +109,10 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
 def parse_dates_from_delayed_salary(page):
     logger = build_process_logger(get_logger_instance(), "parse_dates_from_delayed_salary")
     # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
-    query_str = '\\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2} a \\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
+    query_str = r'\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
     # restricting the search with the beginning of the year, which appears in the line that
     # we are interested in, which contains the date.
-    pattern = re.compile(query_str)
+    pattern = re.compile(query_str, re.MULTILINE)
 
     text = page.extract_text()
     if not text:
@@ -122,9 +122,8 @@ def parse_dates_from_delayed_salary(page):
     if not match:
         pass  # TODO exceptions
 
-    logger.debug("Match is " + str(match))
-
     match = match.group(0)
+    match = match.replace("\n", "")
 
     # Set locale to Spanish (you may need to install it depending on your OS)
     locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
