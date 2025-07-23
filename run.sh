@@ -72,6 +72,9 @@ skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/Docs"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/examples"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/parametres"
 
+sync_dir_permissions = "704"
+sync_file_permissions = "604"
+
 resync = "true"
 resync_auth = "true"
 EOF
@@ -87,6 +90,7 @@ proxy_set_header Host \$host;
 proxy_set_header X-Real-IP \$remote_addr;
 proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Host workflows.iciq.es;
+proxy_set_header X-Forwarded-Proto \$scheme;
 EOF
 
 cat <<EOF > ${NGINX_CONF_DIR}/nginx.conf
@@ -118,7 +122,7 @@ http {
 
         location / {
             allow ${ADMIN_IP};  # IP access
-            allow 172.19.0.1;   # Docker host access (only when using default network)
+            #allow 172.19.0.1;   # Docker host access (only when using default network)
             allow 127.0.0.1;    # Within the container access
             deny all;
 
@@ -133,8 +137,9 @@ http {
 }
 EOF
 
-BUILDKIT_PROGRESS=plain docker compose up --build --remove-orphans
+BUILDKIT_PROGRESS=plain docker compose up --build --remove-orphans -d
 
 cd "${ROOT}/service"
 zip -r "${JENKINS_HOME_DIR_COMPRESSED}" jenkins_home
 exit 0
+ 
