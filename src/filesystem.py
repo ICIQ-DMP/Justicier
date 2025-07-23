@@ -107,13 +107,17 @@ def flatten_dirs(folder_to_flat):
 
 
 def compute_id(now, args, naf_to_name):
-    return (now + "_" + args.author + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]) + "_" +
-            args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m"))
+    id_str = compute_impersonal_id(now, args, naf_to_name)
+    return id_str + "_" + args.author
 
 
 def compute_impersonal_id(now, args, naf_to_name):
-    return (now + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]) + "_" +
-            args.begin.strftime("%Y-%m") + "-" + args.end.strftime("%Y-%m"))
+    id_str = ""
+    if args.request:
+        id_str = "_" + str(args.request)
+    return (now + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]).
+            replace(" ", "_") + "_" +
+            args.begin.strftime("%Y-%m-%d") + "_" + args.end.strftime("%Y-%m-%d") + id_str)
 
 
 def compute_paths(args, id_str, impersonal_id_str):
@@ -128,7 +132,7 @@ def compute_paths(args, id_str, impersonal_id_str):
     CURRENT_USER_FOLDER: str = os.path.join(GENERAL_OUTPUT_FOLDER, args.author)
 
     # Folder for the current justification
-    justification_name = id_str
+    justification_name = impersonal_id_str
     CURRENT_JUSTIFICATION_FOLDER = os.path.join(CURRENT_USER_FOLDER, justification_name)
 
     USER_REPORT_FILE = os.path.join(CURRENT_JUSTIFICATION_FOLDER, log_filename_impersonal)

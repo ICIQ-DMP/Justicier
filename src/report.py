@@ -30,6 +30,7 @@ def get_initial_user_report(args):
 
     version = "".join(open("version.txt").readlines())
 
+
     user_report = "\n"
     user_report += "=======================================================================================================================\n"
     user_report += "" + ascii_logo
@@ -48,12 +49,15 @@ def get_initial_user_report(args):
     user_report += "*                                                USER REQUEST DETAILS                                                 *\n"
     user_report += "***********************************************************************************************************************\n"
     user_report += "* PARAMETERS:                                                                                                         *\n"
-    user_report += format_line("- Email of the user doing the request: " + args.author)
     user_report += format_line("- NAF requested: " + args.naf.__str__())
     user_report += format_line("- Initial date: " + unparse_date(args.begin))
     user_report += format_line("- End date: " + unparse_date(args.end))
-    user_report += format_line("OPTIONS:")
-    user_report += format_line("- Document categories of the document type to merge: " + compact_text)
+    user_report += "* OPTIONS:                                                                                                            *\n"
+    user_report += format_line("- Merge salaries with corresponding bankproof: " + str(args.merge_salary))
+    user_report += format_line("- Document categories to merge: " + compact_text)
+    user_report += "* IDENTIFICATION:                                                                                                     *\n"
+    user_report += format_line("- Email of the user doing the request: " + args.author)
+    user_report += format_line("- Request id: " + str(args.request))
     user_report += "***********************************************************************************************************************\n"
     user_report += "\n"
 

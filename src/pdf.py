@@ -98,9 +98,6 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
         match_selected = None
         for match_i in match:
             if str(match_i) == query_string:
-                #print("text is: " + str(text))
-                #print("match is: " + str(match_i))
-                #print("query string is: " + str(query_string))
                 match_selected = match_i
 
         if match_selected is not None:
@@ -112,10 +109,10 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
 def parse_dates_from_delayed_salary(page):
     logger = build_process_logger(get_logger_instance(), "parse_dates_from_delayed_salary")
     # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
-    query_str = '\\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2} a \\d{1,2} (Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) 20\\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
+    query_str = r'\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
     # restricting the search with the beginning of the year, which appears in the line that
     # we are interested in, which contains the date.
-    pattern = re.compile(query_str)
+    pattern = re.compile(query_str, re.MULTILINE)
 
     text = page.extract_text()
     if not text:
@@ -125,9 +122,8 @@ def parse_dates_from_delayed_salary(page):
     if not match:
         pass  # TODO exceptions
 
-    logger.debug("Match is " + str(match))
-
     match = match.group(0)
+    match = match.replace("\n", "")
 
     # Set locale to Spanish (you may need to install it depending on your OS)
     locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
@@ -190,7 +186,7 @@ def parse_regular_salary_type(salary_page):
         raise UndefinedRegularSalaryType("The type was not recognized")
 
 
-def merge_pdfs(pdf_paths, output_path):
+def merge_pdfs(pdf_paths, output_path, all_pages=False):
     """
     Merge multiple PDF files into a single PDF.
 
@@ -203,8 +199,12 @@ def merge_pdfs(pdf_paths, output_path):
         pdf_file = open(filename, 'rb')  # Opens each of the file paths in filename variable.
         # Reads each of the files in the new variable you've created above and stores into memory.
         pdf_reader = PyPDF2.PdfReader(pdf_file)
-        page = pdf_reader.pages[0]  # Documents of only one page, so we are interested in the first
-        pdfWriter.add_page(page)  # Adds each of the PDFs it's read to a new page.
+        if all_pages:
+            for i in range(len(pdf_reader.pages)):
+                pdfWriter.add_page(pdf_reader.pages[i])
+        else:
+            page = pdf_reader.pages[0]  # Documents of only one page, so we are interested in the first
+            pdfWriter.add_page(page)  # Adds each of the PDFs it's read to a new page.
     f = open(output_path, 'wb')
     # Writing the output file using the pdfWriter function.
     pdfWriter.write(f)
@@ -253,29 +253,31 @@ def compact_folder(path_folder):
     paths.sort()
     for i in range(len(paths)):
         paths[i] = os.path.join(path_folder, paths[i])
-    merge_pdfs(paths, path_folder + ".pdf")
+    merge_pdfs(paths, path_folder + ".pdf", True)
     shutil.rmtree(path_folder)
 
 
 def merge_equal_files_from_two_folders(folder1, folder2, folder_out):
-    print("entering merge")
     logger = build_process_logger(get_logger_instance(), "Merge salaries and bankproofs")
+    logger.info(f"Merging files with same name in folders {str(folder1)} and {str(folder2)} and outputting them in "
+                f"{str(folder_out)}.")
     files1 = list_dir(folder1)
     if len(files1) == 0:
-        logger.warning("Refusing to compact folders because" + folder1 + " is empty. Aborting compression.")
+        logger.warning(f"Refusing to compact folders because {str(folder1)} is empty. Aborting compression.")
         return
     files2 = list_dir(folder2)
     if len(files2) == 0:
-        logger.warning("Refusing to compact folders because " + folder2 + " is empty. Aborting compression.")
+        logger.warning(f"Refusing to compact folders because {str(folder2)} is empty. Aborting compression.")
         return
 
     for i in range(len(files1)):
         for j in range(len(files2)):
-            print(files1[i])
-            print(files2[j])
             if files1[i] == files2[j]:
-                print("match " + files1[i])
                 paths = []
-                paths.append(os.path.join(folder1, files1[i]))
-                paths.append(os.path.join(folder2, files2[j]))
-                merge_pdfs(paths, os.path.join(folder_out, files1[i]))
+                path1 = os.path.join(folder1, files1[i])
+                path2 = os.path.join(folder2, files2[j])
+                out_path = os.path.join(folder_out, files1[i])
+                logger.info(f"Matched {path1} with {path2} and merging into {out_path}.")
+                paths.append(path1)
+                paths.append(path2)
+                merge_pdfs(paths, out_path)

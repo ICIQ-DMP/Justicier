@@ -21,7 +21,7 @@ from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, 
 from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
 from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id, \
-    update_list_item_field
+    update_list_item_field, get_sharepoint_web_url, update_resultat_sharepoint_rest
 
 logger = None
 
@@ -138,9 +138,6 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         else:
             proc_logger.debug(
                 f"Salary file {salary_file} is not selected, because its date is {unparse_date(dir_date, '-')}.")
-            #print(begin)
-            #print(dir_date)
-            #print(end)
 
     # Salaries, RLC L00, RLC L03
     # Write sheets to NAF folder that match the supplied NAF
@@ -428,8 +425,6 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
             args.name = NAF_TO_NAME[args.naf]
             if args.request:
                 update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
-            print("name upd")
-            input()
         else:
             print("WARNING: Name is defined but DNI is also defined. Name will be ignored")
         return
@@ -440,11 +435,6 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
                 if args.request:
                     update_list_item_field(args.request, {"NAF": str(args.naf)})
             else:
-                for k in NAME_TO_NAF.keys():
-                    print(k)
-                print("name to naf")
-                print(args.name)
-
                 raise ValueError(f"Only name was supplied, but the name {str(args.name)} can not be found in the "
                                  "database. The program "
                                  "can not continue and will abort. Remember that "
@@ -507,8 +497,6 @@ def main():
 
     complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME)
 
-    print(args.begin)
-
     now = datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
 
     id_str = compute_id(now, args, NAF_TO_NAME)
@@ -551,6 +539,8 @@ def main():
         salaries_and_bankproofs_output_path = os.path.join(current_justification_folder,
                                                            SALARIES_AND_PROOFS_OUTPUT_NAME)
         merge_equal_files_from_two_folders(salary_output_path, proof_output_path, salaries_and_bankproofs_output_path)
+        if args.merge_result[DocType.SALARIES_AND_PROOFS]:
+            compact_folder(salaries_and_bankproofs_output_path)
     # Process general after processing merge salary + bank proof
     if args.merge_result[DocType.SALARY]:
         compact_folder(salary_output_path)
@@ -594,6 +584,10 @@ def main():
         remote_folder_path=read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/" + args.author + "/" + impersonal_id_str
     )
 
+    link = get_sharepoint_web_url(token_manager, site_id, drive_id,
+                                  read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/" + args.author + "/" + impersonal_id_str)
+    logger.info(f"Clickable SharePoint URL: {link}")
+
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(token_manager, drive_id,
                 SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
@@ -607,7 +601,15 @@ def main():
     elapsed_time(start_time)
 
     if args.request:
+        logger.debug("Updating list element state to Completed")
         update_list_item_field(args.request, {"Estatworkflow": "Completat"})
+        logger.debug("Updating list element error message to no error message")
+        update_list_item_field(args.request, {"Missatge_x0020_error": "-"})
+        logger.debug("Updating list element link to result")
+        #update_resultat_sharepoint_rest(args.request, link)  # TODO: When field Resultat is URL or image, I need more
+                                                              # permissions to update it using sharepoint API, can't use
+                                                              # graph api
+        update_list_item_field(args.request, {"Resultat": link})
 
 
 if __name__ == "__main__":
