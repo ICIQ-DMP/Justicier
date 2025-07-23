@@ -314,9 +314,9 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
     for contracts_file in contracts_files:
+        proc_logger.debug("contract file: " + contracts_file)
         naf_dirty = NAF(contracts_file.split("_")[0])
         dates = contracts_file.split(".")[0].split("_")
-        proc_logger.debug("contract file: " + contracts_file)
         begin_date = parse_date("20" + dates[1], "%Y%m")
         if len(dates) == 3:  # Contract is temporary; has end date
             if dates[2] == "A":
