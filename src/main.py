@@ -448,18 +448,9 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
     raise ValueError("An employee identifier was not supplied (NAF, DNI or name). Aborting.")
 
 
-def main():
-    start_time = time.time()
-
-    args = process_parse_arguments()
-    if args.input_location:
-        INPUT_FOLDER = args.input_location
-    else:
-        INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
-
+def process(args, INPUT_FOLDER):
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
-
 
     # Obtain absolute path to the valid user list
     USER_LIST_DATA_PATH = os.path.join(INPUT_FOLDER, "input")
@@ -612,6 +603,21 @@ def main():
                                                               # permissions to update it using sharepoint API, can't use
                                                               # graph api
         update_list_item_field(args.request, {"Resultat": link})
+
+
+def main():
+    args = process_parse_arguments()
+    if args.input_location:
+        INPUT_FOLDER = args.input_location
+    else:
+        INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
+
+    try:
+        process(args, INPUT_FOLDER)
+    except Exception as e:  # "Too broad exception clause" but I know exactly what I'm doing
+        err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
+        update_list_item_field(args.request, {"Missatge_x0020_error": err})
+        print(err)
 
 
 if __name__ == "__main__":

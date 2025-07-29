@@ -28,7 +28,8 @@ def main():
     args = parser.parse_args()
     update_list_item_field(args.request, {"Estatworkflow": "Error"})
 
-    SUPERVISOR_LOG_PATH = get_first_log_path(ADMIN_LOG_FOLDER)
+    if os.path.isdir(ADMIN_LOG_FOLDER):
+        SUPERVISOR_LOG_PATH = get_first_log_path(ADMIN_LOG_FOLDER)
 
     token_manager = get_token_manager()
     sharepoint_domain = read_secret('SHAREPOINT_DOMAIN')
