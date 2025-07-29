@@ -80,10 +80,7 @@ def expand_job_id(job_id):
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
 
-    val = get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
-    print("valyes: " + str(val))
-    input()
-    return val
+    return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
 
 
 def parse_arguments_helper(arg_text: str):
@@ -167,8 +164,6 @@ def parse_sharepoint_arguments(args, common):
         if config['NAF']:
             args.naf = parse_naf(config['NAF'])
         if config['name']:
-            print("before parsing: " +
-                   str(config))
             args.name = parse_name_sharepoint(config['name'])
         if config['DNI']:
             args.dni = parse_dni(config['DNI'])

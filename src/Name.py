@@ -37,8 +37,6 @@ def parse_name_a3(value):
 
 
 def parse_name_sharepoint(value: str):
-    print("parse name says: " + str(value))
-    input()
     value = value.replace("à", "a")
     value = value.replace("â", "a")
     value = value.replace("á", "a")
