@@ -314,7 +314,35 @@ def update_list_item_field(item_id, updated_fields: dict):
     return response.json()
 
 
+def get_email_from_nomdelapersona(sharepoint_domain, site_name, list_name, job_id):
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+
+    # Get list item
+    list_resp = requests.get(
+        f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{job_id}"
+        f"?expand=fields($expand=Nomdelapersona)",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    print("resp " + str(list_resp.json()))
+    input()
+
+    list_resp.raise_for_status()
+
+    # Search for the job ID
+    if str(list_resp.json()["fields"].get("id")) == str(job_id):
+        return list_resp.json()["fields"].get("Nomdelapersona", {}).get("email")
+
+    raise ValueError(f"Job ID {job_id} not found in SharePoint List")
+
+
 def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
+    res = get_email_from_nomdelapersona(sharepoint_domain, site_name, list_name, job_id)
+    print("email is: " + str(res))
+    input()
+
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
 
@@ -329,14 +357,12 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     )
     list_resp.raise_for_status()
 
-    print("internal req" + str(list_resp.json()))
-
     # Search for the job ID
     if str(list_resp.json()["fields"].get("id")) == str(job_id):
         data = {
             'id_type': list_resp.json()["fields"].get('Tipusdidentificador'),
             'NAF': list_resp.json()["fields"].get('NAF'),
-            'name': list_resp.json()["fields"].get('Nomdelapersona'),
+            'name': None,  # list_resp.json()["fields"].get('Nomdelapersona')
             'DNI': list_resp.json()["fields"].get('DNI'),
             'begin': list_resp.json()["fields"].get('DataInici'),
             'end': list_resp.json()["fields"].get('Datafinal'),

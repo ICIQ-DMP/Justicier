@@ -80,7 +80,10 @@ def expand_job_id(job_id):
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
 
-    return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
+    val = get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
+    print("valyes: " + str(val))
+    input()
+    return val
 
 
 def parse_arguments_helper(arg_text: str):
