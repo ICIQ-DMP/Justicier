@@ -82,7 +82,7 @@ def build_naf_to_dni(path):
 
 def build_naf_to_name(path):
     df = read_dataframe(path, 3, None)
-    return parse_two_columns(df, 3, 1, parse_naf, parse_name_a3)
+    return parse_two_columns(df, 3, 4, parse_naf, parse_name_a3)
 
 
 def parse_naf(value):

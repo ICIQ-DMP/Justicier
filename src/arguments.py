@@ -164,6 +164,8 @@ def parse_sharepoint_arguments(args, common):
         if config['NAF']:
             args.naf = parse_naf(config['NAF'])
         if config['name']:
+            print("before parsing: " +
+                   str(config))
             args.name = parse_name_sharepoint(config['name'])
         if config['DNI']:
             args.dni = parse_dni(config['DNI'])

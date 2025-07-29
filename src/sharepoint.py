@@ -329,6 +329,8 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     )
     list_resp.raise_for_status()
 
+    print("internal req" + str(list_resp.json()))
+
     # Search for the job ID
     if str(list_resp.json()["fields"].get("id")) == str(job_id):
         data = {
