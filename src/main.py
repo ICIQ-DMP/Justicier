@@ -618,6 +618,7 @@ def main():
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         print(err)
+        exit(1)
 
 
 if __name__ == "__main__":
