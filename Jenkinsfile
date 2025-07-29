@@ -39,7 +39,6 @@ pipeline {
             steps {
                 echo "Verificando existencia de: ${INPUT_LOCATION}"
                 sh '''
-	            ls "${INPUT_LOCATION}"
                     if [ ! -d "${INPUT_LOCATION}" ]; then
                         echo "ERROR: No existe el directorio de entrada: ${INPUT_LOCATION}"
                         exit 1
@@ -57,6 +56,18 @@ pipeline {
                       --input-location "${INPUT_LOCATION}"
                 """
             }
+        }
+    }
+    post {
+        failure {
+            echo "El pipeline ha fallado. Ejecutando script de error..."
+            sh """
+                if [ -f ./src/main_error.py ]; then
+                    ./venv/bin/python3 ./src/main_error.py --id "${params.ID}" || echo "Error en main_error.py"
+                else
+                    echo "No se encontró main_error.py"
+                fi
+            """
         }
     }
 }
