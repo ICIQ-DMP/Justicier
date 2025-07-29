@@ -591,9 +591,11 @@ def main():
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(token_manager, drive_id,
                 SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
-    upload_file(token_manager, drive_id,
-                SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path),
-                supervisor_log_path)
+
+    # Upload supervisor log only in case of error
+    #upload_file(token_manager, drive_id,
+    #            SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path),
+    #            supervisor_log_path)
 
     end_time = elapsed_time(start_time)
     logger.info("Time elapsed for uploading data: " + str(end_time) + ".")
