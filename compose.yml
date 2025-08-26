@@ -60,6 +60,7 @@ services:
     volumes:
       - ./service/onedrive_conf:/onedrive/conf
       - ./service/onedrive_data:/onedrive/data
+      - ./service/onedrive_logs:/onedrive/logs
     environment:
       - ONEDRIVE_DOWNLOADONLY=1
       - ONEDRIVE_CLEANUPLOCAL=1

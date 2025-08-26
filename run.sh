@@ -23,6 +23,7 @@ WORK_DIR="${ROOT}/service"
 JENKINS_HOME_DIR="${WORK_DIR}/jenkins_home"
 ONEDRIVE_CONF_DIR="${WORK_DIR}/onedrive_conf"
 ONEDRIVE_DATA_DIR="${WORK_DIR}/onedrive_data"
+ONEDRIVE_LOG_DIR="${WORK_DIR}/onedrive_logs"
 NGINX_LOG_DIR="${WORK_DIR}/nginx_logs"
 NGINX_CONF_DIR="${WORK_DIR}/nginx_conf"
 AGENT_SSH_DIR="${WORK_DIR}/jenkins_agent_keys"
@@ -47,15 +48,19 @@ fi
 
 rm -rf "${ONEDRIVE_CONF_DIR}" "${NGINX_CONF_DIR}"
 
-mkdir -p "${JENKINS_HOME_DIR}" "${ONEDRIVE_CONF_DIR}" "${ONEDRIVE_DATA_DIR}" "${AGENT_SSH_DIR}" "${NGINX_CONF_DIR}" "${NGINX_LOG_DIR}"
+mkdir -p "${JENKINS_HOME_DIR}" "${ONEDRIVE_CONF_DIR}" "${ONEDRIVE_DATA_DIR}" "${AGENT_SSH_DIR}" "${NGINX_CONF_DIR}" "${NGINX_LOG_DIR}" "${ONEDRIVE_LOG_DIR}"
 
 # Jenkins config
 if [ ! -f "${JENKINS_HOME_DIR}/config.xml" ]; then
   unzip -o "${JENKINS_HOME_DIR_COMPRESSED}" -d "${WORK_DIR}"
 fi
 
-echo "${AGENT_SSH_PUBLIC_KEY}" > "${AGENT_SSH_PUBLIC_KEY_PATH}"
-echo "${AGENT_SSH_PRIVATE_KEY}" > "${AGENT_SSH_PRIVATE_KEY_PATH}"
+if [ ! -f "${AGENT_SSH_PUBLIC_KEY_PATH}" ]; then
+  echo "${AGENT_SSH_PUBLIC_KEY}" > "${AGENT_SSH_PUBLIC_KEY_PATH}"
+fi
+if [ ! -f "${AGENT_SSH_PRIVATE_KEY_PATH}" ]; then
+  echo "${AGENT_SSH_PRIVATE_KEY}" > "${AGENT_SSH_PRIVATE_KEY_PATH}"
+fi
 
 ensure_dotenv
 
@@ -72,8 +77,10 @@ skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/Docs"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/examples"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/parametres"
 
-sync_dir_permissions = "704"
-sync_file_permissions = "604"
+log_dir = "/onedrive/logs/"
+
+sync_dir_permissions = "755"
+sync_file_permissions = "644"
 
 resync = "true"
 resync_auth = "true"
