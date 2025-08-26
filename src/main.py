@@ -314,9 +314,9 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
     for contracts_file in contracts_files:
+        proc_logger.debug("contract file: " + contracts_file)
         naf_dirty = NAF(contracts_file.split("_")[0])
         dates = contracts_file.split(".")[0].split("_")
-        proc_logger.debug("contract file: " + contracts_file)
         begin_date = parse_date("20" + dates[1], "%Y%m")
         if len(dates) == 3:  # Contract is temporary; has end date
             if dates[2] == "A":
@@ -448,18 +448,9 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
     raise ValueError("An employee identifier was not supplied (NAF, DNI or name). Aborting.")
 
 
-def main():
-    start_time = time.time()
-
-    args = process_parse_arguments()
-    if args.input_location:
-        INPUT_FOLDER = args.input_location
-    else:
-        INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
-
+def process(args, INPUT_FOLDER):
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
-
 
     # Obtain absolute path to the valid user list
     USER_LIST_DATA_PATH = os.path.join(INPUT_FOLDER, "input")
@@ -591,9 +582,11 @@ def main():
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(token_manager, drive_id,
                 SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
-    upload_file(token_manager, drive_id,
-                SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path),
-                supervisor_log_path)
+
+    # Upload supervisor log only in case of error
+    #upload_file(token_manager, drive_id,
+    #            SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path),
+    #            supervisor_log_path)
 
     end_time = elapsed_time(start_time)
     logger.info("Time elapsed for uploading data: " + str(end_time) + ".")
@@ -610,6 +603,22 @@ def main():
                                                               # permissions to update it using sharepoint API, can't use
                                                               # graph api
         update_list_item_field(args.request, {"Resultat": link})
+
+
+def main():
+    args = process_parse_arguments()
+    if args.input_location:
+        INPUT_FOLDER = args.input_location
+    else:
+        INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
+
+    try:
+        process(args, INPUT_FOLDER)
+    except Exception as e:  # "Too broad exception clause" but I know exactly what I'm doing
+        err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
+        update_list_item_field(args.request, {"Missatge_x0020_error": err})
+        print(err)
+        exit(1)
 
 
 if __name__ == "__main__":

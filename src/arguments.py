@@ -99,7 +99,7 @@ def parse_input_location(value):
 
 def parse_arguments():
     """Parse and validate command-line arguments"""
-    parser = argparse.ArgumentParser(description="")
+    parser = argparse.ArgumentParser(description="Justicier")
 
     parser.add_argument("-r", "--request", "--id", type=parse_id, required=False,
                         help='ID of the justification request in Microsoft List of Peticions Justificacions. If you use'
