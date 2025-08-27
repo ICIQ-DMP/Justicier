@@ -56,10 +56,10 @@ if [ ! -f "${JENKINS_HOME_DIR}/config.xml" ]; then
 fi
 
 if [ ! -f "${AGENT_SSH_PUBLIC_KEY_PATH}" ]; then
-  echo "${AGENT_SSH_PUBLIC_KEY}" > "${AGENT_SSH_PUBLIC_KEY_PATH}"
+  echo "${AGENT_SSH_PUBLIC_KEY}" | sudo tee "${AGENT_SSH_PUBLIC_KEY_PATH}" > /dev/null
 fi
 if [ ! -f "${AGENT_SSH_PRIVATE_KEY_PATH}" ]; then
-  echo "${AGENT_SSH_PRIVATE_KEY}" > "${AGENT_SSH_PRIVATE_KEY_PATH}"
+  echo "${AGENT_SSH_PRIVATE_KEY}" | sudo tee "${AGENT_SSH_PRIVATE_KEY_PATH}" > /dev/null
 fi
 
 ensure_dotenv

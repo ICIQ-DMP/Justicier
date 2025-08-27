@@ -5,6 +5,8 @@ import sys
 import time
 from datetime import datetime
 
+import pytz
+
 from NAF import NAF, build_naf_to_dni, build_naf_to_name
 from TokenManager import get_token_manager
 from arguments import parse_date, process_parse_arguments
@@ -452,6 +454,8 @@ def process(args, INPUT_FOLDER):
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
+    tz = pytz.timezone("Europe/Madrid")
+
     # Obtain absolute path to the valid user list
     USER_LIST_DATA_PATH = os.path.join(INPUT_FOLDER, "input")
 
@@ -614,7 +618,7 @@ def main():
 
     try:
         process(args, INPUT_FOLDER)
-    except Exception as e:  # "Too broad exception clause" but I know exactly what I'm doing
+    except OverflowError as e:  # "Too broad exception clause" but I know exactly what I'm doing
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         print(err)

@@ -2,6 +2,7 @@ import argparse
 import datetime
 import os.path
 import sys
+import pytz  # pip install pytz
 
 from NAF import is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import *
@@ -25,7 +26,13 @@ def parse_id(value):
 def parse_date(value, formatting="%Y-%m-%d"):
     """Validate date format"""
     try:
-        return datetime.datetime.strptime(value, formatting)
+        d = datetime.datetime.strptime(value, formatting)
+        utc_date = d.replace(tzinfo=pytz.utc)
+
+        # Convert to Europe/Madrid (or your local timezone)
+        local_tz = pytz.timezone("Europe/Madrid")
+        local_date = utc_date.astimezone(local_tz)
+        return local_date
     except Exception as e:
         raise ArgumentDateError("The value " + value + " could not be formatted with "
                                 + formatting + ". Datetime exception was " + e.__str__())
@@ -167,6 +174,7 @@ def parse_sharepoint_arguments(args, common):
             args.name = parse_name_sharepoint(config['name'])
         if config['DNI']:
             args.dni = parse_dni(config['DNI'])
+
         args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ")
         args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ")
         args.author = parse_author(config['author'])

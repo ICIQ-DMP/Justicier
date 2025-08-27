@@ -32,3 +32,7 @@ ssh-keygen -t ed25519 -C "jenkins@agent" -N "" -f $AGENT_SSH_PRIVATE_KEY_PATH
 ```
 
 proxy_set_header X-Forwarded-Proto \$scheme;
+
+### Reauth onedrive for token
+docker compose run --entrypoint "onedrive --reauth" -v ./service/onedrive_conf:/onedrive/conf onedrive 
+cp ./service/onedrive_conf/refresh_token secrets/ONEDRIVE_TOKEN

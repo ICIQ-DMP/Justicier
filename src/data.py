@@ -5,14 +5,22 @@ import os
 from datetime import datetime
 from typing import Dict, List
 
+import pytz
+
 import logger
 from defines import SalaryType
 
 
 def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_structure=None) -> Dict[str, List[bool]]:
-    result = {}
-    current = datetime(begin.year, begin.month, 1)
 
+    tz = pytz.timezone("Europe/Madrid")
+    current = datetime(begin.year, begin.month, 1)
+    current = tz.localize(current)
+
+    print(begin)
+    print(current)
+
+    result = {}
     while current <= end:
         key = datetime.strptime(str(current.year * 100 + current.month), "%Y%m")
         if result_structure is None:

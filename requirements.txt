@@ -6,3 +6,4 @@ PyCryptodome
 Office365-REST-Python-Client
 pyfiglet
 requests
+pytz
