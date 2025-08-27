@@ -447,6 +447,7 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
         if not args.dni:
             args.name = NAF_TO_DNI[args.naf]
         return
+
     raise ValueError("An employee identifier was not supplied (NAF, DNI or name). Aborting.")
 
 
@@ -618,7 +619,7 @@ def main():
 
     try:
         process(args, INPUT_FOLDER)
-    except OverflowError as e:  # "Too broad exception clause" but I know exactly what I'm doing
+    except StopAsyncIteration as e:  # "Too broad exception clause" but I know exactly what I'm doing
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         print(err)

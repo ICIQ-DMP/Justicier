@@ -1,6 +1,6 @@
 from pyfiglet import Figlet
 
-from data import unparse_date
+from data import unparse_date, unparse_full_date
 from defines import DocType, RLCType
 
 
@@ -50,8 +50,8 @@ def get_initial_user_report(args):
     user_report += "***********************************************************************************************************************\n"
     user_report += "* PARAMETERS:                                                                                                         *\n"
     user_report += format_line("- NAF requested: " + args.naf.__str__())
-    user_report += format_line("- Initial date: " + unparse_date(args.begin))
-    user_report += format_line("- End date: " + unparse_date(args.end))
+    user_report += format_line("- Initial date: " + unparse_full_date(args.begin))
+    user_report += format_line("- End date: " + unparse_full_date(args.end))
     user_report += "* OPTIONS:                                                                                                            *\n"
     user_report += format_line("- Merge salaries with corresponding bankproof: " + str(args.merge_salary))
     user_report += format_line("- Document categories to merge: " + compact_text)

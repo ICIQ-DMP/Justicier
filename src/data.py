@@ -11,13 +11,12 @@ import logger
 from defines import SalaryType
 
 
+
 def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_structure=None) -> Dict[str, List[bool]]:
-
-    tz = pytz.timezone("Europe/Madrid")
     current = datetime(begin.year, begin.month, 1)
-    current = tz.localize(current)
+    #current = attach_same_zone(current, end)
 
-    print(begin)
+    print(end)
     print(current)
 
     result = {}
@@ -66,9 +65,19 @@ def unparse_month(date_obj):
         return "0" + date_obj.month.__str__()
 
 
+def unparse_day(date_obj):
+    if date_obj.day >= 10:
+        return date_obj.day.__str__()
+    else:
+        return "0" + date_obj.day.__str__()
+
+
 def unparse_date(d, separator="-"):
     return unparse_month(d) + separator + d.year.__str__()
 
+
+def unparse_full_date(d, separator="-"):
+    return unparse_day(d) + separator + unparse_month(d) + separator + d.year.__str__()
 
 def parse_date_from_salary_filename(salary_path):
     return datetime.strptime("20" + salary_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[0], "%Y%m")

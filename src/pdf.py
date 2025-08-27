@@ -109,7 +109,7 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
 def parse_dates_from_delayed_salary(page):
     logger = build_process_logger(get_logger_instance(), "parse_dates_from_delayed_salary")
     # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
-                                                                                                query_str = r'\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
+    query_str = r'\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
     # restricting the search with the beginning of the year, which appears in the line that
     # we are interested in, which contains the date.
     pattern = re.compile(query_str, re.MULTILINE)

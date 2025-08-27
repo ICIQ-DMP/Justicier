@@ -27,12 +27,13 @@ def parse_date(value, formatting="%Y-%m-%d"):
     """Validate date format"""
     try:
         d = datetime.datetime.strptime(value, formatting)
-        utc_date = d.replace(tzinfo=pytz.utc)
+        #utc_date = d.replace(tzinfo=pytz.utc)
 
         # Convert to Europe/Madrid (or your local timezone)
-        local_tz = pytz.timezone("Europe/Madrid")
-        local_date = utc_date.astimezone(local_tz)
-        return local_date
+        #local_tz = pytz.timezone("Europe/Madrid")
+        #local_date = utc_date.astimezone(local_tz)
+        #return local_date
+        return d
     except Exception as e:
         raise ArgumentDateError("The value " + value + " could not be formatted with "
                                 + formatting + ". Datetime exception was " + e.__str__())
