@@ -325,7 +325,7 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
                 # Addenda
                 end_date = datetime.max
             else:
-                end_date = parse_date("20" + dates[1], "%Y%m")
+                end_date = parse_date("20" + dates[2], "%Y%m")
         elif len(dates) == 2:  # Contract is undefined; has no end date
             end_date = datetime.max
         else:
