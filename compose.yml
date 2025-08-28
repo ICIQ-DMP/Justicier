@@ -74,6 +74,10 @@ services:
       interval: 60s
       timeout: 5s
       retries: 2
+    #entrypoint: /bin/sh
+    #command: -c "tail -f /dev/null"
+    #stdin_open: true
+    #tty: true
     #entrypoint: "onedrive --reauth --monitor"
 
 
