@@ -323,7 +323,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     # Get list items
     list_resp = requests.get(
     f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{job_id}?expand=fields($select="
-        f"Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,"
+        f"Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,"
         f"Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,id),createdBy",
         headers={"Authorization": f"Bearer {access_token}"}
     )
@@ -332,6 +332,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     # Search for the job ID
     if str(list_resp.json()["fields"].get("id")) == str(job_id):
         data = {
+            'Title': list_resp.json()["fields"].get('Title'),
             'id_type': list_resp.json()["fields"].get('Tipusdidentificador'),
             'NAF': list_resp.json()["fields"].get('NAF'),
             'name': list_resp.json()["fields"].get('Nomdelapersona'),

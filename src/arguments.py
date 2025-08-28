@@ -169,6 +169,7 @@ def parse_sharepoint_arguments(args, common):
             args.name = parse_name_sharepoint(config['name'])
         if config['DNI']:
             args.dni = parse_dni(config['DNI'])
+        args.title = config['Title']
 
         args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ")
         args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ")

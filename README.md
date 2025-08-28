@@ -26,6 +26,10 @@ python3 -m venv venv
 ./venv/bin/python3 ./src/main.py --naf 08/04135154/70 --begin 2023-01-01 --end 2025-05-31 --author pepito@iciq.es --input local
 ```
 
+```
+docker run --net justicier_net --userns keep-id -v ./service/onedrive_conf:/onedrive/conf -v ./service/onedrive_data:/onedrive/data -v ./service/onedrive_logs:/onedrive/logs -e ONEDRIVE_DOWNLOADONLY=1 -e ONEDRIVE_CLEANUPLOCAL=1 -l io.containers.autoupdate=image --restart unless-stopped --health-cmd "sh -c '[ -s /onedrive/conf/items.sqlite3-wal ]'" --health-interval 60s --health-retries 2 --health-timeout 5s docker.io/driveone/onedrive:edge
+```
+
 # Notes
 ```
 ssh-keygen -t ed25519 -C "jenkins@agent" -N "" -f $AGENT_SSH_PRIVATE_KEY_PATH

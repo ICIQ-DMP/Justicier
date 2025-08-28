@@ -24,6 +24,7 @@ from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
 from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id, \
     update_list_item_field, get_sharepoint_web_url, update_resultat_sharepoint_rest
+from mail import send_mail
 
 logger = None
 
@@ -553,7 +554,7 @@ def process(args, INPUT_FOLDER):
         if args.request:
             update_list_item_field(args.request, {"Estatworkflow": "Error", "Missatge_x0020_error":
                 str(e)})
-        sys.exit(2)
+        raise ValueError
     contract_output_path = os.path.join(current_justification_folder, CONTRACTS_OUTPUT_NAME)
     if args.merge_result[DocType.CONTRACT]:
         compact_folder(contract_output_path)
@@ -587,6 +588,7 @@ def process(args, INPUT_FOLDER):
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(token_manager, drive_id,
                 SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
+    log_link = get_sharepoint_web_url(token_manager, site_id, drive_id, SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path))
 
     # Upload supervisor log only in case of error
     #upload_file(token_manager, drive_id,
@@ -609,6 +611,8 @@ def process(args, INPUT_FOLDER):
                                                               # graph api
         update_list_item_field(args.request, {"Resultat": link})
 
+    return link, log_link
+
 
 def main():
     args = process_parse_arguments()
@@ -618,12 +622,43 @@ def main():
         INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
 
     try:
-        process(args, INPUT_FOLDER)
+        result_link, log_link = process(args, INPUT_FOLDER)
     except Exception as e:  # "Too broad exception clause" but I know exactly what I'm doing
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         print(err)
         exit(1)
+
+    smtp_password = read_secret("SMTP_PASSWORD")
+    smtp_user = read_secret("SMTP_USERNAME")
+    subject = f"Justicier - La petició \"{args.title}\" amb ID {str(args.request)} ha estat completada amb èxit"
+    body = ("Hola!\n"
+            f"\n"
+            f"T'informo que la petició que vas fer al Justicier amb títol \"{args.title}\" i ID {str(args.request)} per"
+            f" a l'empleat amb nom \"{args.name}\" des del {unparse_date(args.begin)} fins al {unparse_date(args.end)} "
+            f"ja ha sigut resolta.\n"
+            f"\n"
+            f"Et deixo aquí els resultats:\n"
+            f"\n"
+            f"* Carpeta Sharepoint amb els documents (inclou resum a l'arrel de la carpeta): {result_link}.\n"
+            f"* Fitxer de logs (només administradors): {log_link}.\n"
+            f"\n"
+            f"Per a qualsevol dubte o problema contacteu al Product Owner del Justicier, el Carles de la Cuadra"
+            f" (cdelacuadra@iciq.es).\n"
+            f"\n"
+            f"Seguim,\n"
+            f"\n"
+            f"\n"
+            f"Aleix (Avatar Digital)\n"
+            f"\n"
+            f"Aquest missatge ha estat auto-generat.")
+
+    send_mail(args.author,
+              subject,
+              body,
+              smtp_user,
+              smtp_user,
+              smtp_password)
 
 
 if __name__ == "__main__":
