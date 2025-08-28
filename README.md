@@ -27,7 +27,19 @@ python3 -m venv venv
 ```
 
 ```
-docker run --net justicier_net --userns keep-id -v ./service/onedrive_conf:/onedrive/conf -v ./service/onedrive_data:/onedrive/data -v ./service/onedrive_logs:/onedrive/logs -e ONEDRIVE_DOWNLOADONLY=1 -e ONEDRIVE_CLEANUPLOCAL=1 -l io.containers.autoupdate=image --restart unless-stopped --health-cmd "sh -c '[ -s /onedrive/conf/items.sqlite3-wal ]'" --health-interval 60s --health-retries 2 --health-timeout 5s docker.io/driveone/onedrive:edge
+docker run \
+  -v $(pwd)/service/onedrive_conf:/onedrive/conf \
+  -v $(pwd)/service/onedrive_data:/onedrive/data \
+  -v $(pwd)/service/onedrive_logs:/onedrive/logs \
+  -e ONEDRIVE_DOWNLOADONLY=1 \
+  -e ONEDRIVE_CLEANUPLOCAL=1 \
+  -l io.containers.autoupdate=image \
+  --restart unless-stopped \
+  --health-cmd "sh -c '[ -s /onedrive/conf/items.sqlite3-wal ]'" \
+  --health-interval 60s \
+  --health-retries 2 \
+  --health-timeout 5s \
+  -it docker.io/driveone/onedrive:edge
 ```
 
 # Notes

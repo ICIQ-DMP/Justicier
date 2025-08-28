@@ -45,6 +45,8 @@ services:
       - SHAREPOINT_LIST_NAME
       - SITE_NAME
       - TENANT_ID
+      - SMTP_USERNAME
+      - SMTP_PASSWORD
     restart: always
     networks:
       - justicier_net
@@ -127,6 +129,10 @@ secrets:
     file: ./secrets/SITE_NAME
   TENANT_ID:
     file: ./secrets/TENANT_ID
+  SMTP_USERNAME:
+    file: ./secrets/SMTP_USERNAME
+  SMTP_PASSWORD:
+    file: ./secrets/SMTP_PASSWORD
 
 networks:
   justicier_net:

@@ -3,7 +3,7 @@
 ensure_dotenv()
 {
   cat <<EOF > .env
-JENKINS_AGENT_SSH_PUBKEY=$(cat ${AGENT_SSH_PUBLIC_KEY_PATH})
+JENKINS_AGENT_SSH_PUBKEY=$(sudo cat ${AGENT_SSH_PUBLIC_KEY_PATH})
 FIREWALL_PORT_EXTERNAL=${FIREWALL_PORT_EXTERNAL}
 FIREWALL_PORT_INTERNAL=${FIREWALL_PORT_INTERNAL}
 JENKINS_PORT_INTERNAL=${JENKINS_PORT_INTERNAL}
@@ -46,7 +46,7 @@ if [ -f .env ]; then
   docker compose down
 fi
 
-rm -rf "${ONEDRIVE_CONF_DIR}" "${NGINX_CONF_DIR}"
+rm -rf "${ONEDRIVE_CONF_DIR}/items.sqlite3" "${ONEDRIVE_CONF_DIR}/items.sqlite3-shm" "${ONEDRIVE_CONF_DIR}/items.sqlite3-wal" "${ONEDRIVE_CONF_DIR}/.config.hash" "${ONEDRIVE_CONF_DIR}/.config.backup" "${NGINX_CONF_DIR}"
 
 mkdir -p "${JENKINS_HOME_DIR}" "${ONEDRIVE_CONF_DIR}" "${ONEDRIVE_DATA_DIR}" "${AGENT_SSH_DIR}" "${NGINX_CONF_DIR}" "${NGINX_LOG_DIR}" "${ONEDRIVE_LOG_DIR}"
 
@@ -64,6 +64,7 @@ fi
 
 ensure_dotenv
 
+echo precat
 # OneDrive config
 if [ ! -f "${ONEDRIVE_CONF_DIR}/config" ]; then
   cat <<EOF > ${ONEDRIVE_CONF_DIR}/config
@@ -71,6 +72,7 @@ sync_dir = "/onedrive/data"
 drive_id = "$(cat $SECRETS_DIR/SHAREPOINT_DRIVE_ID)"
 skip_dir = "SCANNER"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/_app"
+skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/_templates"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/_output"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/Demos"
 skip_dir = "$(cat $SECRETS_DIR/SHAREPOINT_FOLDER)/Docs"
@@ -85,6 +87,7 @@ sync_file_permissions = "644"
 resync = "true"
 resync_auth = "true"
 EOF
+echo postcat
 fi
 
 # OneDrive token
