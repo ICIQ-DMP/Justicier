@@ -80,7 +80,7 @@ services:
     #command: -c "tail -f /dev/null"
     #stdin_open: true
     #tty: true
-    #entrypoint: "onedrive --reauth --monitor"
+    #entrypoint: "onedrive --monitor"
 
 
 

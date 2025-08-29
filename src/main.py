@@ -629,6 +629,9 @@ def main():
         print(err)
         exit(1)
 
+    print("Justification process is finished.")
+    print("Sending notification email")
+
     smtp_password = read_secret("SMTP_PASSWORD")
     smtp_user = read_secret("SMTP_USERNAME")
     subject = f"Justicier - La petició \"{args.title}\" amb ID {str(args.request)} ha estat completada amb èxit"
@@ -659,6 +662,8 @@ def main():
               smtp_user,
               smtp_user,
               smtp_password)
+
+    print("Email sent. Process complete. ")
 
 
 if __name__ == "__main__":
