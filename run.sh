@@ -84,10 +84,12 @@ log_dir = "/onedrive/logs/"
 sync_dir_permissions = "755"
 sync_file_permissions = "644"
 
-resync = "true"
-resync_auth = "true"
+download_only = "true"
+cleanup_local_files = "true"
+
+#resync = "true"
+#resync_auth = "true"
 EOF
-echo postcat
 fi
 
 # OneDrive token

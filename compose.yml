@@ -58,14 +58,12 @@ services:
 
   onedrive:
     image: docker.io/driveone/onedrive:edge
+    container_name: onedrive
     userns_mode: keep-id
     volumes:
       - ./service/onedrive_conf:/onedrive/conf
       - ./service/onedrive_data:/onedrive/data
       - ./service/onedrive_logs:/onedrive/logs
-    environment:
-      - ONEDRIVE_DOWNLOADONLY=1
-      - ONEDRIVE_CLEANUPLOCAL=1
     labels:
       io.containers.autoupdate: "image"
     restart: unless-stopped
