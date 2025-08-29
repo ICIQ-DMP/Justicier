@@ -52,3 +52,6 @@ proxy_set_header X-Forwarded-Proto \$scheme;
 ### Reauth onedrive for token
 docker compose run --entrypoint "onedrive --reauth" -v ./service/onedrive_conf:/onedrive/conf onedrive 
 cp ./service/onedrive_conf/refresh_token secrets/ONEDRIVE_TOKEN
+
+
+./venv/bin/python src/main.py --id 159 --input-location service/onedrive_data/Documentació\ Nomines\,\ Seguretat\ Social/input/

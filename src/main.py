@@ -24,7 +24,7 @@ from report import get_end_user_report, get_initial_user_report
 from secret import read_secret
 from sharepoint import download_input_folder, upload_folder_recursive, upload_file, get_site_id, get_drive_id, \
     update_list_item_field, get_sharepoint_web_url, update_resultat_sharepoint_rest
-from mail import send_mail
+from mail import send_mail, mail_process
 
 logger = None
 
@@ -583,7 +583,7 @@ def process(args, INPUT_FOLDER):
 
     link = get_sharepoint_web_url(token_manager, site_id, drive_id,
                                   read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/" + args.author + "/" + impersonal_id_str)
-    logger.info(f"Clickable SharePoint URL: {link}")
+    logger.info(f"Clickable SharePoint URL: {link}  ")  # Space at the end for separating from color codes
 
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(token_manager, drive_id,
@@ -631,39 +631,8 @@ def main():
 
     print("Justification process is finished.")
     print("Sending notification email")
+    #mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
 
-    smtp_password = read_secret("SMTP_PASSWORD")
-    smtp_user = read_secret("SMTP_USERNAME")
-    subject = f"Justicier - La petició \"{args.title}\" amb ID {str(args.request)} ha estat completada amb èxit"
-    body = ("Hola!\n"
-            f"\n"
-            f"T'informo que la petició que vas fer al Justicier amb títol \"{args.title}\" i ID {str(args.request)} per"
-            f" a l'empleat amb nom \"{args.name}\" des del {unparse_date(args.begin)} fins al {unparse_date(args.end)} "
-            f"ja ha sigut resolta.\n"
-            f"\n"
-            f"Et deixo aquí els resultats:\n"
-            f"\n"
-            f"* Carpeta Sharepoint amb els documents (inclou resum a l'arrel de la carpeta): {result_link}.\n"
-            f"* Fitxer de logs (només administradors): {log_link}.\n"
-            f"\n"
-            f"Per a qualsevol dubte o problema contacteu al Product Owner del Justicier, el Carles de la Cuadra"
-            f" (cdelacuadra@iciq.es).\n"
-            f"\n"
-            f"Seguim,\n"
-            f"\n"
-            f"\n"
-            f"Aleix (Avatar Digital)\n"
-            f"\n"
-            f"Aquest missatge ha estat auto-generat.")
-
-    send_mail(args.author,
-              subject,
-              body,
-              smtp_user,
-              smtp_user,
-              smtp_password)
-
-    print("Email sent. Process complete. ")
 
 
 if __name__ == "__main__":
