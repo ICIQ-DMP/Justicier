@@ -631,7 +631,7 @@ def main():
 
     print("Justification process is finished.")
     print("Sending notification email")
-    #mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
+    mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
 
 
 
