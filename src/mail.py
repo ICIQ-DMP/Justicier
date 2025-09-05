@@ -24,6 +24,9 @@ def send_mail(to_email, subject, body, from_email, username, password):
 def mail_process(result_link, log_link, args):
     smtp_password = read_secret("SMTP_PASSWORD")
     smtp_user = read_secret("SMTP_USERNAME")
+    
+    print("user is " + str(smtp_user) + " pass is " + str(smtp_password))
+    
     subject = f"Justicier - La petició \"{args.title}\" amb ID {str(args.request)} ha estat completada amb èxit"
     body = ("Hola!\n"
             f"\n"
