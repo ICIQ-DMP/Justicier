@@ -626,13 +626,13 @@ def main():
     except Exception as e:  # "Too broad exception clause" but I know exactly what I'm doing
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
-        mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
+        #mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
         print(err)
         exit(1)
 
     print("Justification process is finished.")
     print("Sending notification email")
-    mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
+    #mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
 
 
 
