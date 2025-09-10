@@ -67,6 +67,7 @@ def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_
     if func_apply_key is not None:
         key_col = key_col.apply(func_apply_key)
 
+    print("before dictio")
     return dict(zip(key_col, val_col))
 
 
@@ -77,7 +78,10 @@ def read_dataframe(path, skiprows, header):
 
 def build_naf_to_dni(path):
     df = read_dataframe(path, 3, None)
-    return parse_two_columns(df, 3, 2, parse_naf, parse_dni)
+    print("before two cols")
+    r = parse_two_columns(df, 3, 2, parse_naf, parse_dni)
+    print("after two cols")
+    return r
 
 
 def build_naf_to_name(path):

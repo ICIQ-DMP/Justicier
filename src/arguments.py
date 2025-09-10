@@ -180,8 +180,6 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    print("args begin in parse args is ")
-    print(args.begin)
     return args
 
 
