@@ -4,10 +4,8 @@ import os.path
 import sys
 try:
     from zoneinfo import ZoneInfo  # Python 3.9+
-except ImportError:
-    from backports.zoneinfo import ZoneInfo
-
-from backports.zoneinfo import ZoneInfo  # Python <3.9
+except ModuleNotFoundError:
+    from backports.zoneinfo import ZoneInfo  # Python <3.9
 
 import pytz  # pip install pytz
 
