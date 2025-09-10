@@ -92,4 +92,4 @@ def parse_dni(value):
     try:
         return DNI(value)
     except ValueError as e:
-        raise ArgumentNafInvalid("DNI is not valid" + e.__str__())  # TODO change exception
+        raise ArgumentNafInvalid("DNI + " + str(value) + " + is not valid" + e.__str__())  # TODO change exception
