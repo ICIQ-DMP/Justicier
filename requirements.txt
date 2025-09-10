@@ -7,4 +7,4 @@ Office365-REST-Python-Client
 pyfiglet
 requests
 pytz
-backports.zoneinfo
+backports.zoneinfo; python_version < "3.9"
