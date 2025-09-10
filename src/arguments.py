@@ -2,6 +2,13 @@ import argparse
 import datetime
 import os.path
 import sys
+try:
+    from zoneinfo import ZoneInfo  # Python 3.9+
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
+
+from backports.zoneinfo import ZoneInfo  # Python <3.9
+
 import pytz  # pip install pytz
 
 from NAF import is_naf_present, build_naf_to_dni, parse_naf
@@ -23,14 +30,49 @@ def parse_id(value):
     return value
 
 
-def parse_date(value, formatting="%Y-%m-%d"):
-    """Validate date format"""
+def parse_date(
+    value: str,
+    formatting="%Y-%m-%d",
+    tz_name: str = "Europe/Madrid",
+    assume_tz: str = "UTC",
+    return_naive: bool = True,
+):
+    """
+    Parse a date/datetime string and convert to Europe/Madrid with DST awareness.
+
+    - value: e.g. "2024-08-31T22:00:00Z" or "2024-08-31"
+    - tz_name: target timezone (default Europe/Madrid)
+    - assume_tz: if input is naive (date-only), treat it as this tz ("UTC" or any IANA tz)
+    - return_naive: if True, drop tzinfo after conversion (keeps local wall time)
+    """
+    v = value.strip()
     try:
-        d = datetime.datetime.strptime(value, formatting)
-        return d
+        # Handle trailing 'Z' (UTC) which datetime.fromisoformat pre-3.11 doesn't accept
+        if v.endswith("Z"):
+            v = v[:-1] + "+00:00"
+
+        if "T" in v or "+" in v or v.count(":") >= 1:
+            # Likely a datetime
+            dt = datetime.datetime.fromisoformat(v)
+        else:
+            # Likely a date-only string
+            dt = datetime.datetime.strptime(v, formatting)
+
+        # If naive (no tzinfo), assign the assumed timezone
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo(assume_tz))
+
+        # Convert to target local timezone (DST handled automatically)
+        local_dt = dt.astimezone(ZoneInfo(tz_name))
+
+        if return_naive:
+            return local_dt.replace(tzinfo=None)
+        return local_dt
+
     except Exception as e:
-        raise ArgumentDateError("The value " + value + " could not be formatted with "
-                                + formatting + ". Datetime exception was " + e.__str__())
+        raise ArgumentDateError(
+            f'The value "{value}" could not be parsed/converted: {e}'
+        ) from e
 
 
 def parse_author(author):
@@ -139,6 +181,9 @@ def parse_arguments():
                              ",".join([dt.value.__str__() for dt in DocType]))
 
     args = parser.parse_args()
+
+    print("args begin in parse args is ")
+    print(args.begin)
     return args
 
 
@@ -171,7 +216,19 @@ def parse_sharepoint_arguments(args, common):
             args.dni = parse_dni(config['DNI'])
         args.title = config['Title']
 
+        print("args begin in parse sharepoint args is ")
+        print(args.begin)
+
+        print("args begin in config sharepoint info is ")
+        print(config['begin'])
+
+        print("before parsing")
         args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ")
+        print("after parsing")
+
+        print("args begin in parse sharepoint args after is ")
+        print(args.begin)
+
         args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ")
         args.author = parse_author(config['author'])
         args.merge_salary = parse_boolean(config['merge_salary_bankproof'])

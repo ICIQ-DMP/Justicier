@@ -616,6 +616,13 @@ def process(args, INPUT_FOLDER):
 
 def main():
     args = process_parse_arguments()
+
+    print("args begin is")
+    print(args.begin)
+
+    print("args end is")
+    print(args.end)
+
     if args.input_location:
         INPUT_FOLDER = args.input_location
     else:
