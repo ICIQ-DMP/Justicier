@@ -61,11 +61,17 @@ def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_
     # Column C = index 2 (DNI), Column D = index 3 (NAF)
     val_col = df[value]
     key_col = df[key]
+    try:
 
-    if func_apply_value is not None:
-        val_col = val_col.apply(func_apply_value)
-    if func_apply_key is not None:
-        key_col = key_col.apply(func_apply_key)
+        print("before val func")
+        if func_apply_value is not None:
+            val_col = val_col.apply(func_apply_value)
+        print("before key func")
+        if func_apply_key is not None:
+            key_col = key_col.apply(func_apply_key)
+    except Exception as e:
+        print("fuck" + str(e))
+
 
     print("before dictio")
     return dict(zip(key_col, val_col))
