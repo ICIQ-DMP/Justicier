@@ -205,6 +205,8 @@ def parse_sharepoint_arguments(args, common):
     if args.merge_rlc:
         parse_arguments_helper("merge rlc")
     config = expand_job_id(args.request)
+
+    print("configuration from sharepoint: " + str(config))
     try:
         if config['NAF']:
             args.naf = parse_naf(config['NAF'])
