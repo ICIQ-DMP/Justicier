@@ -6,7 +6,7 @@ from secret import read_secret
 from data import unparse_date
 
 
-def send_mail(to_email, subject, body, from_email, username, password):
+def send_mail(to_email, subject, body, from_email, username, password, server: str, port: int):
     # Create message
     msg = MIMEText(body)
     msg['Subject'] = subject
@@ -14,7 +14,7 @@ def send_mail(to_email, subject, body, from_email, username, password):
     msg['To'] = to_email
 
     # Connect to Microsoft 365 SMTP
-    with smtplib.SMTP("smtp.office365.com", 587) as server:
+    with smtplib.SMTP(server, port) as server:
         server.ehlo()
         server.starttls()              # Upgrade connection to TLS
         server.login(username, password)
@@ -24,7 +24,9 @@ def send_mail(to_email, subject, body, from_email, username, password):
 def mail_process(result_link, log_link, args):
     smtp_password = read_secret("SMTP_PASSWORD")
     smtp_user = read_secret("SMTP_USERNAME")
-    
+    smtp_server = read_secret("SMTP_SERVER")
+    smtp_port = read_secret("SMTP_PORT")
+
     print("user is " + str(smtp_user) + " pass is " + str(smtp_password))
     
     subject = f"Justicier - La petició \"{args.title}\" amb ID {str(args.request)} ha estat completada amb èxit"
@@ -54,7 +56,9 @@ def mail_process(result_link, log_link, args):
               body,
               smtp_user,
               smtp_user,
-              smtp_password)
+              smtp_password,
+              smtp_server,
+              smtp_port)
 
     print("Email sent. Process complete. ")
 
