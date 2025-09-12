@@ -85,14 +85,14 @@ def read_dataframe(path, skiprows, header):
 def build_naf_to_dni(path):
     df = read_dataframe(path, 3, None)
     print("before two cols")
-    r = parse_two_columns(df, 3, 2, parse_naf, parse_dni)
+    r = parse_two_columns(df, 2, 3, parse_naf, parse_dni)
     print("after two cols")
     return r
 
 
 def build_naf_to_name(path):
     df = read_dataframe(path, 3, None)
-    return parse_two_columns(df, 3, 1, parse_naf, parse_name_a3)
+    return parse_two_columns(df, 2, 1, parse_naf, parse_name_a3)
 
 
 def parse_naf(value):
