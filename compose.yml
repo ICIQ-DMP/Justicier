@@ -47,6 +47,8 @@ services:
       - TENANT_ID
       - SMTP_USERNAME
       - SMTP_PASSWORD
+      - SMTP_SERVER
+      - SMTP_PORT
     restart: always
     networks:
       - justicier_net
@@ -131,6 +133,10 @@ secrets:
     file: ./secrets/SMTP_USERNAME
   SMTP_PASSWORD:
     file: ./secrets/SMTP_PASSWORD
+  SMTP_SERVER:
+    file: ./secrets/SMTP_SERVER
+  SMTP_PORT:
+    file: ./secrets/SMTP_PORT
 
 networks:
   justicier_net:
