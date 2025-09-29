@@ -13,7 +13,8 @@ from arguments import parse_date, process_parse_arguments
 from chrono import elapsed_time
 from custom_except import UndefinedRegularSalaryType
 from data import get_rlc_monthly_result_structure, parse_date_from_salary_filename, \
-    parse_salary_filename_from_salary_path, unparse_date, parse_salary_type, unparse_month
+    parse_salary_filename_from_salary_path, unparse_date, parse_salary_type, unparse_month, unparse_year_month, \
+    unparse_year_month_short
 from defines import *
 from filesystem import *
 from logger import build_process_logger, get_logger
@@ -399,6 +400,61 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
     return rnts_found
 
 
+def datetime_range(begin, end):
+    current = datetime(begin.year, begin.month, 1)
+
+    result = []
+    while current <= end:
+        result.append(datetime.strptime(str(current.year * 100 + current.month), "%Y%m"))
+        if current.month == 12:
+            current = datetime(current.year + 1, 1, 1)
+        else:
+            current = datetime(current.year, current.month + 1, 1)
+
+    return result
+
+
+def merge_rnts_rlcs(rnts_folder_path, rlcs_folder_path, naf_dir, begin, end):
+    proc_logger = build_process_logger(logger, "merge RNTs and RLCs")
+
+    months_list = datetime_range(begin, end)
+    proc_logger.info("Generated months list from " + str(begin) + " to " + str(end) + " is: " + str(months_list))
+    rnts_filenames = list_dir(rnts_folder_path)
+    rlcs_filenames = list_dir(rlcs_folder_path)
+    proc_logger.debug("RNT available files are: " + str(rnts_filenames))
+    proc_logger.debug("RLC available files are: " + str(rlcs_filenames))
+
+    for current_date in months_list:
+        full_year_date = unparse_year_month(current_date)
+        partial_year_date = unparse_year_month_short(current_date)
+        proc_logger.debug("Full year date is: " + str(full_year_date))
+        proc_logger.debug("Partial year date is: " + str(partial_year_date))
+
+        paths_to_merge = []
+        for rnt_filename in rnts_filenames:
+            date_str = rnt_filename.split("_")[0]
+            proc_logger.debug("date str is: " + str(date_str))
+            if date_str.__eq__(partial_year_date):
+                paths_to_merge.append(os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_filename))
+        for rlc_filename in rlcs_filenames:
+            date_str = rlc_filename.split("_")[0]
+            proc_logger.debug("date str is: " + str(date_str))
+            if date_str.__eq__(full_year_date):
+                paths_to_merge.append(os.path.join(naf_dir, RLCS_OUTPUT_NAME, rlc_filename))
+        proc_logger.debug("PDFs to merge: " + str(paths_to_merge))
+        proc_logger.debug("Output path: " + str(os.path.join(naf_dir, RNTS_AND_RLCS_OUTPUT_NAME, unparse_year_month(current_date) + "_Merged.pdf")))
+        proc_logger.debug("Naf dir is: " + str(naf_dir))
+        if len(paths_to_merge) >= 2:
+            merge_pdfs(paths_to_merge, os.path.join(naf_dir, RNTS_AND_RLCS_OUTPUT_NAME,
+                                                    unparse_year_month(current_date) + "_Merged.pdf"), True)
+        else:
+            proc_logger.warning("During date " + unparse_year_month(current_date) + " there were not more than one RNTs "
+                                                                                    "or RLCs to "
+                                                                                    "merge. Skipping")
+        print(paths_to_merge, os.path.join(naf_dir, RNTS_AND_RLCS_OUTPUT_NAME, unparse_year_month(current_date) + "_Merged.pdf"))
+
+
+
 def reverse_dict(d: dict):
     r = {}
     for key in d.keys():
@@ -565,6 +621,27 @@ def process(args, INPUT_FOLDER):
     if args.merge_result[DocType.RNT]:
         compact_folder(rnt_output_path)
 
+    # Process fusion of RLC & RNT
+    if args.merge_rnt_rlc:
+        if args.merge_result:
+            rnts_merged_path = os.path.join(current_justification_folder, "RNTs.pdf")  # TODO: remove hard-coded filename
+            rlcs_merged_path = os.path.join(current_justification_folder, "RLCs.pdf")  # TODO: remove hard-coded filename
+            if os.path.exists(rnts_merged_path) and os.path.exists(rlcs_merged_path):
+                rnt_rlc_merged_paths = []
+                rnt_rlc_merged_paths.append(rnts_merged_path)
+                rnt_rlc_merged_paths.append(rlcs_merged_path)
+                rnt_rlc_merged_output_path = os.path.join(current_justification_folder, "RNTs i RLCs.pdf")
+                merge_pdfs(rnt_rlc_merged_paths, rnt_rlc_merged_output_path, True)
+        else:
+            os.makedirs(os.path.join(current_justification_folder, RNTS_AND_RLCS_OUTPUT_NAME), exist_ok=True)
+            merge_rnts_rlcs(
+                os.path.join(current_justification_folder, RNTS_OUTPUT_NAME),
+                os.path.join(current_justification_folder, RLCS_OUTPUT_NAME),
+                current_justification_folder,
+                args.begin,
+                args.end
+            )
+
     final_logger = build_process_logger(logger_instance, "Final report")
     report_text = get_end_user_report(reports, args)
     final_logger.info(report_text)
@@ -630,7 +707,7 @@ def main():
 
     try:
         result_link, log_link = process(args, INPUT_FOLDER)
-    except Exception as e:  # "Too broad exception clause" but I know exactly what I'm doing
+    except ValueError as e:  # "Too broad exception clause" but I know exactly what I'm doing
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         #mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.

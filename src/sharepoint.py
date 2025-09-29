@@ -344,6 +344,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
             'merge_results': list_resp.json()["fields"].get('juntarpdfs'),
             'merge_RLC_RNT': list_resp.json()["fields"].get('Fusi_x00f3_RLCRNT')
         }
+
         return data
 
     raise ValueError(f"Job ID {job_id} not found in SharePoint List")
