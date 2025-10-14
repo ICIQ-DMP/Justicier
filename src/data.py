@@ -5,19 +5,12 @@ import os
 from datetime import datetime
 from typing import Dict, List
 
-import pytz
-
 import logger
 from defines import SalaryType
 
 
-
 def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_structure=None) -> Dict[str, List[bool]]:
     current = datetime(begin.year, begin.month, 1)
-    #current = attach_same_zone(current, end)
-
-    print(end)
-    print(current)
 
     result = {}
     while current <= end:
@@ -33,8 +26,6 @@ def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_stru
             current = datetime(current.year, current.month + 1, 1)
 
     return result
-
-
 
 
 def parse_salary_type(salary_file_path):
@@ -58,6 +49,26 @@ def parse_date_from_key(key: str):
     return datetime.strptime(key, "%Y%m")
 
 
+def unparse_year(date_obj):
+    return date_obj.year.__str__()
+
+
+def unparse_year_month_short(d):
+    return unparse_year_short(d) + unparse_month(d)
+
+
+def unparse_year_month(d):
+    return unparse_year(d) + unparse_month(d)
+
+
+def unparse_year_short(date_obj):
+    rep = str(date_obj.year)
+    if date_obj.year >= 1000:
+        return rep[2:4]
+    else:
+        return rep
+
+
 def unparse_month(date_obj):
     if date_obj.month >= 10:
         return date_obj.month.__str__()
@@ -78,6 +89,7 @@ def unparse_date(d, separator="-"):
 
 def unparse_full_date(d, separator="-"):
     return unparse_day(d) + separator + unparse_month(d) + separator + d.year.__str__()
+
 
 def parse_date_from_salary_filename(salary_path):
     return datetime.strptime("20" + salary_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[0], "%Y%m")

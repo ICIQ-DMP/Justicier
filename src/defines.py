@@ -17,6 +17,7 @@ SALARIES_AND_PROOFS_OUTPUT_NAME = "Nòmines i Justificants"
 CONTRACTS_OUTPUT_NAME = "Contractes"
 RNTS_OUTPUT_NAME = "RNTs"
 RLCS_OUTPUT_NAME = "RLCs"
+RNTS_AND_RLCS_OUTPUT_NAME = "RNTs i RLCs"
 
 
 class DocType(Enum):

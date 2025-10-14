@@ -172,11 +172,11 @@ def parse_arguments():
                         help="Merge each salary with the corresponding bank proof")
     parser.add_argument("-m", "--merge-result", type=parse_boolean, required=False,
                         default=get_compact_init(),
-                        help="Merge each salary with the corresponding bank proof")
-    parser.add_argument("-R", "--merge-rlc", type=parse_boolean, required=False, default=False,
                         help="Comma separated list of values that indicate which documents need to be merged in one "
                              "single PDF in the output. Possible values are: " +
                              ",".join([dt.value.__str__() for dt in DocType]))
+    parser.add_argument("-R", "--merge-rnt-rlc", type=parse_boolean, required=False, default=False,
+                        help="Merge all RLCs and RNTs of each month.")
 
     args = parser.parse_args()
 
@@ -200,7 +200,7 @@ def parse_sharepoint_arguments(args, common):
         parse_arguments_helper("merge result")
     if args.merge_salary:
         parse_arguments_helper("merge salary")
-    if args.merge_rlc:
+    if args.merge_rnt_rlc:
         parse_arguments_helper("merge rlc")
     config = expand_job_id(args.request)
 
@@ -230,12 +230,12 @@ def parse_sharepoint_arguments(args, common):
         args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ")
         args.author = parse_author(config['author'])
         args.merge_salary = parse_boolean(config['merge_salary_bankproof'])
-        if parse_boolean(config['merge_results']):
+        if parse_boolean(config['merge_results']):  # TODO use a column for each fusion
             compact_default = get_compact_init()
             for key in compact_default.keys():
                 compact_default[key] = True
             args.merge_result = compact_default
-        args.merge_rlc = parse_boolean(config['merge_RLC_RNT'])
+        args.merge_rnt_rlc = parse_boolean(config['merge_RLC_RNT'])
     except ArgumentNafInvalid as e:
         print("The NAF provided is invalid. Internal error is " + e.__str__())
         print(common)

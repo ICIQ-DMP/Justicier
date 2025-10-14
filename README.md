@@ -26,6 +26,15 @@ python3 -m venv venv
 ./venv/bin/python3 ./src/main.py --naf 08/04135154/70 --begin 2023-01-01 --end 2025-05-31 --author pepito@iciq.es --input local
 ```
 
+# Some notes
+The code is not my best code. I have many instructions and functions that repeat because they are not designed properly. 
+But it works. If you have to maintain this software start by refactoring and defining function that can be reused. Work 
+using data models and abstractions. There are many already created, but they can be improved, refactored and expanded to
+include more abstractions such as a PDF file, the different types of documents that we are working with or some metadata
+structures such as the data structure for the requests.
+
+
+
 ```
 docker run \
   -v $(pwd)/service/onedrive_conf:/onedrive/conf \
