@@ -315,6 +315,7 @@ def update_list_item_field(item_id, updated_fields: dict):
     return response.json()
 
 
+
 def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
@@ -335,8 +336,13 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
 
     list_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{quote(list_name, safe='')}/items/{job_id}"
     list_resp = requests.get(list_url, headers={"Authorization": f"Bearer {access_token}"}, params=params)
+    list_resp.raise_for_status()
+    resp_json = list_resp.json()
+    fields = resp_json.get("fields", {})
 
     print(list_resp.json()["fields"])
+
+
     # Search for the job ID
     if str(list_resp.json()["fields"].get("id")) == str(job_id):
         data = {
@@ -349,6 +355,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
             'end': list_resp.json()["fields"].get('Datafinal'),
             #'author': list_resp.json()["fields"].get('Sol_x00b7_licitant').get('user').get('email'),
             'author': list_resp.json()["fields"].get('Sol_x00b7_licitant'),
+            #'author': author_value,
             'merge_salary_bankproof': list_resp.json()["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
             'merge_results': list_resp.json()["fields"].get('juntarpdfs'),
             'merge_RLC_RNT': list_resp.json()["fields"].get('Fusi_x00f3_RLCRNT')
