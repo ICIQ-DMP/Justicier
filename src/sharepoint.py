@@ -324,7 +324,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     list_resp = requests.get(
     f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{job_id}?expand=fields($select="
         f"Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,"
-        f"Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,id),createdBy",
+        f"Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,id),createdBy",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     list_resp.raise_for_status()
@@ -339,7 +339,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
             'DNI': list_resp.json()["fields"].get('DNI'),
             'begin': list_resp.json()["fields"].get('DataInici'),
             'end': list_resp.json()["fields"].get('Datafinal'),
-            'author': list_resp.json()["createdBy"].get('user').get('email'),
+            'author': list_resp.json()["fields"].get('user').get('email'),
             'merge_salary_bankproof': list_resp.json()["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
             'merge_results': list_resp.json()["fields"].get('juntarpdfs'),
             'merge_RLC_RNT': list_resp.json()["fields"].get('Fusi_x00f3_RLCRNT')
