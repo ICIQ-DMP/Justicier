@@ -339,7 +339,8 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
             'DNI': list_resp.json()["fields"].get('DNI'),
             'begin': list_resp.json()["fields"].get('DataInici'),
             'end': list_resp.json()["fields"].get('Datafinal'),
-            'author': list_resp.json()["fields"].get('user').get('email'),
+            #'author': list_resp.json()["fields"].get('Sol_x00b7_licitant').get('user').get('email'),
+            'author': list_resp.json()["fields"].get('Sol_x00b7_licitant'),
             'merge_salary_bankproof': list_resp.json()["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
             'merge_results': list_resp.json()["fields"].get('juntarpdfs'),
             'merge_RLC_RNT': list_resp.json()["fields"].get('Fusi_x00f3_RLCRNT')
