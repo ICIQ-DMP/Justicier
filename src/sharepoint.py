@@ -9,6 +9,7 @@ from requests.exceptions import HTTPError
 from TokenManager import TokenManager, get_token_manager
 from logger import build_process_logger
 from secret import read_secret
+from urllib.parse import quote
 
 
 def get_list_id(token_manager, site_id, list_name):
@@ -320,15 +321,22 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
 
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
 
-    # Get list items
-    list_resp = requests.get(
-    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{job_id}?expand=fields($select="
-        f"Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,"
-        f"Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,id),createdBy",
-        headers={"Authorization": f"Bearer {access_token}"}
+    # Build query in a clearer way: expand fields and select only needed fields
+    # Note: requests will correctly encode $ and parentheses in params
+    select_fields = (
+        "Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,"
+        "DNI,DataInici,Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,id"
     )
-    list_resp.raise_for_status()
 
+    params = {
+        "$expand": f"fields($select={select_fields})",
+        "$select": "fields,createdBy"
+    }
+
+    list_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{quote(list_name, safe='')}/items/{job_id}"
+    list_resp = requests.get(list_url, headers={"Authorization": f"Bearer {access_token}"}, params=params)
+
+    print(list_resp.json()["fields"])
     # Search for the job ID
     if str(list_resp.json()["fields"].get("id")) == str(job_id):
         data = {
