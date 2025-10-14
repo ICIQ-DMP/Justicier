@@ -448,9 +448,9 @@ def merge_rnts_rlcs(rnts_folder_path, rlcs_folder_path, naf_dir, begin, end):
             merge_pdfs(paths_to_merge, os.path.join(naf_dir, RNTS_AND_RLCS_OUTPUT_NAME,
                                                     unparse_year_month(current_date) + "_Merged.pdf"), True)
         else:
-            proc_logger.warning("During date " + unparse_year_month(current_date) + " there were not more than one RNTs "
+            proc_logger.warning("During date " + unparse_year_month(current_date) + " there were less than one RNTs "
                                                                                     "or RLCs to "
-                                                                                    "merge. Skipping")
+                                                                                    "merge (at least one is missing). Skipping")
         print(paths_to_merge, os.path.join(naf_dir, RNTS_AND_RLCS_OUTPUT_NAME, unparse_year_month(current_date) + "_Merged.pdf"))
 
 
@@ -623,7 +623,8 @@ def process(args, INPUT_FOLDER):
 
     # Process fusion of RLC & RNT
     if args.merge_rnt_rlc:
-        if args.merge_result:
+        logger.info("Starting the merge of RNT and RLC")
+        if args.merge_result[DocType.RNT] or args.merge_result[DocType.RLC]:
             rnts_merged_path = os.path.join(current_justification_folder, "RNTs.pdf")  # TODO: remove hard-coded filename
             rlcs_merged_path = os.path.join(current_justification_folder, "RLCs.pdf")  # TODO: remove hard-coded filename
             if os.path.exists(rnts_merged_path) and os.path.exists(rlcs_merged_path):
@@ -632,6 +633,14 @@ def process(args, INPUT_FOLDER):
                 rnt_rlc_merged_paths.append(rlcs_merged_path)
                 rnt_rlc_merged_output_path = os.path.join(current_justification_folder, "RNTs i RLCs.pdf")
                 merge_pdfs(rnt_rlc_merged_paths, rnt_rlc_merged_output_path, True)
+            else:
+                logger.warning("The merge of RNT and RLC was not done because we were also instructed to merge each type"
+                               " of "
+                               "document"
+                               "in a single file, but either RNTs.pdf or RLCs.pdf with the final results of the merge "
+                               "do not exist, so the merge will not be "
+                               "done. Try again without marking the option to merge the documents, only mark RLC and "
+                               "RNT merging")
         else:
             os.makedirs(os.path.join(current_justification_folder, RNTS_AND_RLCS_OUTPUT_NAME), exist_ok=True)
             merge_rnts_rlcs(
