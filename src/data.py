@@ -10,11 +10,18 @@ from defines import SalaryType
 
 
 def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_structure=None) -> Dict[str, List[bool]]:
+    print("get_rlc_monthly_result_structure params:")
+    print(begin)
+    print(end)
     current = datetime(begin.year, begin.month, 1)
 
     result = {}
     while current <= end:
+        print("Current datetime is")
+        print(current)
         key = datetime.strptime(str(current.year * 100 + current.month), "%Y%m")
+        print("parsed key is")
+        print(key)
         if result_structure is None:
             result[key] = [False, False, False]
         else:
@@ -25,6 +32,8 @@ def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_stru
         else:
             current = datetime(current.year, current.month + 1, 1)
 
+    print("result structure:")
+    print(result)
     return result
 
 

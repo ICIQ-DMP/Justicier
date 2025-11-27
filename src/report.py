@@ -164,6 +164,11 @@ def unparse_salary_rnt_result(content, args):
     something_wrong = False
     rnt_results = content[0]
     salaries_result = content[1][RLCType.REGULAR]
+
+    print("results previous to building report")
+    print(rnt_results)
+    print(salaries_result)
+
     msg = ""
     for key in salaries_result.keys():
         if salaries_result[key][0]:  # Salary for that month has been found

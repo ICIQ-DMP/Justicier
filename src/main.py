@@ -367,12 +367,20 @@ def process_contracts(contracts_folder_path, naf_dir, naf, begin, end):
 
 def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
     rnts_found = get_rlc_monthly_result_structure(begin, end, False)  # regular monthly salary, RLC-N, RLC-P
+    print("process RNT args are ")
+    print(begin)
+    print(end)
+    print("rnts found initial structure")
+    print(rnts_found)
 
     proc_logger = build_process_logger(logger, "RNTs")
     rnt_files = flatten_dirs(rnts_folder_path)
     rnt_files.sort()
     for rnt_file in rnt_files:
-        file_date = parse_date("20" + rnt_file.split("/")[1][:4], "%Y%m")
+        file_date = parse_date("20" + rnt_file.split("/")[1][:4], "%Y%m", return_naive=True)
+        #file_date.hour = 0  # Sometimes due to timezone correction the hour get set to a different than 0, causing problems in reporting
+        print("parsed file date")
+        print(file_date)
         if begin <= file_date <= end:
             rnt_file_name = rnt_file.split("/")[1]
             rnt_file_name_without_extension = rnt_file_name.split(".")[0]
@@ -392,11 +400,14 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
                     "NAF " + naf.__str__() + " was detected in " + rnt_path + " in page " + str(page_num + 1) +
                     ". Writing page to " + rnt_path_destination.__str__() + ".")
                 write_page(page, rnt_path_destination)
+                print("rnt found with date: " + str(file_date))
                 rnts_found[file_date] = True
         else:
             proc_logger.debug("RNT file " + rnt_file.__str__() + " is not selected, because its date is " +
                               unparse_date(file_date) + ".")
 
+    print("rnts found before returning func")
+    print(rnts_found)
     return rnts_found
 
 
@@ -723,8 +734,8 @@ def main():
         print(err)
         exit(1)
 
-    print("Justification process is finished.")
-    print("Sending notification email")
+    #print("Justification process is finished.")
+    #print("Sending notification email")
     #mail_process(result_link, log_link, args)  # TODO silenced until we have the firewall route allowing traffic.
 
 

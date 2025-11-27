@@ -56,6 +56,9 @@ def parse_date(
             # Likely a date-only string
             dt = datetime.datetime.strptime(v, formatting)
 
+        if return_naive:
+            return dt.replace(tzinfo=None)
+
         # If naive (no tzinfo), assign the assumed timezone
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=ZoneInfo(assume_tz))
@@ -63,8 +66,7 @@ def parse_date(
         # Convert to target local timezone (DST handled automatically)
         local_dt = dt.astimezone(ZoneInfo(tz_name))
 
-        if return_naive:
-            return local_dt.replace(tzinfo=None)
+
         return local_dt
 
     except Exception as e:
