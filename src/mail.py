@@ -1,9 +1,30 @@
 import smtplib
+from email.message import EmailMessage
 from email.mime.text import MIMEText
 import argparse
 
 from secret import read_secret
 from data import unparse_date
+
+
+def send_mail2(username, password, to, host, port, subject, content):
+    SMTP_SERVER = host
+    SMTP_PORT = port
+    USERNAME = username
+    PASSWORD = password
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = USERNAME
+    msg["To"] = to
+    msg.set_content(content)
+
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
+        smtp.starttls()  # Use TLS
+        smtp.login(USERNAME, PASSWORD)
+        smtp.send_message(msg)
+
+    print("Email sent successfully!")
 
 
 def send_mail(to_email, subject, body, from_email, username, password, server: str, port: int):
@@ -63,15 +84,42 @@ def mail_process(result_link, log_link, args):
     print("Email sent. Process complete. ")
 
 if __name__ == "__main__":
+    print("Start program")
     parser = argparse.ArgumentParser()
     parser.add_argument("--author", required=True, help="Recipient email")
     args = parser.parse_args()
 
+    '''
+    print("Sending email")
+    print("Author: " + args.author)
+    print("username: " + read_secret("SMTP_USERNAME"))
+    print("password: " + read_secret("SMTP_PASSWORD"))
+    print("port: " + read_secret("SMTP_PORT"))
+    print("Server: " + read_secret("SMTP_SERVER"))
+    send_mail2(
+        to=args.author,
+        subject="test from Justicier",
+        content="Hello, this is a test email sent using Office 365 SMTP.",
+        username=read_secret("SMTP_USERNAME"),
+        password=read_secret("SMTP_PASSWORD"),
+        port=read_secret("SMTP_PORT"),
+        host=read_secret("SMTP_SERVER"),
+    )
+    '''
+
+    print("Sending email with another func")
+    print("To: " + args.author)
+    print("username: " + read_secret("SMTP_USERNAME"))
+    print("password: " + read_secret("SMTP_PASSWORD"))
+    print("port: " + read_secret("SMTP_PORT"))
+    print("Server: " + read_secret("SMTP_SERVER"))
     send_mail(
         to_email=args.author,
-        subject="Test email from Python",
-        body="Hello, this is a test email sent using Office 365 SMTP.",
-        from_email="you@yourdomain.com",
-        username="you@yourdomain.com",
-        password="YOUR_PASSWORD_OR_APP_PASSWORD"
+        subject="test email",
+        body="a test of email",
+        from_email=read_secret("SMTP_USERNAME"),
+        username=read_secret("SMTP_USERNAME"),
+        password=read_secret("SMTP_PASSWORD"),
+        server=read_secret("SMTP_SERVER"),
+        port=read_secret("SMTP_PORT")
     )
