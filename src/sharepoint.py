@@ -326,7 +326,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     # Note: requests will correctly encode $ and parentheses in params
     select_fields = (
         "Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,"
-        "DNI,DataInici,Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,id"
+        "DNI,DataInici,Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,SolicitantEmail,id"
     )
 
     params = {
@@ -353,7 +353,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
             'DNI': list_resp.json()["fields"].get('DNI'),
             'begin': list_resp.json()["fields"].get('DataInici'),
             'end': list_resp.json()["fields"].get('Datafinal'),
-            'author_email': list_resp.json()["fields"].get('Sol_x00b7_licitant_email'),
+            'author_email': list_resp.json()["fields"].get('SolicitantEmail'),
             'author': list_resp.json()["fields"].get('Sol_x00b7_licitant'),
             'merge_salary_bankproof': list_resp.json()["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
             'merge_results': list_resp.json()["fields"].get('juntarpdfs'),

@@ -52,6 +52,7 @@ def mail_process(result_link, log_link, args):
     print("pass is: \"" + str(smtp_password) + "\"")
     print("server is: \"" + str(smtp_server) + "\"")
     print("port is: \"" + str(smtp_port) + "\"")
+    print("recipient is: \"" + str(args.author_email) + "\"")
 
     subject = f"Justicier - La petició \"{args.title}\" amb ID {str(args.request)} ha estat completada amb èxit"
     body = ("Hola!\n"
