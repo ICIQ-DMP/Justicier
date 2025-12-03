@@ -353,9 +353,8 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
             'DNI': list_resp.json()["fields"].get('DNI'),
             'begin': list_resp.json()["fields"].get('DataInici'),
             'end': list_resp.json()["fields"].get('Datafinal'),
-            #'author': list_resp.json()["fields"].get('Sol_x00b7_licitant').get('user').get('email'),
+            'author_email': list_resp.json()["fields"].get('Sol_x00b7_licitant_email'),
             'author': list_resp.json()["fields"].get('Sol_x00b7_licitant'),
-            #'author': author_value,
             'merge_salary_bankproof': list_resp.json()["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
             'merge_results': list_resp.json()["fields"].get('juntarpdfs'),
             'merge_RLC_RNT': list_resp.json()["fields"].get('Fusi_x00f3_RLCRNT')
@@ -381,4 +380,106 @@ def get_sharepoint_web_url(token_manager, site_id, drive_id, folder_path):
     item = response.json()
     return item.get("webUrl")
 
+
+def get_author_email(job_id: str) -> str:
+    """
+    Given a SharePoint item ID, returns the email address stored in the Person field 'Sol·licitant'.
+    Works for both cases:
+      - Sol_x00b7_licitant is a dict with an 'email' or 'user' subfield
+      - Sol_x00b7_licitant is just a display name string, in which case we resolve the user via /users
+    """
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    list_name = read_secret("SHAREPOINT_LIST_NAME")
+
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+
+    select_fields = "Sol_x00b7_licitant"
+
+    params = {
+        "$expand": f"fields($select={select_fields})",
+        "$select": "fields",
+    }
+
+    list_url = (
+        f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/"
+        f"{quote(list_name, safe='')}/items/{job_id}"
+    )
+
+    resp = requests.get(
+        list_url,
+        headers={"Authorization": f"Bearer {access_token}"},
+        params=params,
+    )
+    resp.raise_for_status()
+
+    fields = resp.json().get("fields", {})
+    print("fields are:", fields)
+
+    person = fields.get("Sol_x00b7_licitant")
+    print("person is:", person)
+
+    if not person:
+        raise ValueError(f"Item {job_id} does not contain 'Sol·licitant' field")
+
+    # Case 1: old behavior – person is a complex object
+    if isinstance(person, dict):
+        # Try several common patterns
+        email = (
+            person.get("email")
+            or person.get("mail")
+            or person.get("user", {}).get("email")
+            or person.get("user", {}).get("mail")
+        )
+        if email:
+            print("email (from person object) is:", email)
+            return email
+
+    # Case 2: current behavior – person is just a display name string
+    if isinstance(person, str):
+        display_name = person
+
+        users_url = "https://graph.microsoft.com/v1.0/users"
+        # Escape single quotes for OData
+        safe_name = display_name.replace("'", "''")
+        users_params = {
+            "$filter": f"displayName eq '{safe_name}'",
+            "$select": "mail,userPrincipalName,displayName",
+        }
+
+        users_resp = requests.get(
+            users_url,
+            headers={"Authorization": f"Bearer {access_token}"},
+            params=users_params,
+        )
+        users_resp.raise_for_status()
+        users_json = users_resp.json()
+        print("users lookup result:", users_json)
+
+        users = users_json.get("value", [])
+        if not users:
+            raise ValueError(
+                f"No user found in AAD for displayName '{display_name}' "
+                f"(from Sol·licitant of item {job_id})"
+            )
+
+        # Take the first match (you can add extra checks if needed)
+        user = users[0]
+        email = user.get("mail") or user.get("userPrincipalName")
+
+        if not email:
+            raise ValueError(
+                f"User '{display_name}' has no 'mail' or 'userPrincipalName' in Graph"
+            )
+
+        print("email (from Graph /users) is:", email)
+        return email
+
+    # Fallback if type is unexpected
+    raise TypeError(
+        f"Sol·licitant value has unexpected type: {type(person).__name__} (value={person!r})"
+    )
 

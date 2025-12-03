@@ -51,7 +51,7 @@ def mail_process(result_link, log_link, args):
     print("user is: \"" + str(smtp_user) + "\"")
     print("pass is: \"" + str(smtp_password) + "\"")
     print("server is: \"" + str(smtp_server) + "\"")
-    print("port is: \"" + str(smtp_password) + "\"")
+    print("port is: \"" + str(smtp_port) + "\"")
 
     subject = f"Justicier - La petició \"{args.title}\" amb ID {str(args.request)} ha estat completada amb èxit"
     body = ("Hola!\n"
@@ -75,7 +75,7 @@ def mail_process(result_link, log_link, args):
             f"\n"
             f"Aquest missatge ha estat auto-generat.")
 
-    send_mail(args.author,
+    send_mail(args.author_email,
               subject,
               body,
               smtp_user,
