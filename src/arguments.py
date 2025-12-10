@@ -217,20 +217,17 @@ def parse_sharepoint_arguments(args, common):
             args.dni = parse_dni(config['DNI'])
         args.title = config['Title']
 
-        print("args begin in parse sharepoint args is ")
-        print(args.begin)
-
         print("args begin in config sharepoint info is ")
         print(config['begin'])
 
-        print("before parsing")
-        args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ")
-        print("after parsing")
+        print("Begin date before parsing: " + str(config['begin']))
+        args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ", return_naive=False).replace(tzinfo=None)
+        print("Begin data after parsing: " + str(args.begin))
 
-        print("args begin in parse sharepoint args after is ")
-        print(args.begin)
+        print("End date before parsing: " + str(config['end']))
+        args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ", return_naive=False).replace(tzinfo=None)
+        print("End date after parsing: " + str(args.end))
 
-        args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ")
         args.author = parse_author(config['author'])
 
         args.author_email = config['author_email']

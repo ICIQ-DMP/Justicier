@@ -17,7 +17,7 @@ from data import get_rlc_monthly_result_structure, parse_date_from_salary_filena
     unparse_year_month_short
 from defines import *
 from filesystem import *
-from logger import build_process_logger, get_logger
+from logger import build_process_logger, get_logger, get_logger_instance
 from logger import set_logger
 from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, is_date_present_in_rlc_delay, \
     merge_pdfs, compact_folder, parse_regular_salary_type, get_matching_pages, merge_equal_files_from_two_folders
@@ -712,6 +712,8 @@ def process(args, INPUT_FOLDER):
 
 
 def main():
+    #logger = build_process_logger(get_logger_instance(), "Main")  # Logger in this project is an absolute mess...
+
     args = process_parse_arguments()
 
     if args.input_location:
