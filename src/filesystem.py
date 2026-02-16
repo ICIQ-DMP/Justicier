@@ -3,6 +3,9 @@ import shutil
 
 from defines import GENERAL_OUTPUT_FOLDER, ADMIN_LOG_FOLDER, SUPERVISOR_LOG_FOLDER, SALARIES_OUTPUT_NAME, \
     PROOFS_OUTPUT_NAME, CONTRACTS_OUTPUT_NAME, RNTS_OUTPUT_NAME, RLCS_OUTPUT_NAME, SALARIES_AND_PROOFS_OUTPUT_NAME
+from logger import get_logger
+
+log = get_logger(__name__)
 
 
 def read_env_var(var_name):
@@ -115,9 +118,17 @@ def compute_impersonal_id(now, args, naf_to_name):
     id_str = ""
     if args.request:
         id_str = "_" + str(args.request)
-    return (now + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]).
-            replace(" ", "_") + "_" +
-            args.begin.strftime("%Y-%m-%d") + "_" + args.end.strftime("%Y-%m-%d") + id_str)
+    try:
+        r = (now + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]).
+                replace(" ", "_") + "_" +
+                args.begin.strftime("%Y-%m-%d") + "_" + args.end.strftime("%Y-%m-%d") + id_str)
+    except:
+        print("sdfafdsdf")
+        log.info("info")
+        log.error("error")
+        log.debug("NAF provided was not possible to be translated into name, NAF is: " + str(args.naf))
+
+    return r
 
 
 def compute_paths(args, id_str, impersonal_id_str):

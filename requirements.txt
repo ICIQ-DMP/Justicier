@@ -8,3 +8,4 @@ pyfiglet
 requests
 pytz
 backports.zoneinfo; python_version < "3.9"
+rich

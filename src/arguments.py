@@ -2,6 +2,9 @@ import argparse
 import datetime
 import os.path
 import sys
+
+from logger import get_logger
+
 try:
     from zoneinfo import ZoneInfo  # Python 3.9+
 except ModuleNotFoundError:
@@ -16,6 +19,8 @@ from secret import read_secret
 from sharepoint import get_parameters_from_list, get_author_email
 from DNI import parse_dni
 from Name import parse_name_sharepoint, parse_name_a3
+
+log = get_logger(__name__)
 
 
 def get_compact_init():
@@ -100,7 +105,6 @@ def parse_boolean(value):
         return value
     elif value is False:
         return value
-    print("the value " + str(value))
     if value is bool:
         return value
     if value == "True":
@@ -128,7 +132,7 @@ def expand_job_id(job_id):
 
 
 def parse_arguments_helper(arg_text: str):
-    print(f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
+    log.debug(f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
           f"select request ID. The provided {arg_text} via argument will ge ignored and the {arg_text} from "
           f"the corresponding row of the provided Microsoft List will be used.")
 
@@ -207,7 +211,7 @@ def parse_sharepoint_arguments(args, common):
 
     config = expand_job_id(args.request)
 
-    print("configuration from sharepoint: " + str(config))
+    log.debug("configuration from sharepoint: " + str(config))
     try:
         if config['NAF']:
             args.naf = parse_naf(config['NAF'])

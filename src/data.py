@@ -8,6 +8,7 @@ from typing import Dict, List
 import logger
 from defines import SalaryType
 
+log = logger.get_logger(__name__)
 
 def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_structure=None) -> Dict[str, List[bool]]:
     print("get_rlc_monthly_result_structure params:")
@@ -38,11 +39,10 @@ def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_stru
 
 
 def parse_salary_type(salary_file_path):
-    custom_logger = logger.build_process_logger(logger.get_logger_instance(), "Salaries and RLCs")
     parsed = salary_file_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[1]
-    custom_logger.debug("Data parsed from filename is: " + parsed)
+    log.debug("Data parsed from filename is: " + parsed)
     t = SalaryType(parsed)
-    custom_logger.debug("Type detected is: " + t.__str__())
+    log.debug("Type detected is: " + t.__str__())
     return t
 
 

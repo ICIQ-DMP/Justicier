@@ -7,9 +7,12 @@ import requests
 from requests.exceptions import HTTPError
 
 from TokenManager import TokenManager, get_token_manager
-from logger import build_process_logger
 from secret import read_secret
 from urllib.parse import quote
+
+from logger import get_logger
+
+log = get_logger(__name__)
 
 
 def get_list_id(token_manager, site_id, list_name):
@@ -108,10 +111,8 @@ def download_input_folder(token_manager, drive_id, remote_path, input_path):
 
 # Upload functions
 def upload_file(token_manager, drive_id, remote_path, local_file_path):
-    logger_instance = logging.getLogger("justicier")
-    logger = build_process_logger(logger_instance, "upload_file")
 
-    logger.info("Uploading from local path " + local_file_path + " to " + remote_path)
+    log.info("Uploading from local path " + local_file_path + " to " + remote_path)
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
@@ -123,7 +124,7 @@ def upload_file(token_manager, drive_id, remote_path, local_file_path):
 
     response = requests.put(url, headers=headers, data=data)
     response.raise_for_status()
-    logger.info(f"✅ Upload Done")
+    log.info(f"✅ Upload Done")
 
 
 def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
@@ -146,18 +147,16 @@ def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
 
 
 def upload_folder_recursive(token_manager, drive_id, local_folder_path, remote_folder_path):
-    logger_instance = logging.getLogger("justicier")
-    logger = build_process_logger(logger_instance, "Upload data results")
 
     for root, dirs, files in os.walk(local_folder_path):
         if len(files) == 0 and len(dirs) == 0:  # Ignore empty folders because they cause issue
             continue
 
-        logger.debug("root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files))
+        log.debug("root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files))
         rel_path = os.path.relpath(root, local_folder_path)
-        logger.debug("rel path: " + str(rel_path))
+        log.debug("rel path: " + str(rel_path))
         sharepoint_current_path = os.path.normpath(os.path.join(remote_folder_path, rel_path)).replace("\\", "/")
-        logger.debug("sharepoint current path: " + str(sharepoint_current_path))
+        log.debug("sharepoint current path: " + str(sharepoint_current_path))
 
         # Subir archivos
         for file_name in files:

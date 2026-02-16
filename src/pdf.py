@@ -1,5 +1,4 @@
 import locale
-import logging
 import os
 import re
 import shutil
@@ -9,12 +8,13 @@ from typing import List, Tuple
 import PyPDF2
 from pypdf import PdfReader, PdfWriter
 
-from data import unparse_month
-from filesystem import list_dir
-from logger import get_logger, get_logger_instance, build_process_logger
 from custom_except import UndefinedRegularSalaryType
-from defines import RegularSalaryType, SALARIES_AND_PROOFS_OUTPUT_NAME
+from data import unparse_month
+from defines import RegularSalaryType
+from filesystem import list_dir
+from logger import get_logger
 
+log = get_logger(__name__)
 
 def get_dni(pdf_path: str) -> str:
     # Open PDF
@@ -107,7 +107,6 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
 
 
 def parse_dates_from_delayed_salary(page):
-    logger = build_process_logger(get_logger_instance(), "parse_dates_from_delayed_salary")
     # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
     query_str = r'\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
     # restricting the search with the beginning of the year, which appears in the line that
@@ -212,7 +211,6 @@ def merge_pdfs(pdf_paths, output_path, all_pages=False):
 
 
 def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path):
-    logger = build_process_logger(get_logger_instance(), "Salaries and RLCs L03 is_date_present_in_rlc_delay")
     reader = PdfReader(document_path)
     query_string = (unparse_month(delay_begin) + "/" + delay_begin.year.__str__() + " - " + unparse_month(delay_end)
                     + "/" + delay_end.year.__str__())
@@ -227,7 +225,7 @@ def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path):
         if not match:
             continue
 
-        logger.debug("Detected this matches: " + str(match))
+        log.debug("Detected this matches: " + str(match))
         for match_i in match:
             if match_i.__eq__(query_string):
                 return True
@@ -244,10 +242,9 @@ def compact_folder(path_folder):
     Remove folder path_folder
     create merged PDF path_folder + ".pdf"
     """
-    logger = build_process_logger(get_logger_instance(), "Folder compactation")
     paths = list_dir(path_folder)
     if len(paths) == 0:
-        logger.warning("Refusing to compact folder " + path_folder + " because it is empty. Aborting compression.")
+        log.warning("Refusing to compact folder " + path_folder + " because it is empty. Aborting compression.")
         return
 
     paths.sort()
@@ -258,16 +255,15 @@ def compact_folder(path_folder):
 
 
 def merge_equal_files_from_two_folders(folder1, folder2, folder_out):
-    logger = build_process_logger(get_logger_instance(), "Merge salaries and bankproofs")
-    logger.info(f"Merging files with same name in folders {str(folder1)} and {str(folder2)} and outputting them in "
+    log.info(f"Merging files with same name in folders {str(folder1)} and {str(folder2)} and outputting them in "
                 f"{str(folder_out)}.")
     files1 = list_dir(folder1)
     if len(files1) == 0:
-        logger.warning(f"Refusing to compact folders because {str(folder1)} is empty. Aborting compression.")
+        log.warning(f"Refusing to compact folders because {str(folder1)} is empty. Aborting compression.")
         return
     files2 = list_dir(folder2)
     if len(files2) == 0:
-        logger.warning(f"Refusing to compact folders because {str(folder2)} is empty. Aborting compression.")
+        log.warning(f"Refusing to compact folders because {str(folder2)} is empty. Aborting compression.")
         return
 
     for i in range(len(files1)):
@@ -277,7 +273,7 @@ def merge_equal_files_from_two_folders(folder1, folder2, folder_out):
                 path1 = os.path.join(folder1, files1[i])
                 path2 = os.path.join(folder2, files2[j])
                 out_path = os.path.join(folder_out, files1[i])
-                logger.info(f"Matched {path1} with {path2} and merging into {out_path}.")
+                log.info(f"Matched {path1} with {path2} and merging into {out_path}.")
                 paths.append(path1)
                 paths.append(path2)
                 merge_pdfs(paths, out_path)

@@ -5,11 +5,17 @@ import pandas as pd
 from DNI import parse_dni
 from Name import parse_name_a3
 from custom_except import ArgumentNafInvalid
+from logger import get_logger
+
+log = get_logger(__name__)
+
 
 
 class NAF:
     def __init__(self, raw_naf):
-        pattern = r"(\d{2})([/\-]?)(\d{8})([/\-]?)(\d{2})"
+        # For some random reason, a whitespace appear between province code and middle number...
+        pattern = r"(\d{2})([/\- ]?)(\d{8})([/\-]?)(\d{2})"
+
         match = re.fullmatch(pattern, raw_naf)
         if not match:
             raise ValueError(f"Invalid NAF format: {raw_naf} NAF must be in NAF format. Example: 43/12345678-20")
@@ -62,18 +68,13 @@ def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_
     val_col = df[value]
     key_col = df[key]
     try:
-
-        print("before val func")
         if func_apply_value is not None:
             val_col = val_col.apply(func_apply_value)
-        print("before key func")
         if func_apply_key is not None:
             key_col = key_col.apply(func_apply_key)
     except Exception as e:
-        print("fuck" + str(e))
+        log.debug("Something went wrong while parsing NAF_DNI file: " + str(e))
 
-
-    print("before dictio")
     return dict(zip(key_col, val_col))
 
 
@@ -84,9 +85,7 @@ def read_dataframe(path, skiprows, header):
 
 def build_naf_to_dni(path):
     df = read_dataframe(path, 3, None)
-    print("before two cols")
     r = parse_two_columns(df, 2, 3, parse_naf, parse_dni)
-    print("after two cols")
     return r
 
 
@@ -97,6 +96,7 @@ def build_naf_to_name(path):
 
 def parse_naf(value):
     try:
+        log.debug(f"Parsing NAF: {value}")
         return NAF(value)
     except ValueError as e:
-        raise ArgumentNafInvalid("NAF is not valid" + e.__str__())
+        raise ArgumentNafInvalid("NAF is not valid. Internal error is: " + e.__str__())

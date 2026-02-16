@@ -1,5 +1,9 @@
+import logging
 import os
+import pathlib
+import datetime
 from enum import Enum
+from typing import Optional
 
 # Get absolute path to the root of the project
 ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,6 +22,13 @@ CONTRACTS_OUTPUT_NAME = "Contractes"
 RNTS_OUTPUT_NAME = "RNTs"
 RLCS_OUTPUT_NAME = "RLCs"
 RNTS_AND_RLCS_OUTPUT_NAME = "RNTs i RLCs"
+
+DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
+NOW_DATA = datetime.datetime.now()
+NOW = NOW_DATA.strftime(DATETIME_FORMAT)
+
+DATE_FORMAT = "%d/%m/%Y"
+PROJECT_DIR = pathlib.Path(__file__).resolve().parent.parent
 
 
 class DocType(Enum):
@@ -60,4 +71,60 @@ class RegularSalaryType(Enum):
     MONTHLY = "Monthly"
 
 
+class LogLevel(str, Enum):
+    """
+    Logical log levels for the CLI.
 
+    Includes a custom TRACE (more verbose than DEBUG) and QUIET
+    (suppresses all output beyond CRITICAL).
+    """
+
+    TRACE = "trace"
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    QUIET = "quiet"
+
+    @classmethod
+    def parse(cls, value: Optional[str]) -> Optional["LogLevel"]:
+        """Parse case-insensitively; returns None if value is falsy."""
+        print("Executing function parse from LogLevel")
+        if not value:
+            return None
+        norm = value.strip().lower()
+        try:
+            return cls(norm)
+        except ValueError as exc:
+            valid = ", ".join(v.value for v in cls)
+            raise ValueError(f"Unknown log level '{value}'. Valid: {valid}") from exc
+
+    @classmethod
+    def get_default_log_level(cls) -> "LogLevel":
+        return LogLevel.TRACE
+
+    def to_logging_level(self) -> int:
+        if self is LogLevel.TRACE:
+            return 0
+        if self is LogLevel.DEBUG:
+            return logging.DEBUG
+        if self is LogLevel.INFO:
+            return logging.INFO
+        if self is LogLevel.WARNING:
+            return logging.WARNING
+        if self is LogLevel.ERROR:
+            return logging.ERROR
+        if self is LogLevel.QUIET:
+            return logging.CRITICAL + 10
+        # Fallback
+        return LogLevel.get_default_log_level().to_logging_level()
+
+
+def get_default_log_path() -> pathlib.Path:
+    return pathlib.Path(str(os.path.join(ADMIN_LOG_FOLDER, NOW + ".log")))
+
+def get_supervisor_log_path() -> pathlib.Path:
+    return get_default_log_path()
+
+def get_user_log_path() -> pathlib.Path:
+    return get_default_log_path()

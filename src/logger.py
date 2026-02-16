@@ -1,78 +1,149 @@
 import logging
-import sys
+from pathlib import Path
+from typing import Optional, Any, cast
+from rich.logging import RichHandler
 
-# ANSI escape codes for colors
-COLOR_CODES = {
-    'DEBUG': '\033[90m',  # Gray
-    'INFO': '\033[92m',  # Green
-    'WARNING': '\033[93m',  # Yellow
-    'ERROR': '\033[91m',  # Red
-    'CRITICAL': '\033[1;91m'  # Bold Red
-}
-RESET_CODE = '\033[0m'
+from defines import DATE_FORMAT, LogLevel, get_default_log_path
 
-
-class ColorFormatter(logging.Formatter):
-    def format(self, record):
-        color = COLOR_CODES.get(record.levelname, '')
-        message = super().format(record)
-        return f"{color}{message}{RESET_CODE}"
+# ---- extend the logging module with TRACE
+TRACE_LEVEL_NUM = 1
+logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
+MESSAGE_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
 
-def unformatted_logger(logger):
-    for h in logger.handlers:
-        h.setFormatter(None)
-    return logger
+class ExtendedLogger(logging.Logger):
+    def trace(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
+        self._log(TRACE_LEVEL_NUM, message, args, **kwargs)
 
 
-def get_logger_instance():
-    return base_logger
+# Tell the logging system to use your new class
+logging.setLoggerClass(ExtendedLogger)
 
 
-def build_process_logger(logger_instance, process_name):
-    return logging.LoggerAdapter(logger_instance, {'process_name': process_name})
+class SecretsFilter(logging.Filter):
+    def __init__(self, secrets: list[str] | None):
+        super().__init__()
+        self.secrets: list[str] = secrets or []
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not self.secrets:
+            return True
+
+        if isinstance(record.msg, str):
+            for secret in self.secrets:
+                if secret and secret in record.msg:
+                    record.msg = record.msg.replace(secret, "*****")
+
+        return True
 
 
-def get_logger(user_report_file, admin_log_file, supervisor_log_file, name="justicier", debug_mode=False):
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+def setup_logging(
+    level: Optional[int | None] = None,
+    user_report_file: Optional[str | Path] = None,
+    admin_log_file: Optional[str | Path] = None,
+    supervisor_log_file: Optional[str | Path] = None,
+    secrets: list[str] | None = None,
+) -> None:
+    # Default level is DEBUG
+    if level is None:
+        level = LogLevel.get_default_log_level().to_logging_level()
 
-    if logger.handlers:
-        return logger  # Prevent re-adding handlers
+    handlers: list[logging.Handler] = []
+    secrets_filter = SecretsFilter(secrets)
 
-    # Formatters
-    plain_formatter = logging.Formatter('%(asctime)s - %(process_name)s - %(levelname)s - %(message)s')
-    color_formatter = ColorFormatter('%(asctime)s - %(process_name)s - %(levelname)s - %(message)s')
+    # ---- console (Rich)
+    console = RichHandler(
+        rich_tracebacks=True,
+        markup=True,
+        show_time=False,
+        show_level=True,
+        show_path=False,
+    )
+    common_formatter = logging.Formatter(MESSAGE_FORMAT, DATE_FORMAT)
+    console.setLevel(level)
+    console.setFormatter(common_formatter)
+    console.addFilter(secrets_filter)
+    handlers.append(console)
 
-    # User log (INFO+)
-    user_handler = logging.FileHandler(user_report_file)
-    user_handler.setLevel(logging.INFO)
-    user_handler.setFormatter(plain_formatter)
+    log_files = [(user_report_file, level), (admin_log_file, logging.ERROR), (supervisor_log_file, logging.WARNING)]
 
-    # Admin/system log (DEBUG+ if debug_mode, else ERROR+)
-    admin_handler = logging.FileHandler(admin_log_file)
-    admin_handler.setLevel(logging.DEBUG if debug_mode else logging.ERROR)
-    admin_handler.setFormatter(plain_formatter)
+    for log_file_i in log_files:
+        if log_file_i[0]:
+            path = Path(log_file_i[0])
+            path.parent.mkdir(parents=True, exist_ok=True)
+            file_handler = logging.FileHandler(path, encoding="utf-8")
+            file_handler.setFormatter(common_formatter)
+            file_handler.addFilter(secrets_filter)
+            file_handler.setLevel(log_file_i[1])
+            handlers.append(file_handler)
 
-    # Console log (DEBUG+ if debug_mode, else WARNING+), with colors
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG if debug_mode else logging.WARNING)
-    console_handler.setFormatter(color_formatter)
-
-    # Supervisor log
-    supervisor_handler = logging.FileHandler(supervisor_log_file)
-    supervisor_handler.setLevel(logging.INFO)
-    supervisor_handler.setFormatter(color_formatter)
-
-    for handler in [user_handler, admin_handler, console_handler, supervisor_handler]:
-        logger.addHandler(handler)
-
-    return logger
+    logging.basicConfig(
+        level=level,  # root captures everything
+        handlers=handlers,
+        format=MESSAGE_FORMAT,
+        force=True,
+    )
 
 
-def set_logger(logger_instance):
-    global base_logger
-    base_logger = logger_instance
+def obfuscate_text(text: str | None) -> str:
+    if text is None:
+        return str(text)
+    else:
+        return "*****"
 
 
-base_logger = None  # will be set later by main
+def get_logger(name: str) -> ExtendedLogger:
+    """Return a logger with trace() method available."""
+    return cast(ExtendedLogger, logging.getLogger(name))
+
+
+def process_log_flags(
+    very_verbose: bool, verbose: bool, quiet: bool, very_quiet: bool
+) -> tuple[LogLevel | None, bool]:
+    more_than_one_flag = False
+    flag_counter = 0
+    for flag in (very_verbose, verbose, quiet, very_quiet):
+        if flag:
+            flag_counter += 1
+    if flag_counter > 1:
+        more_than_one_flag = True
+
+    if very_verbose:
+        return LogLevel.TRACE, more_than_one_flag
+    elif verbose:
+        return LogLevel.DEBUG, more_than_one_flag
+    elif quiet:
+        return LogLevel.WARNING, more_than_one_flag
+    elif very_quiet:
+        return LogLevel.QUIET, more_than_one_flag
+    else:
+        return None, more_than_one_flag
+
+
+def configure_logging_from_settings(
+    level: Optional[LogLevel] = None,
+    user_report_file: Optional[str | Path] = None,
+    admin_log_file: Optional[str | Path] = None,
+    supervisor_log_file: Optional[str | Path] = None,
+    secrets: Optional[list[str]] = None,
+) -> None:
+
+    if user_report_file is None:
+        user_report_file = get_default_log_path()
+    if admin_log_file is None:
+        admin_log_file = get_default_log_path()
+    if supervisor_log_file is None:
+        supervisor_log_file = get_default_log_path()
+
+    if level is None:
+        level = LogLevel.get_default_log_level()
+
+    setup_logging(
+        level=level.to_logging_level(),
+        user_report_file=user_report_file,
+        admin_log_file=admin_log_file,
+        supervisor_log_file=supervisor_log_file,
+        secrets=secrets,
+    )  # Preventive creation of log for logging the loading of settings
+
+
