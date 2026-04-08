@@ -16,7 +16,7 @@ from NAF import is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import *
 from defines import DocType, from_string, ROOT_FOLDER
 from secret import read_secret
-from sharepoint import get_parameters_from_list, get_author_email
+from sharepoint import get_parameters_from_list, get_author_email, get_email_person_from_list
 from DNI import parse_dni
 from Name import parse_name_sharepoint, parse_name_a3
 
@@ -128,6 +128,10 @@ def expand_job_id(job_id):
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
 
+    email = get_email_person_from_list(sharepoint_domain, site_name, list_name, job_id)
+    print("the email is: " + str(email))
+    input()
+
     return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
 
 
@@ -235,6 +239,16 @@ def parse_sharepoint_arguments(args, common):
         args.author = parse_author(config['author'])
 
         args.author_email = config['author_email']
+
+        print("author")
+        print(args.author)
+        print("author email")
+        print(args.author_email)
+        print("name")
+        print(args.name)
+        print("config")
+        print(config)
+        input()
 
         args.merge_salary = parse_boolean(config['merge_salary_bankproof'])
         if parse_boolean(config['merge_results']):  # TODO use a column for each fusion

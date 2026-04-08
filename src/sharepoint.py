@@ -364,6 +364,54 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     raise ValueError(f"Job ID {job_id} not found in SharePoint List")
 
 
+def get_email_person_from_list(sharepoint_domain, site_name, list_name, item_id):
+    print("=== START get_email_person_from_list ===")
+
+    # 1️⃣ Get access token
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+    print("Access token acquired")
+
+    # 2️⃣ Get site ID
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+    print(f"Site ID: {site_id}")
+
+    # 3️⃣ Build Graph API URL with nested $expand to retrieve full Person field
+    params = {
+        "$expand": "fields($expand=Nomdelapersona)",  # nested expand
+        "$select": "fields"
+    }
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{quote(list_name, safe='')}/items/{item_id}"
+    print(f"Requesting list item URL: {url}")
+    print(f"Params: {params}")
+
+    resp = requests.get(url, headers={"Authorization": f"Bearer {access_token}"}, params=params)
+    print(f"HTTP status code: {resp.status_code}")
+    resp.raise_for_status()
+
+    resp_json = resp.json()
+    print("Full response JSON:")
+    print(resp_json)
+
+    fields = resp_json.get("fields", {})
+    print("Fields extracted from response:")
+    print(fields)
+
+    # 4️⃣ Extract the person field
+    person_field = fields.get("Nomdelapersona")
+    print("Person field value:")
+    print(person_field)
+
+    # 5️⃣ Check if we got an object
+    if isinstance(person_field, dict):
+        email = person_field.get("mail") or person_field.get("userPrincipalName")
+        print(f"Resolved email: {email}")
+        return email
+    else:
+        print("Person field is not an object; cannot extract email")
+        return None
+
+
 def get_sharepoint_web_url(token_manager, site_id, drive_id, folder_path):
     """
     Given a folder path inside the drive, returns its webUrl for user access.

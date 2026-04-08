@@ -14,7 +14,7 @@ log = get_logger(__name__)
 class NAF:
     def __init__(self, raw_naf):
         # For some random reason, a whitespace appear between province code and middle number...
-        pattern = r"(\d{2})([/\- ]?)(\d{8})([/\-]?)(\d{2})"
+        pattern = r"(\d{2})([/\-]?)(\d{8})([/\-]?)(\d{2})"
 
         match = re.fullmatch(pattern, raw_naf)
         if not match:
