@@ -10,9 +10,9 @@ from custom_except import ArgumentNafInvalid
 class NAF:
     def __init__(self, raw_naf):
         pattern = r"(\d{2})([/\-]?)(\d{8})([/\-]?)(\d{2})"
-        match = re.fullmatch(pattern, raw_naf)
+        match = re.fullmatch(pattern, str(raw_naf))
         if not match:
-            raise ValueError(f"Invalid NAF format: {raw_naf} NAF must be in NAF format. Example: 43/12345678-20")
+            raise ValueError(f"Invalid NAF format: {str(raw_naf)} NAF must be in NAF format. Example: 43/12345678-20")
 
         self.province_code = match.group(1)
         self.sep1 = match.group(2)
@@ -99,5 +99,5 @@ def build_naf_to_name(path):
 def parse_naf(value):
     try:
         return NAF(value)
-    except ValueError as e:
+    except Exception as e:
         raise ArgumentNafInvalid("NAF is not valid" + e.__str__())
