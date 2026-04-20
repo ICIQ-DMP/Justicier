@@ -2,7 +2,6 @@ import os
 import requests
 import urllib3
 
-VAULT_ADDR = os.environ.get("VAULT_ADDR", "https://10.42.1.2:8200")
 _VAULT_BASE_PATH = "secret/data/justicier/runtime"
 
 # Maps app-level secret names to (vault subpath, vault field key)
@@ -76,8 +75,9 @@ class _VaultClient:
         # 2. Try AppRole (VAULT_ROLE_ID + VAULT_SECRET_ID).
         role_id = _read_credential("VAULT_ROLE_ID")
         secret_id = _read_credential("VAULT_SECRET_ID")
+        vault_addr = _read_credential("VAULT_ADDR")
         resp = self._session.post(
-            f"{VAULT_ADDR}/v1/auth/approle/login",
+            f"{vault_addr}/v1/auth/approle/login",
             json={"role_id": role_id, "secret_id": secret_id},
             timeout=10,
         )
@@ -91,7 +91,8 @@ class _VaultClient:
         if self._token is None:
             self._authenticate()
 
-        url = f"{VAULT_ADDR}/v1/{_VAULT_BASE_PATH}/{subpath}"
+        vault_addr = _read_credential("VAULT_ADDR")
+        url = f"{vault_addr}/v1/{_VAULT_BASE_PATH}/{subpath}"
         resp = self._session.get(
             url,
             headers={"X-Vault-Token": self._token},
