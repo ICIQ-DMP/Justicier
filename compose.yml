@@ -36,19 +36,11 @@ services:
     environment:
       - JENKINS_AGENT_SSH_PUBKEY=${JENKINS_AGENT_SSH_PUBKEY}
     secrets:
-      - CLIENT_ID
-      - CLIENT_SECRET
-      - SHAREPOINT_DOMAIN
-      - SHAREPOINT_FOLDER_INPUT
-      - SHAREPOINT_FOLDER_OUTPUT
-      - SHAREPOINT_LIST_GUID
-      - SHAREPOINT_LIST_NAME
-      - SITE_NAME
-      - TENANT_ID
-      - SMTP_USERNAME
-      - SMTP_PASSWORD
-      - SMTP_SERVER
-      - SMTP_PORT
+      - VAULT_ADDR
+      - VAULT_CACERT
+      - VAULT_ROLE_ID
+      - VAULT_SECRET_ID
+      - vault.crt
     restart: always
     networks:
       - justicier_net
@@ -106,32 +98,16 @@ services:
 
 
 secrets:
-  CLIENT_ID:
-    file: ./secrets/CLIENT_ID
-  CLIENT_SECRET:
-    file: ./secrets/CLIENT_SECRET
-  SHAREPOINT_DOMAIN:
-    file: ./secrets/SHAREPOINT_DOMAIN
-  SHAREPOINT_FOLDER_INPUT:
-    file: ./secrets/SHAREPOINT_FOLDER_INPUT
-  SHAREPOINT_FOLDER_OUTPUT:
-    file: ./secrets/SHAREPOINT_FOLDER_OUTPUT
-  SHAREPOINT_LIST_GUID:
-    file: ./secrets/SHAREPOINT_LIST_GUID
-  SHAREPOINT_LIST_NAME:
-    file: ./secrets/SHAREPOINT_LIST_NAME
-  SITE_NAME:
-    file: ./secrets/SITE_NAME
-  TENANT_ID:
-    file: ./secrets/TENANT_ID
-  SMTP_USERNAME:
-    file: ./secrets/SMTP_USERNAME
-  SMTP_PASSWORD:
-    file: ./secrets/SMTP_PASSWORD
-  SMTP_SERVER:
-    file: ./secrets/SMTP_SERVER
-  SMTP_PORT:
-    file: ./secrets/SMTP_PORT
+  VAULT_ADDR:
+    file: ./secrets/VAULT_ADDR
+  VAULT_CACERT:
+    file: ./secrets/VAULT_CACERT
+  VAULT_ROLE_ID:
+    file: ./secrets/VAULT_ROLE_ID
+  VAULT_SECRET_ID:
+    file: ./secrets/VAULT_SECRET_ID
+  vault.crt:
+    file: ./secrets/vault.crt
 
 networks:
   justicier_net:
