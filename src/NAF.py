@@ -62,16 +62,17 @@ def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_
     val_col = df[value]
     key_col = df[key]
     try:
-
         print("before val func")
         if func_apply_value is not None:
             val_col = val_col.apply(func_apply_value)
+    except Exception as e:
+        print("func apply value failed with exception: " + str(e))
+    try:
         print("before key func")
         if func_apply_key is not None:
             key_col = key_col.apply(func_apply_key)
     except Exception as e:
-        print("fuck" + str(e))
-
+        print("func apply key failed with exception:  " + str(e))
 
     print("before dictio")
     return dict(zip(key_col, val_col))
@@ -84,9 +85,9 @@ def read_dataframe(path, skiprows, header):
 
 def build_naf_to_dni(path):
     df = read_dataframe(path, 3, None)
-    print("before two cols")
+    print("build_naf_to_dni: before parse two cols")
     r = parse_two_columns(df, 2, 3, parse_naf, parse_dni)
-    print("after two cols")
+    print("build_naf_to_dni: after parse two cols")
     return r
 
 
