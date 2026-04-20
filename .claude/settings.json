@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./secrets/**)",
+      "Edit(./secrets/**)",
+      "Glob(./secrets/**)",
+      "Grep(./secrets/**)",
+      "Read(./service/**)",
+      "Edit(./service/**)",
+      "Glob(./service/**)",
+      "Grep(./service/**)",
+      "Read(./input/**)",
+      "Edit(./input/**)",
+      "Glob(./input/**)",
+      "Grep(./input/**)"
+    ]
+  }
+}

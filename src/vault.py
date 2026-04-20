@@ -1,0 +1,134 @@
+import os
+import requests
+import urllib3
+
+VAULT_ADDR = os.environ.get("VAULT_ADDR", "https://10.42.1.2:8200")
+_VAULT_BASE_PATH = "secret/data/justicier/runtime"
+
+# Maps app-level secret names to (vault subpath, vault field key)
+_SECRET_MAP = {
+    # sharepoint
+    "CLIENT_ID":                ("sharepoint", "client_id"),
+    "CLIENT_NAME":              ("sharepoint", "client_name"),
+    "CLIENT_SECRET":            ("sharepoint", "client_secret"),
+    "OBJECT_ID":                ("sharepoint", "object_id"),
+    "SHAREPOINT_DOMAIN":        ("sharepoint", "domain"),
+    "DRIVE_ID":                 ("sharepoint", "drive_id"),
+    "SHAREPOINT_FOLDER":        ("sharepoint", "folder"),
+    "SHAREPOINT_FOLDER_INPUT":  ("sharepoint", "folder_input"),
+    "SHAREPOINT_FOLDER_OUTPUT": ("sharepoint", "folder_output"),
+    "SHAREPOINT_LIST_GUID":     ("sharepoint", "list_guid"),
+    "SHAREPOINT_LIST_NAME":     ("sharepoint", "list_name"),
+    "SITE_NAME":                ("sharepoint", "site_name"),
+    "TENANT_ID":                ("sharepoint", "tenant_id"),
+    # smtp
+    "SMTP_PASSWORD":            ("smtp", "password"),
+    "SMTP_PORT":                ("smtp", "port"),
+    "SMTP_SERVER":              ("smtp", "server"),
+    "SMTP_USERNAME":            ("smtp", "username"),
+}
+
+
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _read_credential(name):
+    """Read a credential from (in order):
+      1. /run/secrets/<name>
+      2. <project_root>/secrets/<name>
+      3. environment variable
+    """
+    for path in (f"/run/secrets/{name}", os.path.join(_PROJECT_ROOT, "secrets", name)):
+        if os.path.isfile(path):
+            with open(path) as f:
+                value = f.read().strip()
+            if value:
+                return value
+    value = os.environ.get(name, "").strip()
+    print("Read secret from " + name)
+    if value:
+        return value
+    raise KeyError(f"Vault credential '{name}' not found in secrets or environment")
+
+
+class _VaultClient:
+    def __init__(self):
+        self._token = None
+        self._cache = {}  # subpath -> {field: value}
+
+        self._session = requests.Session()
+        ca_cert = _read_credential("VAULT_CACERT").strip()
+        if ca_cert:
+            self._session.verify = ca_cert
+        elif _read_credential("VAULT_SKIP_VERIFY").lower() in ("1", "true", "yes"):
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            self._session.verify = False
+        # If neither is set, requests will use its default CA bundle.
+
+    def _authenticate(self):
+        # 1. Try a pre-issued Vault token.
+        try:
+            self._token = _read_credential("VAULT_TOKEN")
+            return
+        except KeyError:
+            pass
+
+        # 2. Try AppRole (VAULT_ROLE_ID + VAULT_SECRET_ID).
+        role_id = _read_credential("VAULT_ROLE_ID")
+        secret_id = _read_credential("VAULT_SECRET_ID")
+        resp = self._session.post(
+            f"{VAULT_ADDR}/v1/auth/approle/login",
+            json={"role_id": role_id, "secret_id": secret_id},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        self._token = resp.json()["auth"]["client_token"]
+
+    def _fetch_subpath(self, subpath):
+        if subpath in self._cache:
+            return self._cache[subpath]
+
+        if self._token is None:
+            self._authenticate()
+
+        url = f"{VAULT_ADDR}/v1/{_VAULT_BASE_PATH}/{subpath}"
+        resp = self._session.get(
+            url,
+            headers={"X-Vault-Token": self._token},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()["data"]["data"]
+        self._cache[subpath] = data
+        return data
+
+    def read_secret(self, secret_name):
+        if secret_name not in _SECRET_MAP:
+            raise KeyError(f"No vault mapping defined for secret '{secret_name}'")
+        subpath, field = _SECRET_MAP[secret_name]
+        data = self._fetch_subpath(subpath)
+        if field not in data:
+            raise KeyError(
+                f"Field '{field}' not found at vault path '{_VAULT_BASE_PATH}/{subpath}'"
+            )
+        value = data[field]
+        if value is None or str(value).strip() == "":
+            raise ValueError(f"Vault secret '{secret_name}' (field '{field}') is empty")
+        return str(value)
+
+
+_client = None
+
+
+def read_vault_secret(secret_name):
+    """Return the value of *secret_name* fetched from Vault.
+
+    Raises KeyError  if the secret has no vault mapping or the field is absent.
+    Raises ValueError if the field exists but is empty.
+    Raises requests.HTTPError / ConnectionError on network / auth failures.
+    """
+    print("requested secret from vault: " + secret_name)
+    global _client
+    if _client is None:
+        _client = _VaultClient()
+    return _client.read_secret(secret_name)

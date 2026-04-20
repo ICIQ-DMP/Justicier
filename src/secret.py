@@ -2,11 +2,20 @@ import sys
 import os
 
 from filesystem import read_file_content, read_env_var
+from vault import read_vault_secret
 
 
 def read_secret(secret_name):
-    """Retrieve a token from predefined sources in order of priority."""
+    """Retrieve a secret from predefined sources in order of priority.
+
+    Sources tried in order:
+      1. HashiCorp Vault  (https://10.42.1.2:8200, policy justicier-runtime)
+      2. Docker secrets   (/run/secrets/<name>)
+      3. Local file       (<project_root>/secrets/<name>)
+      4. Environment variable
+    """
     sources = [
+        lambda: read_vault_secret(secret_name),
         lambda: read_file_content(f"/run/secrets/{secret_name}"),
         lambda: read_file_content(
             os.path.join(
