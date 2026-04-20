@@ -31,6 +31,7 @@ def read_secret(secret_name):
         try:
             return source()
         except Exception as e:
+            print(e)
             continue
 
     print(f"Could not read {secret_name} from any source")
