@@ -79,8 +79,10 @@ def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_
 
 
 def read_dataframe(path, skiprows, header):
-    # Read the Excel file, skipping the first 3 rows
-    return pd.read_excel(path, skiprows=skiprows, header=header)
+    # Read the Excel file, skipping the first 3 rows.
+    # Column C (index 2) contains NAF/NASS ids which may start with 0 — force str
+    # to prevent pandas from parsing them as int and dropping the leading zero.
+    return pd.read_excel(path, skiprows=skiprows, header=header, dtype={2: str})
 
 
 def build_naf_to_dni(path):
