@@ -143,7 +143,7 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         for salary_page, salary_page_number in salary_pages:
             salary_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME, salary_output_filename)
 
-            index = 2
+            index = 1
             while os.path.exists(salary_output_path):
                 salary_output_path = os.path.join(naf_dir, SALARIES_OUTPUT_NAME,
                                                   f"{str(salary_date.year)}{unparse_month(salary_date)}_"
@@ -200,18 +200,13 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
     return r
 
 
-def compute_path(partial_path, extension):
-    suffix = 1
-    output_path = partial_path + extension
+def compute_path(partial_path, suffix, extension):
+    num_suffix = 1
+    output_path = partial_path + "_" + suffix + extension
     while os.path.exists(output_path):
-        if suffix < 100:
-            str_suffix = "00" + str(suffix)
-        elif suffix < 10:
-            str_suffix = "0" + str(suffix)
-        else:
-            str_suffix = str(suffix)
-        output_path = partial_path + "_" + str_suffix + extension
-        suffix += 1
+        str_suffix = str(num_suffix)
+        output_path = partial_path + "_" + suffix + "_" + str_suffix + extension
+        num_suffix += 1
 
     return output_path
 
@@ -255,7 +250,7 @@ def process_proofs(proofs_folder_path, proofs_output_path, naf, begin, end, naf_
                 else:
                     suffix = "BBVA-UnknownSalaryType"
                 output_partial_path = os.path.join(proofs_output_path, proof_date.strftime("%Y%m"))
-                output_path = compute_path(output_partial_path, "_" + suffix + ".pdf")
+                output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
                     "DNI " + str(naf_to_dni[naf]) + " was detected in " +
                     os.path.join(proofs_folder_path, bankproof_folder, bankproof_file) + ". Writing page to " +
@@ -282,7 +277,7 @@ def process_proofs(proofs_folder_path, proofs_output_path, naf, begin, end, naf_
                 else:
                     suffix = "LACAIXA-UnknownSalaryType"
                 output_partial_path = os.path.join(proofs_output_path, proof_date.strftime("%Y%m"))
-                output_path = compute_path(output_partial_path, "_" + suffix + ".pdf")
+                output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
                     "DNI " + str(naf_to_dni[naf]) + " was detected in " +
                     os.path.join(proofs_folder_path, bankproof_folder, file_name) + ". Writing page to " +
