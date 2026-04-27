@@ -58,9 +58,7 @@ services:
       - ./service/onedrive_conf:/onedrive/conf
       - ./service/onedrive_data:/onedrive/data
       - ./service/onedrive_logs:/onedrive/logs
-    labels:
-      io.containers.autoupdate: "image"
-    restart: unless-stopped
+    #restart: unless-stopped
     networks:
       - justicier_net
     healthcheck:
@@ -68,6 +66,8 @@ services:
       interval: 60s
       timeout: 5s
       retries: 2
+    #command:
+    #  - "--reauth --monitor"
 
 
 

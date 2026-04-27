@@ -89,6 +89,8 @@ cleanup_local_files = "true"
 
 #resync = "true"
 #resync_auth = "true"
+
+bypass_data_preservation = "true"
 EOF
 fi
 

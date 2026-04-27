@@ -59,8 +59,20 @@ ssh-keygen -t ed25519 -C "jenkins@agent" -N "" -f $AGENT_SSH_PRIVATE_KEY_PATH
 proxy_set_header X-Forwarded-Proto \$scheme;
 
 ### Reauth onedrive for token
-docker compose run --entrypoint "onedrive --reauth" -v ./service/onedrive_conf:/onedrive/conf onedrive 
-cp ./service/onedrive_conf/refresh_token secrets/ONEDRIVE_TOKEN
+Every time I need to reauth I spend a lot of time trying to do it. It seems that onedrive ignores my config, but it is 
+because the config is not correct and Docker is in the way. 
 
+What I usually do is delete everything in the onedrive_conf (quotes not working rn) folder except the config file. 
+
+Then, ensure that in the config file you have these:
+
+resync = "true"
+resync_auth = "true"
+
+After that, run:
+
+docker compose run --remove-orphans onedrive 
+
+### Execute a justification in developer env
 
 ./venv/bin/python src/main.py --id 159 --input-location service/onedrive_data/Documentació\ Nomines\,\ Seguretat\ Social/input/

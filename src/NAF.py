@@ -5,12 +5,18 @@ import pandas as pd
 from DNI import parse_dni
 from Name import parse_name_a3
 from custom_except import ArgumentNafInvalid
+from logger import get_logger
+
+log = get_logger(__name__)
+
 
 
 class NAF:
     def __init__(self, raw_naf):
+        # For some random reason, a whitespace appear between province code and middle number...
         pattern = r"(\d{2})([/\-]?)(\d{8})([/\-]?)(\d{2})"
         match = re.fullmatch(pattern, str(raw_naf))
+
         if not match:
             raise ValueError(f"Invalid NAF format: {str(raw_naf)} NAF must be in NAF format. Example: 43/12345678-20")
 
@@ -75,6 +81,7 @@ def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_
         print("func apply key failed with exception:  " + str(e))
 
     print("before dictio")
+
     return dict(zip(key_col, val_col))
 
 
@@ -90,6 +97,7 @@ def build_naf_to_dni(path):
     print("build_naf_to_dni: before parse two cols")
     r = parse_two_columns(df, 2, 3, parse_naf, parse_dni)
     print("build_naf_to_dni: after parse two cols")
+
     return r
 
 
@@ -100,6 +108,8 @@ def build_naf_to_name(path):
 
 def parse_naf(value):
     try:
+        log.debug(f"Parsing NAF: {value}")
         return NAF(value)
     except Exception as e:
         raise ArgumentNafInvalid("NAF is not valid" + e.__str__())
+

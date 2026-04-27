@@ -50,7 +50,7 @@ def mail_process(result_link, log_link, args):
 
     #print("user is: \"" + str(smtp_user) + "\"")
     #print("pass is: \"" + str(smtp_password) + "\"")
-    #print("server is: \"" + str(smtp_server) + "\"")
+    print("server is: \"" + str(smtp_server) + "\"")
     #print("port is: \"" + str(smtp_port) + "\"")
     #print("recipient is: \"" + str(args.author_email) + "\"")
 
