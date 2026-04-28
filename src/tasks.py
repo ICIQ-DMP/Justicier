@@ -379,15 +379,15 @@ def process_RNTs(rnts_folder_path, naf_dir, naf, begin, end):
 
 
 def datetime_range(begin, end):
-    current = datetime(begin.year, begin.month, 1)
+    current = datetime.datetime(begin.year, begin.month, 1)
 
     result = []
     while current <= end:
-        result.append(datetime.strptime(str(current.year * 100 + current.month), "%Y%m"))
+        result.append(datetime.datetime.strptime(str(current.year * 100 + current.month), "%Y%m"))
         if current.month == 12:
-            current = datetime(current.year + 1, 1, 1)
+            current = datetime.datetime(current.year + 1, 1, 1)
         else:
-            current = datetime(current.year, current.month + 1, 1)
+            current = datetime.datetime(current.year, current.month + 1, 1)
 
     return result
 
