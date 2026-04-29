@@ -103,6 +103,8 @@ def unparse_full_date(d, separator="-"):
 def parse_date_from_salary_filename(salary_path):
     return datetime.strptime("20" + salary_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[0], "%Y%m")
 
+def parse_salary_type_from_salary_filename(salary_file_name):
+    return salary_file_name.split('_')[1]
 
 def parse_salary_filename_from_salary_path(salary_path):
     return os.path.basename(salary_path)

@@ -9,7 +9,7 @@ from arguments import parse_date
 from custom_except import UndefinedRegularSalaryType
 from data import get_rlc_monthly_result_structure, parse_date_from_salary_filename, \
     parse_salary_filename_from_salary_path, unparse_date, parse_salary_type, unparse_month, unparse_year_month, \
-    unparse_year_month_short
+    unparse_year_month_short, parse_salary_type_from_salary_filename
 from defines import *
 from filesystem import *
 from pdf import get_matching_page, write_page, parse_dates_from_delayed_salary, is_date_present_in_rlc_delay, \
@@ -135,7 +135,17 @@ def process_salaries_with_rlc(salaries_folder_path, rlc_folder_path, naf_dir, na
         salary_file_path = os.path.join(salaries_folder_path, salary_file)
         salary_file_name = parse_salary_filename_from_salary_path(salary_file_path)
         salary_date = parse_date_from_salary_filename(salary_file_name)
-        salary_output_filename = f"{str(salary_date.year)}{unparse_month(salary_date)}_{salary_file_name.split('_')[1]}"
+        salary_type_str = parse_salary_type_from_salary_filename(salary_file_name)
+        salary_output_filename = f"{str(salary_date.year)}{unparse_month(salary_date)}_{salary_type_str}"
+        # Liquidation files
+        if salary_type_str == "LIQ":
+            salary_file_name_no_extension = salary_file_name.split(".")[0]
+            salary_file_liq_naf = salary_file_name_no_extension.split("_")[2]
+            if salary_file_liq_naf != str(naf):
+                log.debug(f"NAF {str(naf)} was not detected in the name of liquidation PDF {str(salary_file)}. Skipping document.")
+                continue
+            shutil.copy(src=salary_file_path, dst=os.path.join(naf_dir, SALARIES_OUTPUT_NAME, salary_output_filename + ".pdf"))
+
         salary_pages = get_matching_pages(salary_file_path, naf.slash_dash_str())
         if len(salary_pages) == 0:
             log.debug(f"NAF {str(naf)} was not detected in PDF {str(salary_file)}. Skipping document.")
