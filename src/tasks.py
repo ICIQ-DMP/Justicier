@@ -448,7 +448,7 @@ def reverse_dict(d: dict):
     return r
 
 
-def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
+def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME, EMAIL_TO_NAF, NAF_TO_EMAIL):
     if args.naf:
         if not args.dni:
             args.dni = NAF_TO_DNI[args.naf]
@@ -473,6 +473,25 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
         else:
             print("WARNING: Name is defined but DNI is also defined. Name will be ignored")
         return
+    if args.target_email:
+        if not args.naf:
+            if args.target_email in EMAIL_TO_NAF:
+                args.naf = EMAIL_TO_NAF[args.target_email]
+                if args.request:
+                    update_list_item_field(args.request, {"NAF": str(args.naf)})
+            else:
+                raise ValueError(f"Only name was supplied, but the name {str(args.name)} can not be found in the "
+                                 "database. The program "
+                                 "can not continue and will abort. Remember that "
+                                 "identifying employees using name is fragile and should be avoided. Using NAF for "
+                                 "employee "
+                                 "identification is the recommended configuration. Another option better than name but "
+                                 "worse than NAF is DNI.")
+        if not args.dni:
+            args.dni = NAF_TO_DNI[args.naf]
+        if not args.name:
+            args.name = NAF_TO_NAME[args.naf]
+        return
     if args.name:
         if not args.naf:
             if args.name in NAME_TO_NAF:
@@ -488,7 +507,7 @@ def complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME):
                                  "identification is the recommended configuration. Another option better than name but "
                                  "worse than NAF is DNI.")
         if not args.dni:
-            args.name = NAF_TO_DNI[args.naf]
+            args.dni = NAF_TO_DNI[args.naf]
         return
 
     raise ValueError("An employee identifier was not supplied (NAF, DNI or name). Aborting.")

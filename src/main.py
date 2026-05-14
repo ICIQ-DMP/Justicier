@@ -4,7 +4,7 @@ import datetime
 
 import pytz
 
-from NAF import build_naf_to_dni, build_naf_to_name
+from NAF import build_naf_to_dni, build_naf_to_name, build_naf_to_email
 from TokenManager import get_token_manager
 from arguments import process_parse_arguments
 from chrono import elapsed_time
@@ -60,8 +60,10 @@ def process(args, INPUT_FOLDER):
     DNI_TO_NAF = reverse_dict(NAF_TO_DNI)
     NAF_TO_NAME = build_naf_to_name(NAF_DATA_PATH)
     NAME_TO_NAF = reverse_dict(NAF_TO_NAME)
+    NAF_TO_EMAIL = build_naf_to_email(NAF_DATA_PATH)
+    EMAIL_TO_NAF = reverse_dict(NAF_TO_EMAIL)
 
-    complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME)
+    complete_arguments(args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME, EMAIL_TO_NAF, NAF_TO_EMAIL)
 
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
 

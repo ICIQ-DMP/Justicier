@@ -16,9 +16,9 @@ from NAF import is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import *
 from defines import DocType, from_string, ROOT_FOLDER
 from secret import read_secret
-from sharepoint import get_parameters_from_list, get_author_email, get_email_person_from_list
+from sharepoint import get_parameters_from_list
 from DNI import parse_dni
-from Name import parse_name_sharepoint, parse_name_a3
+from Name import parse_name_sharepoint, parse_name_a3, parse_email_a3
 
 log = get_logger(__name__)
 
@@ -128,10 +128,6 @@ def expand_job_id(job_id):
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
 
-    #email = get_email_person_from_list(sharepoint_domain, site_name, list_name, job_id)
-    #print("the email is: " + str(email))
-    #input()
-
     return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
 
 
@@ -169,7 +165,9 @@ def parse_arguments():
     parser.add_argument("-n", "--naf", "--NAF", type=parse_naf, required=False,
                         help="NAF (SS security number) of the employee to justify")
     parser.add_argument("-N", "--name", type=parse_name_a3, required=False,
-                        help="Name of the employee to ")
+                        help="Name of the employee to justify")
+    parser.add_argument("-t", "--target-email", type=parse_email_a3, required=False,
+                        help="Email of the employee to justify")
     parser.add_argument("-d", "--dni", "--DNI", type=parse_dni, required=False,
                         help="Name of the employee to justify")
 
@@ -198,6 +196,8 @@ def parse_sharepoint_arguments(args, common):
         parse_arguments_helper("NAF")
     if args.name:
         parse_arguments_helper("name")
+    if args.target_email:
+        parse_arguments_helper("target_email")
     if args.dni:
         parse_arguments_helper("DNI")
     if args.begin:
@@ -215,26 +215,22 @@ def parse_sharepoint_arguments(args, common):
 
     config = expand_job_id(args.request)
 
-    log.debug("configuration from sharepoint: " + str(config))
+    log.trace("configuration from sharepoint: " + str(config))
     try:
         if config['NAF']:
             args.naf = parse_naf(config['NAF'])
         if config['name']:
             args.name = parse_name_sharepoint(config['name'])
+        if config['target_email']:
+            args.target_email = config['target_email']
         if config['DNI']:
             args.dni = parse_dni(config['DNI'])
-        args.title = config['Title']
 
-        print("args begin in config sharepoint info is ")
-        print(config['begin'])
-
-        print("Begin date before parsing: " + str(config['begin']))
         args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ", return_naive=False).replace(tzinfo=None)
-        print("Begin data after parsing: " + str(args.begin))
 
-        print("End date before parsing: " + str(config['end']))
         args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ", return_naive=False).replace(tzinfo=None)
-        print("End date after parsing: " + str(args.end))
+
+        args.title = config['Title']
 
         args.author = parse_author(config['author'])
 

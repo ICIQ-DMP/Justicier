@@ -3,7 +3,7 @@ import re
 import pandas as pd
 
 from DNI import parse_dni
-from Name import parse_name_a3
+from Name import parse_name_a3, parse_email_a3
 from custom_except import ArgumentNafInvalid
 from logger import get_logger
 
@@ -104,6 +104,10 @@ def build_naf_to_dni(path):
 def build_naf_to_name(path):
     df = read_dataframe(path, 3, None)
     return parse_two_columns(df, 2, 1, parse_naf, parse_name_a3)
+
+def build_naf_to_email(path):
+    df = read_dataframe(path, 3, None)
+    return parse_two_columns(df, 2, 4, parse_naf, parse_email_a3)
 
 
 def parse_naf(value):

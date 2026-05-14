@@ -35,6 +35,8 @@ def parse_name_a3(value):
     except ValueError as e:
         raise ArgumentNafInvalid("Name is not valid" + e.__str__())  # TODO: change exceptions
 
+def parse_email_a3(value):
+    return value.lower()
 
 def parse_name_sharepoint(value: str):
     value = value.replace("à", "a")
