@@ -1,7 +1,7 @@
 import argparse
 import datetime
-import os.path
 import sys
+from pathlib import Path
 
 from logger import get_logger
 
@@ -172,12 +172,13 @@ def _warn_ignored_local_args(args):
             parse_arguments_helper(name)
 
 
-def parse_input_location(value):
-    if not os.path.exists(value):
+def parse_input_location(value: str) -> Path:
+    path = Path(value)
+    if not path.exists():
         raise ValueError(f"Path {value} does not exist")
-    if not os.path.isdir(value):
+    if not path.is_dir():
         raise ValueError(f"Path {value} is not a directory")
-    return value
+    return path
 
 
 def parse_arguments():

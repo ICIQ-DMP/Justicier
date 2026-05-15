@@ -1,5 +1,5 @@
 import argparse
-import os
+from pathlib import Path
 
 from arguments import parse_id
 from sharepoint import (
@@ -13,15 +13,14 @@ from secret import read_secret
 from defines import ADMIN_LOG_FOLDER
 
 
-def get_first_log_path(log_dir: str) -> str:
-    """Return the full path to the first regular file inside the directory."""
-    if not os.path.isdir(log_dir):
+def get_first_log_path(log_dir: Path) -> Path:
+    """Return the path to the first regular file inside the directory."""
+    if not log_dir.is_dir():
         raise ValueError(f"'{log_dir}' is not a valid directory")
 
-    for entry in os.listdir(log_dir):
-        full_path = os.path.join(log_dir, entry)
-        if os.path.isfile(full_path):
-            return full_path
+    for entry in log_dir.iterdir():
+        if entry.is_file():
+            return entry
 
     raise FileNotFoundError(f"No files found in directory: {log_dir}")
 
@@ -39,8 +38,8 @@ def main():
     args = parser.parse_args()
     update_list_item_field(args.request, {"Estatworkflow": "Error"})
 
-    if os.path.isdir(ADMIN_LOG_FOLDER):  # Only upload when the folder is detected
-        SUPERVISOR_LOG_PATH = get_first_log_path(ADMIN_LOG_FOLDER)
+    if ADMIN_LOG_FOLDER.is_dir():  # Only upload when the folder is detected
+        supervisor_log_path = get_first_log_path(ADMIN_LOG_FOLDER)
         token_manager = get_token_manager()
         sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
         site_name = read_secret("SITE_NAME")
@@ -50,12 +49,8 @@ def main():
         upload_file(
             token_manager,
             drive_id,
-            os.path.join(
-                read_secret("SHAREPOINT_FOLDER_OUTPUT"),
-                "_admin_logs",
-                os.path.basename(SUPERVISOR_LOG_PATH),
-            ),
-            SUPERVISOR_LOG_PATH,
+            read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/_admin_logs/" + supervisor_log_path.name,
+            supervisor_log_path,
         )
 
 

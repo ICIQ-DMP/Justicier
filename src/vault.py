@@ -1,6 +1,7 @@
 import os
 import requests
 import urllib3
+from pathlib import Path
 
 _VAULT_BASE_PATH = "secret/data/justicier/runtime"
 
@@ -28,7 +29,7 @@ _SECRET_MAP = {
 }
 
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 
 
 def _read_credential(name):
@@ -37,8 +38,8 @@ def _read_credential(name):
     2. <project_root>/secrets/<name>
     3. environment variable
     """
-    for path in (f"/run/secrets/{name}", os.path.join(_PROJECT_ROOT, "secrets", name)):
-        if os.path.isfile(path):
+    for path in (Path("/run/secrets") / name, _PROJECT_ROOT / "secrets" / name):
+        if path.is_file():
             with open(path) as f:
                 value = f.read().strip()
             if value:

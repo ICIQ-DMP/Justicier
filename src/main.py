@@ -1,7 +1,7 @@
 import logging
-import os.path
 import time
 import datetime
+from pathlib import Path
 
 import pytz
 
@@ -36,23 +36,21 @@ from tasks import (
 )
 
 
-def process(args, input_folder):
+def process(args, input_folder: Path):
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
     tz = pytz.timezone("Europe/Madrid")
 
-    # Obtain absolute path to the valid user list
-    USER_LIST_DATA_PATH = os.path.join(input_folder, "input")
+    USER_LIST_DATA_PATH: Path = input_folder / "input"
 
-    # Obtain absolute paths for each input directory
-    SALARIES_FOLDER = os.path.join(input_folder, "_salaries")
-    PROOFS_FOLDER = os.path.join(input_folder, "_proofs")
-    CONTRACTS_FOLDER = os.path.join(input_folder, "_contracts")
-    RNTS_FOLDER = os.path.join(input_folder, "_RNT")
-    RLCS_FOLDER = os.path.join(input_folder, "_RLC")
+    SALARIES_FOLDER: Path = input_folder / "_salaries"
+    PROOFS_FOLDER: Path = input_folder / "_proofs"
+    CONTRACTS_FOLDER: Path = input_folder / "_contracts"
+    RNTS_FOLDER: Path = input_folder / "_RNT"
+    RLCS_FOLDER: Path = input_folder / "_RLC"
 
-    NAF_DATA_PATH = os.path.join(input_folder, "NAF_DNI.xlsx")
+    NAF_DATA_PATH: Path = input_folder / "NAF_DNI.xlsx"
 
     token_manager = get_token_manager()
 
@@ -63,14 +61,12 @@ def process(args, input_folder):
     carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
 
     start_time = time.time()
-    # Ensure fresh input data
     if args.location == "sharepoint":
         remove_folder(input_folder)
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, input_folder)
     elif args.location == "local":
         pass
 
-    # Build dictionaries to translate between different identifier data
     NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
     DNI_TO_NAF = reverse_dict(NAF_TO_DNI)
     NAF_TO_NAME = build_naf_to_name(NAF_DATA_PATH)
@@ -103,7 +99,6 @@ def process(args, input_folder):
 
     ensure_file_structure(current_user_folder, current_justification_folder)
 
-    # Define logger
     setup_logging(
         level=logging.DEBUG,
         user_report_file=user_report_file,
@@ -113,22 +108,18 @@ def process(args, input_folder):
 
     log = get_logger(__name__)
 
-    # Log initial report
     log.info(get_initial_user_report(args))
 
-    # Stop timer for download process
     end_time = elapsed_time(start_time)
     log.info(
         "Time elapsed for obtaining and validating input data: " + str(end_time) + "."
     )
     start_time = time.time()
 
-    # Begin processing
     reports = {}
+
     # Salaries & RLC
-    salary_output_path = os.path.join(
-        current_justification_folder, SALARIES_OUTPUT_NAME
-    )
+    salary_output_path: Path = current_justification_folder / SALARIES_OUTPUT_NAME
     reports[DocType.SALARY] = process_salaries_with_rlc(
         SALARIES_FOLDER,
         RLCS_FOLDER,
@@ -139,22 +130,21 @@ def process(args, input_folder):
     )
 
     # Bank proofs
-    proof_output_path = os.path.join(current_justification_folder, PROOFS_OUTPUT_NAME)
+    proof_output_path: Path = current_justification_folder / PROOFS_OUTPUT_NAME
     reports[DocType.PROOFS] = process_proofs(
         PROOFS_FOLDER, proof_output_path, args.naf, args.begin, args.end, NAF_TO_DNI
     )
 
-    rlc_output_path = os.path.join(current_justification_folder, RLCS_OUTPUT_NAME)
+    rlc_output_path: Path = current_justification_folder / RLCS_OUTPUT_NAME
     if args.merge_salary:
-        salaries_and_bankproofs_output_path = os.path.join(
-            current_justification_folder, SALARIES_AND_PROOFS_OUTPUT_NAME
+        salaries_and_bankproofs_output_path: Path = (
+            current_justification_folder / SALARIES_AND_PROOFS_OUTPUT_NAME
         )
         merge_equal_files_from_two_folders(
             salary_output_path, proof_output_path, salaries_and_bankproofs_output_path
         )
         if args.merge_result[DocType.SALARIES_AND_PROOFS]:
             compact_folder(salaries_and_bankproofs_output_path)
-    # Process general after processing merge salary + bank proof
     if args.merge_result[DocType.SALARY]:
         compact_folder(salary_output_path)
     if args.merge_result[DocType.RLC]:
@@ -177,9 +167,7 @@ def process(args, input_folder):
                 args.request, {"Estatworkflow": "Error", "Missatge_x0020_error": str(e)}
             )
         raise ValueError
-    contract_output_path = os.path.join(
-        current_justification_folder, CONTRACTS_OUTPUT_NAME
-    )
+    contract_output_path: Path = current_justification_folder / CONTRACTS_OUTPUT_NAME
     if args.merge_result[DocType.CONTRACT]:
         compact_folder(contract_output_path)
 
@@ -187,47 +175,42 @@ def process(args, input_folder):
     reports[DocType.RNT] = process_RNTs(
         RNTS_FOLDER, current_justification_folder, args.naf, args.begin, args.end
     )
-    rnt_output_path = os.path.join(current_justification_folder, RNTS_OUTPUT_NAME)
+    rnt_output_path: Path = current_justification_folder / RNTS_OUTPUT_NAME
     if args.merge_result[DocType.RNT]:
         compact_folder(rnt_output_path)
 
-    # Process fusion of RLC & RNT
+    # Merge RLC & RNT
     if args.merge_rnt_rlc:
         log.info("Starting the merge of RNT and RLC")
         if args.merge_result[DocType.RNT] or args.merge_result[DocType.RLC]:
-            rnts_merged_path = os.path.join(
-                current_justification_folder, "RNTs.pdf"
-            )  # TODO: remove hard-coded filename
-            rlcs_merged_path = os.path.join(
-                current_justification_folder, "RLCs.pdf"
-            )  # TODO: remove hard-coded filename
-            if os.path.exists(rnts_merged_path) and os.path.exists(rlcs_merged_path):
-                rnt_rlc_merged_paths = []
-                rnt_rlc_merged_paths.append(rnts_merged_path)
-                rnt_rlc_merged_paths.append(rlcs_merged_path)
-                rnt_rlc_merged_output_path = os.path.join(
-                    current_justification_folder, "RNTs i RLCs.pdf"
+            rnts_merged_path: Path = current_justification_folder / "RNTs.pdf"
+            rlcs_merged_path: Path = current_justification_folder / "RLCs.pdf"
+            if rnts_merged_path.exists() and rlcs_merged_path.exists():
+                rnt_rlc_merged_output_path: Path = (
+                    current_justification_folder / "RNTs i RLCs.pdf"
                 )
-                merge_pdfs(rnt_rlc_merged_paths, rnt_rlc_merged_output_path, True)
+                merge_pdfs(
+                    [rnts_merged_path, rlcs_merged_path],
+                    rnt_rlc_merged_output_path,
+                    True,
+                )
             else:
                 log.warning(
                     "The merge of RNT and RLC was not done because we were also instructed to merge each type"
-                    " of "
-                    "document"
-                    "in a single file, but either RNTs.pdf or RLCs.pdf with the final results of the merge "
-                    "do not exist, so the merge will not be "
-                    "done. Try again without marking the option to merge the documents, only mark RLC and "
-                    "RNT merging"
+                    " of document in a single file, but either RNTs.pdf or RLCs.pdf with the final results"
+                    " of the merge do not exist, so the merge will not be done. Try again without marking"
+                    " the option to merge the documents, only mark RLC and RNT merging"
                 )
         else:
-            os.makedirs(
-                os.path.join(current_justification_folder, RNTS_AND_RLCS_OUTPUT_NAME),
-                exist_ok=True,
+            (current_justification_folder / RNTS_AND_RLCS_OUTPUT_NAME).mkdir(
+                parents=True, exist_ok=True
             )
             merge_rnts_rlcs(
-                os.path.join(current_justification_folder, RNTS_OUTPUT_NAME),
-                os.path.join(current_justification_folder, RLCS_OUTPUT_NAME),
-                current_justification_folder,
+                current_justification_folder / RNTS_OUTPUT_NAME,
+                current_justification_folder / RLCS_OUTPUT_NAME,
+                current_justification_folder / RNTS_OUTPUT_NAME,
+                current_justification_folder / RLCS_OUTPUT_NAME,
+                current_justification_folder / RNTS_AND_RLCS_OUTPUT_NAME,
                 args.begin,
                 args.end,
             )
@@ -244,11 +227,13 @@ def process(args, input_folder):
         token_manager=token_manager,
         drive_id=drive_id,
         local_folder_path=current_justification_folder,
-        remote_folder_path=read_secret("SHAREPOINT_FOLDER_OUTPUT")
-        + "/"
-        + args.author
-        + "/"
-        + impersonal_id_str,
+        remote_folder_path=(
+            read_secret("SHAREPOINT_FOLDER_OUTPUT")
+            + "/"
+            + args.author
+            + "/"
+            + impersonal_id_str
+        ),
     )
 
     link = get_sharepoint_web_url(
@@ -263,26 +248,20 @@ def process(args, input_folder):
     )
     log.info(
         f"Clickable SharePoint URL: {link}  "
-    )  # Space at the end for separating from color codes
+    )
 
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(
         token_manager,
         drive_id,
-        SHAREPOINT_FOLDER_OUTPUT
-        + "/"
-        + "_admin_logs/"
-        + os.path.basename(admin_log_path),
+        SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
         admin_log_path,
     )
     log_link = get_sharepoint_web_url(
         token_manager,
         site_id,
         drive_id,
-        SHAREPOINT_FOLDER_OUTPUT
-        + "/"
-        + "_admin_logs/"
-        + os.path.basename(admin_log_path),
+        SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
     )
 
     end_time = elapsed_time(start_time)
@@ -306,15 +285,15 @@ def main():
     args = process_parse_arguments()
 
     if args.input_location:
-        INPUT_FOLDER = args.input_location
+        INPUT_FOLDER: Path = args.input_location
     else:
-        INPUT_FOLDER = os.path.join(ROOT_FOLDER, "input")
+        INPUT_FOLDER: Path = ROOT_FOLDER / "input"
 
     try:
         result_link, log_link = process(args, INPUT_FOLDER)
     except (
         ValueError
-    ) as e:  # "Too broad exception clause" but I know exactly what I'm doing
+    ) as e:
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         mail_process(result_link, log_link, args)

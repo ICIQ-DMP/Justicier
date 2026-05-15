@@ -1,19 +1,16 @@
 import logging
-import os
-import pathlib
 import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
-# Get absolute path to the root of the project
-ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_FOLDER: Path = Path(__file__).resolve().parent.parent
+PROJECT_DIR: Path = ROOT_FOLDER  # alias kept for compatibility
 
-# The directory where the output folder for each user will be
-GENERAL_OUTPUT_FOLDER: str = os.path.join(ROOT_FOLDER, "output")
+GENERAL_OUTPUT_FOLDER: Path = ROOT_FOLDER / "output"
 
-# Admin logs
-ADMIN_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_admin_logs")
-SUPERVISOR_LOG_FOLDER = os.path.join(GENERAL_OUTPUT_FOLDER, "_supervisor_logs")
+ADMIN_LOG_FOLDER: Path = GENERAL_OUTPUT_FOLDER / "_admin_logs"
+SUPERVISOR_LOG_FOLDER: Path = GENERAL_OUTPUT_FOLDER / "_supervisor_logs"
 
 SALARIES_OUTPUT_NAME = "Nòmines"
 PROOFS_OUTPUT_NAME = "Justificants"
@@ -28,7 +25,6 @@ NOW_DATA = datetime.datetime.now()
 NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 
 DATE_FORMAT = "%d/%m/%Y"
-PROJECT_DIR = pathlib.Path(__file__).resolve().parent.parent
 
 
 class DocType(Enum):
@@ -116,17 +112,16 @@ class LogLevel(str, Enum):
             return logging.ERROR
         if self is LogLevel.QUIET:
             return logging.CRITICAL + 10
-        # Fallback
         return LogLevel.get_default_log_level().to_logging_level()
 
 
-def get_default_log_path() -> pathlib.Path:
-    return pathlib.Path(str(os.path.join(ADMIN_LOG_FOLDER, NOW + ".log")))
+def get_default_log_path() -> Path:
+    return ADMIN_LOG_FOLDER / (NOW + ".log")
 
 
-def get_supervisor_log_path() -> pathlib.Path:
+def get_supervisor_log_path() -> Path:
     return get_default_log_path()
 
 
-def get_user_log_path() -> pathlib.Path:
+def get_user_log_path() -> Path:
     return get_default_log_path()

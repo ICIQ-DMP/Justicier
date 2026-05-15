@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from pathlib import Path
 
 import requests
 from requests.exceptions import HTTPError
@@ -51,7 +52,7 @@ def list_folder_contents(token_manager, drive_id, path):
     return response.json()["value"]
 
 
-def download_file(token_mananger, drive_id, item_path, local_path, max_retries=5):
+def download_file(token_mananger, drive_id, item_path, local_path: Path, max_retries=5):
     url = (
         f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/content"
     )
@@ -66,7 +67,7 @@ def download_file(token_mananger, drive_id, item_path, local_path, max_retries=5
             response = requests.get(url, headers=headers, stream=True)
             response.raise_for_status()
 
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            local_path.parent.mkdir(parents=True, exist_ok=True)
             with open(local_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
@@ -93,13 +94,13 @@ def download_file(token_mananger, drive_id, item_path, local_path, max_retries=5
 
 
 def download_folder_recursive(
-    token_manager: TokenManager, drive_id, remote_path, local_root
+    token_manager: TokenManager, drive_id, remote_path, local_root: Path
 ):
     items = list_folder_contents(token_manager, drive_id, remote_path)
     for item in items:
         name = item["name"]
         item_path = f"{remote_path}/{name}"
-        local_path = os.path.join(local_root, name)
+        local_path = local_root / name
 
         if "folder" in item:
             download_folder_recursive(token_manager, drive_id, item_path, local_path)
@@ -114,9 +115,9 @@ def download_input_folder(token_manager, drive_id, remote_path, input_path):
 
 
 # Upload functions
-def upload_file(token_manager, drive_id, remote_path, local_file_path):
+def upload_file(token_manager, drive_id, remote_path, local_file_path: Path):
 
-    log.info("Uploading from local path " + local_file_path + " to " + remote_path)
+    log.info("Uploading from local path " + str(local_file_path) + " to " + remote_path)
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
@@ -147,11 +148,11 @@ def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
     if response.status_code not in (200, 201):
         response.raise_for_status()
 
-    return os.path.join(parent_path, folder_name).replace("\\", "/")
+    return (parent_path.rstrip("/") + "/" + folder_name)
 
 
 def upload_folder_recursive(
-    token_manager, drive_id, local_folder_path, remote_folder_path
+    token_manager, drive_id, local_folder_path: Path, remote_folder_path: str
 ):
 
     for root, dirs, files in os.walk(local_folder_path):
@@ -163,16 +164,15 @@ def upload_folder_recursive(
         log.debug(
             "root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files)
         )
-        rel_path = os.path.relpath(root, local_folder_path)
+        rel_path = Path(root).relative_to(local_folder_path)
         log.debug("rel path: " + str(rel_path))
-        sharepoint_current_path = os.path.normpath(
-            os.path.join(remote_folder_path, rel_path)
-        ).replace("\\", "/")
+        sharepoint_current_path = (
+            remote_folder_path.rstrip("/") + "/" + rel_path.as_posix()
+        ).strip("/")
         log.debug("sharepoint current path: " + str(sharepoint_current_path))
 
-        # Subir archivos
         for file_name in files:
-            local_file = os.path.join(root, file_name)
+            local_file = Path(root) / file_name
             remote_file = f"{sharepoint_current_path}/{file_name}".strip("/")
             upload_file(token_manager, drive_id, remote_file, local_file)
 

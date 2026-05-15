@@ -2,8 +2,8 @@
 Frontier
 """
 
-import os
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List
 
 import logger
@@ -44,11 +44,11 @@ def get_rlc_monthly_result_structure(
     return result
 
 
-def parse_salary_type(salary_file_path):
-    parsed = salary_file_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[1]
+def parse_salary_type(salary_file_path: Path):
+    parsed = Path(salary_file_path).stem.split("_")[1]
     log.debug("Data parsed from filename is: " + parsed)
     t = SalaryType(parsed)
-    log.debug("Type detected is: " + t.__str__())
+    log.debug("Type detected is: " + str(t))
     return t
 
 
@@ -118,5 +118,5 @@ def parse_salary_type_from_salary_filename(salary_file_name):
     return salary_file_name.split("_")[1]
 
 
-def parse_salary_filename_from_salary_path(salary_path):
-    return os.path.basename(salary_path)
+def parse_salary_filename_from_salary_path(salary_path: Path) -> str:
+    return Path(salary_path).name

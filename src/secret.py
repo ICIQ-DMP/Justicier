@@ -1,8 +1,10 @@
 import sys
-import os
+from pathlib import Path
 
 from filesystem import read_file_content, read_env_var
 from vault import read_vault_secret
+
+_PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 
 
 def read_secret(secret_name):
@@ -16,14 +18,8 @@ def read_secret(secret_name):
     """
     sources = [
         lambda: read_vault_secret(secret_name),
-        lambda: read_file_content(f"/run/secrets/{secret_name}"),
-        lambda: read_file_content(
-            os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "secrets",
-                secret_name,
-            ).__str__()
-        ),
+        lambda: read_file_content(Path("/run/secrets") / secret_name),
+        lambda: read_file_content(_PROJECT_ROOT / "secrets" / secret_name),
         lambda: read_env_var(secret_name),
     ]
 
