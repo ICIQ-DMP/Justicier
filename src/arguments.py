@@ -14,7 +14,7 @@ import pytz  # pip install pytz
 
 from NAF import is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import *
-from defines import DocType, from_string, ROOT_FOLDER
+from defines import DocType, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list
 from DNI import parse_dni
@@ -133,8 +133,31 @@ def expand_job_id(job_id):
 
 def parse_arguments_helper(arg_text: str):
     log.debug(f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
-          f"select request ID. The provided {arg_text} via argument will ge ignored and the {arg_text} from "
+          f"select request ID. The provided {arg_text} via argument will be ignored and the {arg_text} from "
           f"the corresponding row of the provided Microsoft List will be used.")
+
+
+# Explicit contract: these args are sourced from SharePoint when --id/--request is given.
+# Any locally supplied values for them will be warned about and then overwritten.
+_ID_OVERRIDES = {
+    'naf':          lambda a: a.naf,
+    'name':         lambda a: a.name,
+    'target_email': lambda a: a.target_email,
+    'dni':          lambda a: a.dni,
+    'begin':        lambda a: a.begin,
+    'end':          lambda a: a.end,
+    'author':       lambda a: a.author,
+    'merge_result': lambda a: a.merge_result != get_compact_init(),
+    'merge_salary': lambda a: a.merge_salary,
+    'merge_rnt_rlc':lambda a: a.merge_rnt_rlc,
+}
+
+
+def _warn_ignored_local_args(args):
+    """Warn for any local arg that will be ignored because --id/--request was given."""
+    for name, was_set in _ID_OVERRIDES.items():
+        if was_set(args):
+            parse_arguments_helper(name)
 
 
 def parse_input_location(value):
@@ -159,7 +182,7 @@ def parse_arguments():
                              "sharepoint location and \"local\" to use the local file system storage and read the input"
                              " folder in the repository root folder.")
     parser.add_argument("-L", "--input-location", type=parse_input_location, required=False,
-                        default=os.path.join(ROOT_FOLDER, "input"),
+                        default=None,
                         help="Path location of input data. If used, --location local is assumed.")
 
     parser.add_argument("-n", "--naf", "--NAF", type=parse_naf, required=False,
@@ -191,28 +214,7 @@ def parse_arguments():
     return args
 
 
-def parse_sharepoint_arguments(args, common):
-    if args.naf:
-        parse_arguments_helper("NAF")
-    if args.name:
-        parse_arguments_helper("name")
-    if args.target_email:
-        parse_arguments_helper("target_email")
-    if args.dni:
-        parse_arguments_helper("DNI")
-    if args.begin:
-        parse_arguments_helper("begin date")
-    if args.end:
-        parse_arguments_helper("end date")
-    if args.author:
-        parse_arguments_helper("author")
-    if args.merge_result != get_compact_init():
-        parse_arguments_helper("merge result")
-    if args.merge_salary:
-        parse_arguments_helper("merge salary")
-    if args.merge_rnt_rlc:
-        parse_arguments_helper("merge rlc")
-
+def _populate_from_sharepoint(args, common):
     config = expand_job_id(args.request)
 
     log.trace("configuration from sharepoint: " + str(config))
@@ -278,9 +280,9 @@ def process_parse_arguments():
         print(common)
         exit(5)
 
-    # Manual validation of inputs from sharepoint list
     if args.request:
-        parse_sharepoint_arguments(args, common)
+        _warn_ignored_local_args(args)
+        _populate_from_sharepoint(args, common)
 
     if args.input_location:
         args.location = "local"

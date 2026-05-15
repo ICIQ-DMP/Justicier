@@ -1,3 +1,4 @@
+import logging
 import os.path
 import time
 import datetime
@@ -21,23 +22,23 @@ from tasks import reverse_dict, complete_arguments, process_salaries_with_rlc, p
     process_RNTs, merge_rnts_rlcs
 
 
-def process(args, INPUT_FOLDER):
+def process(args, input_folder):
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
     tz = pytz.timezone("Europe/Madrid")
 
     # Obtain absolute path to the valid user list
-    USER_LIST_DATA_PATH = os.path.join(INPUT_FOLDER, "input")
+    USER_LIST_DATA_PATH = os.path.join(input_folder, "input")
 
     # Obtain absolute paths for each input directory
-    SALARIES_FOLDER = os.path.join(INPUT_FOLDER, "_salaries")
-    PROOFS_FOLDER = os.path.join(INPUT_FOLDER, "_proofs")
-    CONTRACTS_FOLDER = os.path.join(INPUT_FOLDER, "_contracts")
-    RNTS_FOLDER = os.path.join(INPUT_FOLDER, "_RNT")
-    RLCS_FOLDER = os.path.join(INPUT_FOLDER, "_RLC")
+    SALARIES_FOLDER = os.path.join(input_folder, "_salaries")
+    PROOFS_FOLDER = os.path.join(input_folder, "_proofs")
+    CONTRACTS_FOLDER = os.path.join(input_folder, "_contracts")
+    RNTS_FOLDER = os.path.join(input_folder, "_RNT")
+    RLCS_FOLDER = os.path.join(input_folder, "_RLC")
 
-    NAF_DATA_PATH = os.path.join(INPUT_FOLDER, "NAF_DNI.xlsx")
+    NAF_DATA_PATH = os.path.join(input_folder, "NAF_DNI.xlsx")
 
     token_manager = get_token_manager()
 
@@ -50,8 +51,8 @@ def process(args, INPUT_FOLDER):
     start_time = time.time()
     # Ensure fresh input data
     if args.location == "sharepoint":
-        remove_folder(INPUT_FOLDER)
-        download_input_folder(token_manager, drive_id, carpeta_sharepoint, INPUT_FOLDER)
+        remove_folder(input_folder)
+        download_input_folder(token_manager, drive_id, carpeta_sharepoint, input_folder)
     elif args.location == "local":
         pass
 
@@ -188,11 +189,6 @@ def process(args, INPUT_FOLDER):
                 SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path), admin_log_path)
     log_link = get_sharepoint_web_url(token_manager, site_id, drive_id, SHAREPOINT_FOLDER_OUTPUT + "/" + "_admin_logs/" + os.path.basename(admin_log_path))
 
-    # Upload supervisor log only in case of error
-    #upload_file(token_manager, drive_id,
-    #            SHAREPOINT_FOLDER_OUTPUT + "/" + "_supervisor_logs/" + os.path.basename(supervisor_log_path),
-    #            supervisor_log_path)
-
     end_time = elapsed_time(start_time)
     log.info("Time elapsed for uploading data: " + str(end_time) + ".")
     start_time = time.time()
@@ -204,9 +200,6 @@ def process(args, INPUT_FOLDER):
         log.debug("Updating list element error message to no error message")
         update_list_item_field(args.request, {"Missatge_x0020_error": "-"})
         log.debug("Updating list element link to result")
-        #update_resultat_sharepoint_rest(args.request, link)  # TODO: When field Resultat is URL or image, I need more
-                                                              # permissions to update it using sharepoint API, can't use
-                                                              # graph api
         update_list_item_field(args.request, {"Resultat": link})
 
     return link, log_link
@@ -227,11 +220,11 @@ def main():
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         mail_process(result_link, log_link, args)
-        print(err)
+        log.error(err)
         exit(1)
 
-    print("Justification process is finished.")
-    print("Sending notification email")
+    log.info("Justification process is finished.")
+    log.info("Sending notification email")
 
     mail_process(result_link, log_link, args)
 
