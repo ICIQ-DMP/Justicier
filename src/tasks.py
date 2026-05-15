@@ -451,11 +451,11 @@ def process_contracts(
         begin_date = parse_date("20" + dates[1], "%Y%m")
         if len(dates) == 3:
             if dates[2] == "A":
-                end_date = datetime.max
+                end_date = datetime.datetime.max
             else:
                 end_date = parse_date("20" + dates[2], "%Y%m")
         elif len(dates) == 2:
-            end_date = datetime.max
+            end_date = datetime.datetime.max
         else:
             log.error(
                 "expected 3 fields in the name of the file "
