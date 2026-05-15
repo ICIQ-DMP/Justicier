@@ -653,26 +653,26 @@ def merge_rnts_rlcs(rnts_folder_path, rlcs_folder_path, naf_dir, begin, end):
     )
     rnts_filenames = list_dir(rnts_folder_path)
     rlcs_filenames = list_dir(rlcs_folder_path)
-    log.debug("RNT available files are: " + str(rnts_filenames))
-    log.debug("RLC available files are: " + str(rlcs_filenames))
+    log.trace("RNT available files are: " + str(rnts_filenames))
+    log.trace("RLC available files are: " + str(rlcs_filenames))
 
     for current_date in months_list:
         full_year_date = unparse_year_month(current_date)
         partial_year_date = unparse_year_month_short(current_date)
-        log.debug("Full year date is: " + str(full_year_date))
-        log.debug("Partial year date is: " + str(partial_year_date))
+        log.trace("Full year date is: " + str(full_year_date))
+        log.trace("Partial year date is: " + str(partial_year_date))
 
         paths_to_merge = []
         for rnt_filename in rnts_filenames:
             date_str = rnt_filename.split("_")[0]
-            log.debug("date str is: " + str(date_str))
+            log.trace("date str is: " + str(date_str))
             if date_str.__eq__(partial_year_date):
                 paths_to_merge.append(
                     os.path.join(naf_dir, RNTS_OUTPUT_NAME, rnt_filename)
                 )
         for rlc_filename in rlcs_filenames:
             date_str = rlc_filename.split("_")[0]
-            log.debug("date str is: " + str(date_str))
+            log.trace("date str is: " + str(date_str))
             if date_str.__eq__(full_year_date):
                 paths_to_merge.append(
                     os.path.join(naf_dir, RLCS_OUTPUT_NAME, rlc_filename)
@@ -688,7 +688,6 @@ def merge_rnts_rlcs(rnts_folder_path, rlcs_folder_path, naf_dir, begin, end):
                 )
             )
         )
-        log.debug("Naf dir is: " + str(naf_dir))
         if len(paths_to_merge) >= 2:
             merge_pdfs(
                 paths_to_merge,
@@ -707,8 +706,8 @@ def merge_rnts_rlcs(rnts_folder_path, rlcs_folder_path, naf_dir, begin, end):
                 "or RLCs to "
                 "merge (at least one is missing). Skipping"
             )
-        print(
-            paths_to_merge,
+        log.trace(
+            paths_to_merge.__str__() +
             os.path.join(
                 naf_dir,
                 RNTS_AND_RLCS_OUTPUT_NAME,
