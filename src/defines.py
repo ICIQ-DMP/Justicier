@@ -46,7 +46,7 @@ def from_string(value: str):
         DocType.CONTRACT: {"contract", "CONTRACT", "Contract", "agreement"},
         DocType.RLC: {"RLC", "rlc", "R.L.C."},
         DocType.RNT: {"RNT", "rnt", "R.N.T."},
-        DocType.PROOFS: {"proof", "bankproof", "proofs", "bankproofs"}
+        DocType.PROOFS: {"proof", "bankproof", "proofs", "bankproofs"},
     }
     for doctype in _aliases:
         if value.strip() in _aliases[doctype]:
@@ -123,8 +123,10 @@ class LogLevel(str, Enum):
 def get_default_log_path() -> pathlib.Path:
     return pathlib.Path(str(os.path.join(ADMIN_LOG_FOLDER, NOW + ".log")))
 
+
 def get_supervisor_log_path() -> pathlib.Path:
     return get_default_log_path()
+
 
 def get_user_log_path() -> pathlib.Path:
     return get_default_log_path()

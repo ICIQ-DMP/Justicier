@@ -1,6 +1,7 @@
-'''
+"""
 Frontier
-'''
+"""
+
 import os
 from datetime import datetime
 from typing import Dict, List
@@ -10,7 +11,10 @@ from defines import SalaryType
 
 log = logger.get_logger(__name__)
 
-def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_structure=None) -> Dict[str, List[bool]]:
+
+def get_rlc_monthly_result_structure(
+    begin: datetime, end: datetime, result_structure=None
+) -> Dict[str, List[bool]]:
     print("get_rlc_monthly_result_structure params:")
     print(begin)
     print(end)
@@ -26,7 +30,9 @@ def get_rlc_monthly_result_structure(begin: datetime, end: datetime, result_stru
         if result_structure is None:
             result[key] = [False, False, False]
         else:
-            result[key] = result_structure  # Monthly salary found, RLC L00N found, RLC L00P found
+            result[key] = (
+                result_structure  # Monthly salary found, RLC L00N found, RLC L00P found
+            )
         # Move to next month
         if current.month == 12:
             current = datetime(current.year + 1, 1, 1)
@@ -51,7 +57,9 @@ def parse_year_salary_path(salary_file):
 
 
 def parse_month_salary_path(salary_file):
-    return datetime.strptime(salary_file[::-1].split("/")[0][::-1].split("_")[0][2:], "%m")
+    return datetime.strptime(
+        salary_file[::-1].split("/")[0][::-1].split("_")[0][2:], "%m"
+    )
 
 
 def parse_date_from_key(key: str):
@@ -101,11 +109,14 @@ def unparse_full_date(d, separator="-"):
 
 
 def parse_date_from_salary_filename(salary_path):
-    return datetime.strptime("20" + salary_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[0], "%Y%m")
+    return datetime.strptime(
+        "20" + salary_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[0], "%Y%m"
+    )
+
 
 def parse_salary_type_from_salary_filename(salary_file_name):
-    return salary_file_name.split('_')[1]
+    return salary_file_name.split("_")[1]
+
 
 def parse_salary_filename_from_salary_path(salary_path):
     return os.path.basename(salary_path)
-

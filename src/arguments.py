@@ -10,7 +10,6 @@ try:
 except ModuleNotFoundError:
     from backports.zoneinfo import ZoneInfo  # Python <3.9
 
-import pytz  # pip install pytz
 
 from NAF import is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import *
@@ -24,8 +23,14 @@ log = get_logger(__name__)
 
 
 def get_compact_init():
-    return {DocType.SALARY: False, DocType.PROOFS: False, DocType.CONTRACT: False, DocType.RNT: False,
-            DocType.RLC: False, DocType.SALARIES_AND_PROOFS: False}
+    return {
+        DocType.SALARY: False,
+        DocType.PROOFS: False,
+        DocType.CONTRACT: False,
+        DocType.RNT: False,
+        DocType.RLC: False,
+        DocType.SALARIES_AND_PROOFS: False,
+    }
 
 
 # Parser functions that validate the format and type of the data
@@ -71,7 +76,6 @@ def parse_date(
         # Convert to target local timezone (DST handled automatically)
         local_dt = dt.astimezone(ZoneInfo(tz_name))
 
-
         return local_dt
 
     except Exception as e:
@@ -111,7 +115,11 @@ def parse_boolean(value):
         return True
     elif value == "False":
         return False
-    raise ValueError("The value " + str(value) + " can not be parsed into a boolean. It should be 'True' or 'False'")
+    raise ValueError(
+        "The value "
+        + str(value)
+        + " can not be parsed into a boolean. It should be 'True' or 'False'"
+    )
 
 
 def parse_input_type(value):
@@ -120,7 +128,9 @@ def parse_input_type(value):
     elif value == "local":
         return value
     else:
-        raise UndefinedInputType("The type supplied for input type \"" + value + "\" is not defined.")
+        raise UndefinedInputType(
+            'The type supplied for input type "' + value + '" is not defined.'
+        )
 
 
 def expand_job_id(job_id):
@@ -132,24 +142,26 @@ def expand_job_id(job_id):
 
 
 def parse_arguments_helper(arg_text: str):
-    log.debug(f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
-          f"select request ID. The provided {arg_text} via argument will be ignored and the {arg_text} from "
-          f"the corresponding row of the provided Microsoft List will be used.")
+    log.debug(
+        f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
+        f"select request ID. The provided {arg_text} via argument will be ignored and the {arg_text} from "
+        f"the corresponding row of the provided Microsoft List will be used."
+    )
 
 
 # Explicit contract: these args are sourced from SharePoint when --id/--request is given.
 # Any locally supplied values for them will be warned about and then overwritten.
 _ID_OVERRIDES = {
-    'naf':          lambda a: a.naf,
-    'name':         lambda a: a.name,
-    'target_email': lambda a: a.target_email,
-    'dni':          lambda a: a.dni,
-    'begin':        lambda a: a.begin,
-    'end':          lambda a: a.end,
-    'author':       lambda a: a.author,
-    'merge_result': lambda a: a.merge_result != get_compact_init(),
-    'merge_salary': lambda a: a.merge_salary,
-    'merge_rnt_rlc':lambda a: a.merge_rnt_rlc,
+    "naf": lambda a: a.naf,
+    "name": lambda a: a.name,
+    "target_email": lambda a: a.target_email,
+    "dni": lambda a: a.dni,
+    "begin": lambda a: a.begin,
+    "end": lambda a: a.end,
+    "author": lambda a: a.author,
+    "merge_result": lambda a: a.merge_result != get_compact_init(),
+    "merge_salary": lambda a: a.merge_salary,
+    "merge_rnt_rlc": lambda a: a.merge_rnt_rlc,
 }
 
 
@@ -172,42 +184,107 @@ def parse_arguments():
     """Parse and validate command-line arguments"""
     parser = argparse.ArgumentParser(description="Justicier")
 
-    parser.add_argument("-r", "--request", "--id", type=parse_id, required=False,
-                        help='ID of the justification request in Microsoft List of Peticions Justificacions. If you use'
-                             ' this argument you can\'t use any other argument to submit data to the algorithm except '
-                             ' for -l / --location ')
+    parser.add_argument(
+        "-r",
+        "--request",
+        "--id",
+        type=parse_id,
+        required=False,
+        help="ID of the justification request in Microsoft List of Peticions Justificacions. If you use"
+        " this argument you can't use any other argument to submit data to the algorithm except "
+        " for -l / --location ",
+    )
 
-    parser.add_argument("-l", "--location", type=parse_input_type, required=False, default="sharepoint",
-                        help="Location of the input data. Possible values are: \"sharepoint\" to download from "
-                             "sharepoint location and \"local\" to use the local file system storage and read the input"
-                             " folder in the repository root folder.")
-    parser.add_argument("-L", "--input-location", type=parse_input_location, required=False,
-                        default=None,
-                        help="Path location of input data. If used, --location local is assumed.")
+    parser.add_argument(
+        "-l",
+        "--location",
+        type=parse_input_type,
+        required=False,
+        default="sharepoint",
+        help='Location of the input data. Possible values are: "sharepoint" to download from '
+        'sharepoint location and "local" to use the local file system storage and read the input'
+        " folder in the repository root folder.",
+    )
+    parser.add_argument(
+        "-L",
+        "--input-location",
+        type=parse_input_location,
+        required=False,
+        default=None,
+        help="Path location of input data. If used, --location local is assumed.",
+    )
 
-    parser.add_argument("-n", "--naf", "--NAF", type=parse_naf, required=False,
-                        help="NAF (SS security number) of the employee to justify")
-    parser.add_argument("-N", "--name", type=parse_name_a3, required=False,
-                        help="Name of the employee to justify")
-    parser.add_argument("-t", "--target-email", type=parse_email_a3, required=False,
-                        help="Email of the employee to justify")
-    parser.add_argument("-d", "--dni", "--DNI", type=parse_dni, required=False,
-                        help="Name of the employee to justify")
+    parser.add_argument(
+        "-n",
+        "--naf",
+        "--NAF",
+        type=parse_naf,
+        required=False,
+        help="NAF (SS security number) of the employee to justify",
+    )
+    parser.add_argument(
+        "-N",
+        "--name",
+        type=parse_name_a3,
+        required=False,
+        help="Name of the employee to justify",
+    )
+    parser.add_argument(
+        "-t",
+        "--target-email",
+        type=parse_email_a3,
+        required=False,
+        help="Email of the employee to justify",
+    )
+    parser.add_argument(
+        "-d",
+        "--dni",
+        "--DNI",
+        type=parse_dni,
+        required=False,
+        help="Name of the employee to justify",
+    )
 
-    parser.add_argument("-b", "--begin", type=parse_date, required=False, help="Begin date (YYYY-MM-DD)")
-    parser.add_argument("-e", "--end", type=parse_date, required=False, help="End date (YYYY-MM-DD)")
-    parser.add_argument("-a", "--author", type=parse_author, required=False, help="author's email doing"
-                                                                                  " request")
+    parser.add_argument(
+        "-b", "--begin", type=parse_date, required=False, help="Begin date (YYYY-MM-DD)"
+    )
+    parser.add_argument(
+        "-e", "--end", type=parse_date, required=False, help="End date (YYYY-MM-DD)"
+    )
+    parser.add_argument(
+        "-a",
+        "--author",
+        type=parse_author,
+        required=False,
+        help="author's email doing" " request",
+    )
 
-    parser.add_argument("-s", "--merge-salary", type=parse_boolean, required=False, default=False,
-                        help="Merge each salary with the corresponding bank proof")
-    parser.add_argument("-m", "--merge-result", type=parse_boolean, required=False,
-                        default=get_compact_init(),
-                        help="Comma separated list of values that indicate which documents need to be merged in one "
-                             "single PDF in the output. Possible values are: " +
-                             ",".join([dt.value.__str__() for dt in DocType]))
-    parser.add_argument("-R", "--merge-rnt-rlc", type=parse_boolean, required=False, default=False,
-                        help="Merge all RLCs and RNTs of each month.")
+    parser.add_argument(
+        "-s",
+        "--merge-salary",
+        type=parse_boolean,
+        required=False,
+        default=False,
+        help="Merge each salary with the corresponding bank proof",
+    )
+    parser.add_argument(
+        "-m",
+        "--merge-result",
+        type=parse_boolean,
+        required=False,
+        default=get_compact_init(),
+        help="Comma separated list of values that indicate which documents need to be merged in one "
+        "single PDF in the output. Possible values are: "
+        + ",".join([dt.value.__str__() for dt in DocType]),
+    )
+    parser.add_argument(
+        "-R",
+        "--merge-rnt-rlc",
+        type=parse_boolean,
+        required=False,
+        default=False,
+        help="Merge all RLCs and RNTs of each month.",
+    )
 
     args = parser.parse_args()
 
@@ -219,32 +296,36 @@ def _populate_from_sharepoint(args, common):
 
     log.trace("configuration from sharepoint: " + str(config))
     try:
-        if config['NAF']:
-            args.naf = parse_naf(config['NAF'])
-        if config['name']:
-            args.name = parse_name_sharepoint(config['name'])
-        if config['target_email']:
-            args.target_email = config['target_email']
-        if config['DNI']:
-            args.dni = parse_dni(config['DNI'])
+        if config["NAF"]:
+            args.naf = parse_naf(config["NAF"])
+        if config["name"]:
+            args.name = parse_name_sharepoint(config["name"])
+        if config["target_email"]:
+            args.target_email = config["target_email"]
+        if config["DNI"]:
+            args.dni = parse_dni(config["DNI"])
 
-        args.begin = parse_date(config['begin'], "%Y-%m-%dT%H:%M:%SZ", return_naive=False).replace(tzinfo=None)
+        args.begin = parse_date(
+            config["begin"], "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+        ).replace(tzinfo=None)
 
-        args.end = parse_date(config['end'], "%Y-%m-%dT%H:%M:%SZ", return_naive=False).replace(tzinfo=None)
+        args.end = parse_date(
+            config["end"], "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+        ).replace(tzinfo=None)
 
-        args.title = config['Title']
+        args.title = config["Title"]
 
-        args.author = parse_author(config['author'])
+        args.author = parse_author(config["author"])
 
-        args.author_email = config['author_email']
+        args.author_email = config["author_email"]
 
-        args.merge_salary = parse_boolean(config['merge_salary_bankproof'])
-        if parse_boolean(config['merge_results']):  # TODO use a column for each fusion
+        args.merge_salary = parse_boolean(config["merge_salary_bankproof"])
+        if parse_boolean(config["merge_results"]):  # TODO use a column for each fusion
             compact_default = get_compact_init()
             for key in compact_default.keys():
                 compact_default[key] = True
             args.merge_result = compact_default
-        args.merge_rnt_rlc = parse_boolean(config['merge_RLC_RNT'])
+        args.merge_rnt_rlc = parse_boolean(config["merge_RLC_RNT"])
     except ArgumentNafInvalid as e:
         print("The NAF provided is invalid. Internal error is " + e.__str__())
         print(common)
@@ -260,10 +341,13 @@ def _populate_from_sharepoint(args, common):
 
 
 def process_parse_arguments():
-    common = ("Error parsing arguments. Program aborting. The arguments are: "
-              + str(sys.argv) + "The program is in a uninitialized state and cannot proceed. This error will be "
-                                "notified to the admin via log file. We can't create log file in user author folder "
-                                "because user author could not be parsed.")
+    common = (
+        "Error parsing arguments. Program aborting. The arguments are: "
+        + str(sys.argv)
+        + "The program is in a uninitialized state and cannot proceed. This error will be "
+        "notified to the admin via log file. We can't create log file in user author folder "
+        "because user author could not be parsed."
+    )
     try:
         args = parse_arguments()
 
@@ -292,7 +376,9 @@ def process_parse_arguments():
     args.end = args.end.replace(hour=23, minute=59, second=59, microsecond=999999)
     # TODO merge checks
     if args.begin >= args.end:
-        raise ValueError("Begin date " + str(args.begin) + " can not be after " + str(args.end))
+        raise ValueError(
+            "Begin date " + str(args.begin) + " can not be after " + str(args.end)
+        )
     return args
 
 
@@ -310,7 +396,9 @@ def is_author_present(author, valid_authors):
 
 def validate_author(author, valid_authors):
     if not is_author_present(author, valid_authors):
-        raise ArgumentAuthorError("Author \"" + str(author) + " is not valid. ")  # more specific exception
+        raise ArgumentAuthorError(
+            'Author "' + str(author) + " is not valid. "
+        )  # more specific exception
 
 
 def validate_arguments(args, valid_nafs, valid_authors):
@@ -319,10 +407,13 @@ def validate_arguments(args, valid_nafs, valid_authors):
 
 
 def process_validate_arguments(args, naf_data_path, user_list_data_path):
-    common = ("Error validating arguments. Program aborting. The arguments are: "
-              + str(sys.argv) + "The program is in a uninitialized state and cannot proceed. This error will be "
-                                "notified to the admin via log file. We can't create log file in user author folder "
-                                "because the process that validates user author could not finish.")
+    common = (
+        "Error validating arguments. Program aborting. The arguments are: "
+        + str(sys.argv)
+        + "The program is in a uninitialized state and cannot proceed. This error will be "
+        "notified to the admin via log file. We can't create log file in user author folder "
+        "because the process that validates user author could not finish."
+    )
 
     nafs = build_naf_to_dni(naf_data_path).keys()
 
@@ -335,10 +426,18 @@ def process_validate_arguments(args, naf_data_path, user_list_data_path):
         validate_arguments(args, nafs, authors)
 
     except ArgumentNafNotPresent as e:
-        print("The NAF provided is valid but is not present in " + naf_data_path + ". Internal error is " + e.__str__())
+        print(
+            "The NAF provided is valid but is not present in "
+            + naf_data_path
+            + ". Internal error is "
+            + e.__str__()
+        )
         print(common)
         exit(1)
     except ArgumentAuthorError as e:
-        print("The author is not present in the accepted user list. Internal error is " + e.__str__())
+        print(
+            "The author is not present in the accepted user list. Internal error is "
+            + e.__str__()
+        )
         print(common)
         exit(4)

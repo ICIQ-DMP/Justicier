@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import time
 
@@ -17,9 +16,7 @@ log = get_logger(__name__)
 
 def get_list_id(token_manager, site_id, list_name):
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}"
-    headers = {
-        "Authorization": f"Bearer {token_manager.get_token()}"
-    }
+    headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json()["id"]
@@ -30,7 +27,7 @@ def get_site_id(token_manager, domain, site_name):
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    the_id = response.json()['id']
+    the_id = response.json()["id"]
     return the_id
 
 
@@ -39,10 +36,10 @@ def get_drive_id(token_manager, site_id, drive_name="Documents"):
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    drives = response.json()['value']
+    drives = response.json()["value"]
     for drive in drives:
-        if drive['name'] == drive_name:
-            return drive['id']
+        if drive["name"] == drive_name:
+            return drive["id"]
     raise Exception(f"Drive '{drive_name}' no encontrado.")
 
 
@@ -51,11 +48,13 @@ def list_folder_contents(token_manager, drive_id, path):
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return response.json()['value']
+    return response.json()["value"]
 
 
 def download_file(token_mananger, drive_id, item_path, local_path, max_retries=5):
-    url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/content"
+    url = (
+        f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/content"
+    )
     headers = {"Authorization": f"Bearer {token_mananger.get_token()}"}
 
     retry_count = 0
@@ -68,7 +67,7 @@ def download_file(token_mananger, drive_id, item_path, local_path, max_retries=5
             response.raise_for_status()
 
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            with open(local_path, 'wb') as f:
+            with open(local_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
@@ -82,24 +81,29 @@ def download_file(token_mananger, drive_id, item_path, local_path, max_retries=5
                 retry_count += 1
                 wait_time = backoff * retry_count
                 print(
-                    f"⚠️ Error 503 en '{item_path}' - Reintentando en {wait_time}s (intento {retry_count}/{max_retries})...")
+                    f"⚠️ Error 503 en '{item_path}' - Reintentando en {wait_time}s (intento {retry_count}/{max_retries})..."
+                )
                 time.sleep(wait_time)
             else:
                 raise e  # Si no es 503, relanzamos la excepción inmediatamente
 
-    raise RuntimeError(f"❌ Fallo permanente al descargar '{item_path}' tras {max_retries} reintentos.")
+    raise RuntimeError(
+        f"❌ Fallo permanente al descargar '{item_path}' tras {max_retries} reintentos."
+    )
 
 
-def download_folder_recursive(token_manager: TokenManager, drive_id, remote_path, local_root):
+def download_folder_recursive(
+    token_manager: TokenManager, drive_id, remote_path, local_root
+):
     items = list_folder_contents(token_manager, drive_id, remote_path)
     for item in items:
-        name = item['name']
+        name = item["name"]
         item_path = f"{remote_path}/{name}"
         local_path = os.path.join(local_root, name)
 
-        if 'folder' in item:
+        if "folder" in item:
             download_folder_recursive(token_manager, drive_id, item_path, local_path)
-        elif 'file' in item:
+        elif "file" in item:
             download_file(token_manager, drive_id, item_path, local_path)
 
 
@@ -116,27 +120,27 @@ def upload_file(token_manager, drive_id, remote_path, local_file_path):
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
-        "Content-Type": "application/octet-stream"
+        "Content-Type": "application/octet-stream",
     }
 
-    with open(local_file_path, 'rb') as f:
+    with open(local_file_path, "rb") as f:
         data = f.read()
 
     response = requests.put(url, headers=headers, data=data)
     response.raise_for_status()
-    log.info(f"✅ Upload Done")
+    log.info("✅ Upload Done")
 
 
 def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{parent_path}:/children"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
     data = {
         "name": folder_name,
         "folder": {},
-        "@microsoft.graph.conflictBehavior": "replace"
+        "@microsoft.graph.conflictBehavior": "replace",
     }
 
     response = requests.post(url, headers=headers, json=data)
@@ -146,16 +150,24 @@ def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
     return os.path.join(parent_path, folder_name).replace("\\", "/")
 
 
-def upload_folder_recursive(token_manager, drive_id, local_folder_path, remote_folder_path):
+def upload_folder_recursive(
+    token_manager, drive_id, local_folder_path, remote_folder_path
+):
 
     for root, dirs, files in os.walk(local_folder_path):
-        if len(files) == 0 and len(dirs) == 0:  # Ignore empty folders because they cause issue
+        if (
+            len(files) == 0 and len(dirs) == 0
+        ):  # Ignore empty folders because they cause issue
             continue
 
-        log.debug("root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files))
+        log.debug(
+            "root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files)
+        )
         rel_path = os.path.relpath(root, local_folder_path)
         log.debug("rel path: " + str(rel_path))
-        sharepoint_current_path = os.path.normpath(os.path.join(remote_folder_path, rel_path)).replace("\\", "/")
+        sharepoint_current_path = os.path.normpath(
+            os.path.join(remote_folder_path, rel_path)
+        ).replace("\\", "/")
         log.debug("sharepoint current path: " + str(sharepoint_current_path))
 
         # Subir archivos
@@ -183,7 +195,7 @@ def update_resultat_sharepoint_rest(item_id, link):
     meta_url = f"https://{sharepoint_domain}/sites/{site_name}/_api/web/lists/getbytitle('{list_name}')"
     meta_headers = {
         "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json;odata=verbose"
+        "Accept": "application/json;odata=verbose",
     }
 
     meta_resp = requests.get(meta_url, headers=meta_headers)
@@ -197,16 +209,16 @@ def update_resultat_sharepoint_rest(item_id, link):
         "Accept": "application/json;odata=verbose",
         "Content-Type": "application/json;odata=verbose",
         "IF-MATCH": "*",
-        "X-HTTP-Method": "MERGE"
+        "X-HTTP-Method": "MERGE",
     }
 
     payload = {
-        "__metadata": { "type": entity_type },
+        "__metadata": {"type": entity_type},
         "Resultats": {
-            "__metadata": { "type": "SP.FieldUrlValue" },
+            "__metadata": {"type": "SP.FieldUrlValue"},
             "Url": str(link),
-            "Description": "Link a la carpeta de la justificacio"
-        }
+            "Description": "Link a la carpeta de la justificacio",
+        },
     }
 
     response = requests.post(update_url, headers=headers, json=payload)
@@ -226,8 +238,8 @@ def get_result_column(item_id):
 
     # Get list items
     list_resp = requests.get(
-    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{item_id}/fields",
-        headers={"Authorization": f"Bearer {access_token}"}
+        f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{item_id}/fields",
+        headers={"Authorization": f"Bearer {access_token}"},
     )
     list_resp.raise_for_status()
 
@@ -246,8 +258,8 @@ def print_columns():
 
     # Get list items
     list_resp = requests.get(
-    f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items?expand=fields,createdBy",
-        headers={"Authorization": f"Bearer {access_token}"}
+        f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items?expand=fields,createdBy",
+        headers={"Authorization": f"Bearer {access_token}"},
     )
     list_resp.raise_for_status()
 
@@ -264,9 +276,7 @@ def get_list_columns():
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
 
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/columns"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     response = requests.get(url, headers=headers)
     response.raise_for_status()
@@ -299,20 +309,17 @@ def update_list_item_field(item_id, updated_fields: dict):
 
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
-    response = requests.patch(
-        patch_url,
-        headers=headers,
-        json=updated_fields
-    )
+    response = requests.patch(patch_url, headers=headers, json=updated_fields)
 
     if response.status_code != 200:
-        raise RuntimeError(f"Failed to update item {item_id}: {response.status_code} - {response.text}")
+        raise RuntimeError(
+            f"Failed to update item {item_id}: {response.status_code} - {response.text}"
+        )
 
     return response.json()
-
 
 
 def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
@@ -330,29 +337,33 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
 
     params = {
         "$expand": f"fields($select={select_fields})",
-        "$select": "fields,createdBy"
+        "$select": "fields,createdBy",
     }
 
     list_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{quote(list_name, safe='')}/items/{job_id}"
-    list_resp = requests.get(list_url, headers={"Authorization": f"Bearer {access_token}"}, params=params)
+    list_resp = requests.get(
+        list_url, headers={"Authorization": f"Bearer {access_token}"}, params=params
+    )
     list_resp.raise_for_status()
 
     # Search for the job ID
     if str(list_resp.json()["fields"].get("id")) == str(job_id):
         data = {
-            'Title': list_resp.json()["fields"].get('Title'),
-            'id_type': list_resp.json()["fields"].get('Tipusdidentificador'),
-            'NAF': list_resp.json()["fields"].get('NAF'),
-            'name': list_resp.json()["fields"].get('Nomdelapersona'),
-            'target_email': list_resp.json()["fields"].get('PersonaEmail'),
-            'DNI': list_resp.json()["fields"].get('DNI'),
-            'begin': list_resp.json()["fields"].get('DataInici'),
-            'end': list_resp.json()["fields"].get('Datafinal'),
-            'author_email': list_resp.json()["fields"].get('SolicitantEmail'),
-            'author': list_resp.json()["fields"].get('Sol_x00b7_licitant'),
-            'merge_salary_bankproof': list_resp.json()["fields"].get('Fusi_x00f3_NominaiJustificantBan'),
-            'merge_results': list_resp.json()["fields"].get('juntarpdfs'),
-            'merge_RLC_RNT': list_resp.json()["fields"].get('Fusi_x00f3_RLCRNT')
+            "Title": list_resp.json()["fields"].get("Title"),
+            "id_type": list_resp.json()["fields"].get("Tipusdidentificador"),
+            "NAF": list_resp.json()["fields"].get("NAF"),
+            "name": list_resp.json()["fields"].get("Nomdelapersona"),
+            "target_email": list_resp.json()["fields"].get("PersonaEmail"),
+            "DNI": list_resp.json()["fields"].get("DNI"),
+            "begin": list_resp.json()["fields"].get("DataInici"),
+            "end": list_resp.json()["fields"].get("Datafinal"),
+            "author_email": list_resp.json()["fields"].get("SolicitantEmail"),
+            "author": list_resp.json()["fields"].get("Sol_x00b7_licitant"),
+            "merge_salary_bankproof": list_resp.json()["fields"].get(
+                "Fusi_x00f3_NominaiJustificantBan"
+            ),
+            "merge_results": list_resp.json()["fields"].get("juntarpdfs"),
+            "merge_RLC_RNT": list_resp.json()["fields"].get("Fusi_x00f3_RLCRNT"),
         }
 
         return data
@@ -374,5 +385,3 @@ def get_sharepoint_web_url(token_manager, site_id, drive_id, folder_path):
     response.raise_for_status()
     item = response.json()
     return item.get("webUrl")
-
-

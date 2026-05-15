@@ -7,24 +7,24 @@ _VAULT_BASE_PATH = "secret/data/justicier/runtime"
 # Maps app-level secret names to (vault subpath, vault field key)
 _SECRET_MAP = {
     # sharepoint
-    "CLIENT_ID":                ("sharepoint", "client_id"),
-    "CLIENT_NAME":              ("sharepoint", "client_name"),
-    "CLIENT_SECRET":            ("sharepoint", "client_secret"),
-    "OBJECT_ID":                ("sharepoint", "object_id"),
-    "SHAREPOINT_DOMAIN":        ("sharepoint", "domain"),
-    "DRIVE_ID":                 ("sharepoint", "drive_id"),
-    "SHAREPOINT_FOLDER":        ("sharepoint", "folder"),
-    "SHAREPOINT_FOLDER_INPUT":  ("sharepoint", "folder_input"),
+    "CLIENT_ID": ("sharepoint", "client_id"),
+    "CLIENT_NAME": ("sharepoint", "client_name"),
+    "CLIENT_SECRET": ("sharepoint", "client_secret"),
+    "OBJECT_ID": ("sharepoint", "object_id"),
+    "SHAREPOINT_DOMAIN": ("sharepoint", "domain"),
+    "DRIVE_ID": ("sharepoint", "drive_id"),
+    "SHAREPOINT_FOLDER": ("sharepoint", "folder"),
+    "SHAREPOINT_FOLDER_INPUT": ("sharepoint", "folder_input"),
     "SHAREPOINT_FOLDER_OUTPUT": ("sharepoint", "folder_output"),
-    "SHAREPOINT_LIST_GUID":     ("sharepoint", "list_guid"),
-    "SHAREPOINT_LIST_NAME":     ("sharepoint", "list_name"),
-    "SITE_NAME":                ("sharepoint", "site_name"),
-    "TENANT_ID":                ("sharepoint", "tenant_id"),
+    "SHAREPOINT_LIST_GUID": ("sharepoint", "list_guid"),
+    "SHAREPOINT_LIST_NAME": ("sharepoint", "list_name"),
+    "SITE_NAME": ("sharepoint", "site_name"),
+    "TENANT_ID": ("sharepoint", "tenant_id"),
     # smtp
-    "SMTP_PASSWORD":            ("smtp", "password"),
-    "SMTP_PORT":                ("smtp", "port"),
-    "SMTP_SERVER":              ("smtp", "server"),
-    "SMTP_USERNAME":            ("smtp", "username"),
+    "SMTP_PASSWORD": ("smtp", "password"),
+    "SMTP_PORT": ("smtp", "port"),
+    "SMTP_SERVER": ("smtp", "server"),
+    "SMTP_USERNAME": ("smtp", "username"),
 }
 
 
@@ -33,9 +33,9 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def _read_credential(name):
     """Read a credential from (in order):
-      1. /run/secrets/<name>
-      2. <project_root>/secrets/<name>
-      3. environment variable
+    1. /run/secrets/<name>
+    2. <project_root>/secrets/<name>
+    3. environment variable
     """
     for path in (f"/run/secrets/{name}", os.path.join(_PROJECT_ROOT, "secrets", name)):
         if os.path.isfile(path):

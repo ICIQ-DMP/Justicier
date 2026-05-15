@@ -10,7 +10,6 @@ from logger import get_logger
 log = get_logger(__name__)
 
 
-
 class NAF:
     def __init__(self, raw_naf):
         # For some random reason, a whitespace appear between province code and middle number...
@@ -18,7 +17,9 @@ class NAF:
         match = re.fullmatch(pattern, str(raw_naf))
 
         if not match:
-            raise ValueError(f"Invalid NAF format: {str(raw_naf)} NAF must be in NAF format. Example: 43/12345678-20")
+            raise ValueError(
+                f"Invalid NAF format: {str(raw_naf)} NAF must be in NAF format. Example: 43/12345678-20"
+            )
 
         self.province_code = match.group(1)
         self.sep1 = match.group(2)
@@ -33,9 +34,9 @@ class NAF:
         if not isinstance(other, NAF):
             return False
         return (
-            self.province_code == other.province_code and
-            self.middle_number == other.middle_number and
-            self.last_number == other.last_number
+            self.province_code == other.province_code
+            and self.middle_number == other.middle_number
+            and self.last_number == other.last_number
         )
 
     def __hash__(self):
@@ -63,7 +64,9 @@ def clean_naf(naf):
     return naf.replace("/", "").replace("-", "")
 
 
-def parse_two_columns(df, key: int, value: int, func_apply_key=None, func_apply_value=None):
+def parse_two_columns(
+    df, key: int, value: int, func_apply_key=None, func_apply_value=None
+):
     # Column C = index 2 (DNI), Column D = index 3 (NAF)
     val_col = df[value]
     key_col = df[key]
@@ -105,6 +108,7 @@ def build_naf_to_name(path):
     df = read_dataframe(path, 3, None)
     return parse_two_columns(df, 2, 1, parse_naf, parse_name_a3)
 
+
 def build_naf_to_email(path):
     df = read_dataframe(path, 3, None)
     return parse_two_columns(df, 2, 4, parse_naf, parse_email_a3)
@@ -116,4 +120,3 @@ def parse_naf(value):
         return NAF(value)
     except Exception as e:
         raise ArgumentNafInvalid("NAF is not valid" + e.__str__())
-

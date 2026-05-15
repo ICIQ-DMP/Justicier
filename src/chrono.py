@@ -20,5 +20,5 @@ def elapsed_time(start_time):
     if seconds or not parts:
         parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
 
-    formatted = ', '.join(parts)
+    formatted = ", ".join(parts)
     return formatted

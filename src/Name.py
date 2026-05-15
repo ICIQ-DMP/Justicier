@@ -12,10 +12,7 @@ class Name:
     def __eq__(self, other):
         if not isinstance(other, Name):
             return False
-        return (
-            self.name == other.name and
-            self.surname == other.surname
-        )
+        return self.name == other.name and self.surname == other.surname
 
     def __hash__(self):
         return hash(self.name + self.surname)
@@ -33,10 +30,14 @@ def parse_name_a3(value):
     try:
         return Name(name, surname)
     except ValueError as e:
-        raise ArgumentNafInvalid("Name is not valid" + e.__str__())  # TODO: change exceptions
+        raise ArgumentNafInvalid(
+            "Name is not valid" + e.__str__()
+        )  # TODO: change exceptions
+
 
 def parse_email_a3(value):
     return value.lower()
+
 
 def parse_name_sharepoint(value: str):
     value = value.replace("à", "a")
@@ -62,4 +63,6 @@ def parse_name_sharepoint(value: str):
     try:
         return Name(name, surname)
     except ValueError as e:
-        raise ArgumentNafInvalid("Name is not valid" + e.__str__())  # TODO: change exceptions
+        raise ArgumentNafInvalid(
+            "Name is not valid" + e.__str__()
+        )  # TODO: change exceptions

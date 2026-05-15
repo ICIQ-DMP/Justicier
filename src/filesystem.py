@@ -1,8 +1,17 @@
 import os
 import shutil
 
-from defines import GENERAL_OUTPUT_FOLDER, ADMIN_LOG_FOLDER, SUPERVISOR_LOG_FOLDER, SALARIES_OUTPUT_NAME, \
-    PROOFS_OUTPUT_NAME, CONTRACTS_OUTPUT_NAME, RNTS_OUTPUT_NAME, RLCS_OUTPUT_NAME, SALARIES_AND_PROOFS_OUTPUT_NAME
+from defines import (
+    GENERAL_OUTPUT_FOLDER,
+    ADMIN_LOG_FOLDER,
+    SUPERVISOR_LOG_FOLDER,
+    SALARIES_OUTPUT_NAME,
+    PROOFS_OUTPUT_NAME,
+    CONTRACTS_OUTPUT_NAME,
+    RNTS_OUTPUT_NAME,
+    RLCS_OUTPUT_NAME,
+    SALARIES_AND_PROOFS_OUTPUT_NAME,
+)
 from logger import get_logger
 
 log = get_logger(__name__)
@@ -66,7 +75,9 @@ def read_file(file_path):
 
     # Check if the file is readable
     if not os.access(file_path, os.R_OK):
-        raise PermissionError(f"The file '{file_path}' cannot be read. Check permissions.")
+        raise PermissionError(
+            f"The file '{file_path}' cannot be read. Check permissions."
+        )
 
     # Read the file
     with open(file_path, "r") as file:
@@ -77,9 +88,9 @@ def read_file(file_path):
 
 def ensure_output_gitignore():
     # Ensure existence of .gitignore
-    gitignore_path = os.path.join(GENERAL_OUTPUT_FOLDER, '.gitignore')
+    gitignore_path = os.path.join(GENERAL_OUTPUT_FOLDER, ".gitignore")
     gitignore_content = "*\n!.gitignore\n"
-    with open(gitignore_path, 'w+') as f:
+    with open(gitignore_path, "w+") as f:
         f.write(gitignore_content)
 
 
@@ -87,7 +98,11 @@ def list_dir(input_folder):
     """Returns a list of all file names in the ./input/salaries directory."""
     # Ensure the input_folder is a valid directory
     if not os.path.isdir(input_folder):
-        raise ValueError("input folder " + input_folder + " in list_files function is not a directory or can't be accessed")
+        raise ValueError(
+            "input folder "
+            + input_folder
+            + " in list_files function is not a directory or can't be accessed"
+        )
 
     # List all files in the directory
     file_names = [os.path.basename(file) for file in os.listdir(input_folder)]
@@ -119,14 +134,26 @@ def compute_impersonal_id(now, args, naf_to_name):
     if args.request:
         id_str = "_" + str(args.request)
     try:
-        r = (now + "_" + args.naf.__str__() + "_" + str(naf_to_name[args.naf]).
-                replace(" ", "_") + "_" +
-                args.begin.strftime("%Y-%m-%d") + "_" + args.end.strftime("%Y-%m-%d") + id_str)
+        r = (
+            now
+            + "_"
+            + args.naf.__str__()
+            + "_"
+            + str(naf_to_name[args.naf]).replace(" ", "_")
+            + "_"
+            + args.begin.strftime("%Y-%m-%d")
+            + "_"
+            + args.end.strftime("%Y-%m-%d")
+            + id_str
+        )
     except:
         print("sdfafdsdf")
         log.info("info")
         log.error("error")
-        log.debug("NAF provided was not possible to be translated into name, NAF is: " + str(args.naf))
+        log.debug(
+            "NAF provided was not possible to be translated into name, NAF is: "
+            + str(args.naf)
+        )
 
     return r
 
@@ -146,8 +173,16 @@ def compute_paths(args, id_str, impersonal_id_str):
     justification_name = impersonal_id_str
     CURRENT_JUSTIFICATION_FOLDER = os.path.join(CURRENT_USER_FOLDER, justification_name)
 
-    USER_REPORT_FILE = os.path.join(CURRENT_JUSTIFICATION_FOLDER, log_filename_impersonal)
-    return CURRENT_USER_FOLDER, CURRENT_JUSTIFICATION_FOLDER, USER_REPORT_FILE, ADMIN_LOG_PATH, SUPERVISOR_LOG_PATH
+    USER_REPORT_FILE = os.path.join(
+        CURRENT_JUSTIFICATION_FOLDER, log_filename_impersonal
+    )
+    return (
+        CURRENT_USER_FOLDER,
+        CURRENT_JUSTIFICATION_FOLDER,
+        USER_REPORT_FILE,
+        ADMIN_LOG_PATH,
+        SUPERVISOR_LOG_PATH,
+    )
 
 
 def remove_folder(folder_path):
@@ -170,10 +205,22 @@ def ensure_file_structure(CURRENT_USER_FOLDER, CURRENT_JUSTIFICATION_FOLDER):
 
     os.makedirs(CURRENT_JUSTIFICATION_FOLDER, exist_ok=True)
 
-    os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, SALARIES_OUTPUT_NAME), exist_ok=True)
-    os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, PROOFS_OUTPUT_NAME), exist_ok=True)
-    os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, CONTRACTS_OUTPUT_NAME), exist_ok=True)
-    os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, RNTS_OUTPUT_NAME), exist_ok=True)
-    os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, RLCS_OUTPUT_NAME), exist_ok=True)
-    os.makedirs(os.path.join(CURRENT_JUSTIFICATION_FOLDER, SALARIES_AND_PROOFS_OUTPUT_NAME), exist_ok=True)
-
+    os.makedirs(
+        os.path.join(CURRENT_JUSTIFICATION_FOLDER, SALARIES_OUTPUT_NAME), exist_ok=True
+    )
+    os.makedirs(
+        os.path.join(CURRENT_JUSTIFICATION_FOLDER, PROOFS_OUTPUT_NAME), exist_ok=True
+    )
+    os.makedirs(
+        os.path.join(CURRENT_JUSTIFICATION_FOLDER, CONTRACTS_OUTPUT_NAME), exist_ok=True
+    )
+    os.makedirs(
+        os.path.join(CURRENT_JUSTIFICATION_FOLDER, RNTS_OUTPUT_NAME), exist_ok=True
+    )
+    os.makedirs(
+        os.path.join(CURRENT_JUSTIFICATION_FOLDER, RLCS_OUTPUT_NAME), exist_ok=True
+    )
+    os.makedirs(
+        os.path.join(CURRENT_JUSTIFICATION_FOLDER, SALARIES_AND_PROOFS_OUTPUT_NAME),
+        exist_ok=True,
+    )

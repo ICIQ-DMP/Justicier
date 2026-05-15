@@ -27,30 +27,46 @@ class DNI:
         match = re.match(pattern, raw_dni, re.VERBOSE)
 
         if not match:
-            raise ValueError(f"Invalid DNI format: {raw_dni}. Must be DNI or NIE (e.g., 12345678-K or X-1234567-T)")
+            raise ValueError(
+                f"Invalid DNI format: {raw_dni}. Must be DNI or NIE (e.g., 12345678-K or X-1234567-T)"
+            )
 
         if match.group("dni_number") and match.group("dni_letter"):
             self.is_nie = False
             self.is_temporal = False
             self.number = match.group("dni_number")
             self.letter = match.group("dni_letter").upper()
-        elif match.group("nie_initial") and match.group("nie_number") and match.group("nie_number"):
+        elif (
+            match.group("nie_initial")
+            and match.group("nie_number")
+            and match.group("nie_number")
+        ):
             self.is_nie = True
             self.is_temporal = False
             self.initial = match.group("nie_initial").upper()
             self.number = match.group("nie_number")
             self.letter = match.group("nie_letter").upper()
-        elif (match.group("nie_temporal_form1_letter") and match.group("nie_temporal_form1_letter_control") and
-              match.group("nie_temporal_form1_number")):
+        elif (
+            match.group("nie_temporal_form1_letter")
+            and match.group("nie_temporal_form1_letter_control")
+            and match.group("nie_temporal_form1_number")
+        ):
             self.is_nie = True
-            self.is_temporal = True  # TODO change by property type instead of two booleans
+            self.is_temporal = (
+                True  # TODO change by property type instead of two booleans
+            )
             self.initial = match.group("nie_temporal_form1_letter").upper()
             self.number = match.group("nie_temporal_form1_letter_control")
             self.letter = match.group("nie_temporal_form1_number").upper()
-        elif (match.group("nie_temporal_form2_letter") and match.group("nie_temporal_form2_letter_control") and
-              match.group("nie_temporal_form2_number")):
+        elif (
+            match.group("nie_temporal_form2_letter")
+            and match.group("nie_temporal_form2_letter_control")
+            and match.group("nie_temporal_form2_number")
+        ):
             self.is_nie = True
-            self.is_temporal = True  # TODO change by property type instead of two booleans
+            self.is_temporal = (
+                True  # TODO change by property type instead of two booleans
+            )
             self.initial = match.group("nie_temporal_form2_letter").upper()
             self.number = match.group("nie_temporal_form2_letter_control")
             self.letter = match.group("nie_temporal_form2_number").upper()
@@ -68,12 +84,12 @@ class DNI:
             return False
         if self.is_nie:
             return (
-                    self.initial == other.initial and self.number == other.number and self.letter == other.letter
+                self.initial == other.initial
+                and self.number == other.number
+                and self.letter == other.letter
             )
         else:
-            return (
-                    self.number == other.number and self.letter == other.letter
-            )
+            return self.number == other.number and self.letter == other.letter
 
     def __hash__(self):
         return hash(self.number)
@@ -92,4 +108,6 @@ def parse_dni(value):
     try:
         return DNI(value)
     except Exception as e:
-        raise ArgumentNafInvalid("DNI " + str(value) + " is not valid" + e.__str__())  # TODO change exception
+        raise ArgumentNafInvalid(
+            "DNI " + str(value) + " is not valid" + e.__str__()
+        )  # TODO change exception

@@ -21,7 +21,7 @@ def read_secret(secret_name):
             os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "secrets",
-                secret_name
+                secret_name,
             ).__str__()
         ),
         lambda: read_env_var(secret_name),
@@ -36,4 +36,3 @@ def read_secret(secret_name):
 
     print(f"Could not read {secret_name} from any source")
     sys.exit(1)
-

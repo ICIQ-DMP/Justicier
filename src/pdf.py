@@ -16,6 +16,7 @@ from logger import get_logger
 
 log = get_logger(__name__)
 
+
 def get_dni(pdf_path: str) -> str:
     # Open PDF
     reader = PdfReader(pdf_path)
@@ -49,7 +50,9 @@ def write_page(page: PyPDF2.PageObject, path):
     pass
 
 
-def get_matching_pages(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}") -> List[Tuple[PyPDF2.PageObject, int]]:
+def get_matching_pages(
+    pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}"
+) -> List[Tuple[PyPDF2.PageObject, int]]:
     # Open PDF
     reader = PdfReader(pdf_path)
 
@@ -78,7 +81,9 @@ def get_matching_pages(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}
     return pages
 
 
-def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}") -> PyPDF2.PageObject:
+def get_matching_page(
+    pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}"
+) -> PyPDF2.PageObject:
     # Open PDF
     reader = PdfReader(pdf_path)
 
@@ -103,12 +108,14 @@ def get_matching_page(pdf_path, query_string: str, pattern: str = r"\d{2}/\d{8}-
         if match_selected is not None:
             return page
 
-    raise ValueError("The string " + query_string + " can't be found in the file " + pdf_path)
+    raise ValueError(
+        "The string " + query_string + " can't be found in the file " + pdf_path
+    )
 
 
 def parse_dates_from_delayed_salary(page):
     # Define regex pattern to search for "NN/NNNNNNNN-NN" and extract SS number
-    query_str = r'\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}'  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
+    query_str = r"\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}"  # Heuristic is to find "Atrasos" but appears two times on each page, so we are
     # restricting the search with the beginning of the year, which appears in the line that
     # we are interested in, which contains the date.
     pattern = re.compile(query_str, re.MULTILINE)
@@ -125,14 +132,14 @@ def parse_dates_from_delayed_salary(page):
     match = match.replace("\n", "")
 
     # Set locale to Spanish (you may need to install it depending on your OS)
-    locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+    locale.setlocale(locale.LC_TIME, "es_ES.UTF-8")
 
     # Split the string by ' a '
-    start_str, end_str = match.split(' a ')
+    start_str, end_str = match.split(" a ")
 
     # Parse both dates
-    start_date = datetime.strptime(start_str.strip(), '%d %B %Y')
-    end_date = datetime.strptime(end_str.strip(), '%d %B %Y')
+    start_date = datetime.strptime(start_str.strip(), "%d %B %Y")
+    end_date = datetime.strptime(end_str.strip(), "%d %B %Y")
     return start_date, end_date
 
 
@@ -177,7 +184,9 @@ def is_settlement_salary(salary_page):
 
 
 def parse_regular_salary_type(salary_page):
-    if is_monthly_salary(salary_page):  # For optimization first monthly because it is more common
+    if is_monthly_salary(
+        salary_page
+    ):  # For optimization first monthly because it is more common
         return RegularSalaryType.MONTHLY
     elif is_settlement_salary(salary_page):
         return RegularSalaryType.SETTLEMENT
@@ -195,16 +204,20 @@ def merge_pdfs(pdf_paths, output_path, all_pages=False):
     # Assigning the pdfWriter() function to pdfWriter.
     pdfWriter = PyPDF2.PdfWriter()
     for filename in pdf_paths:  # Starting a for loop.
-        pdf_file = open(filename, 'rb')  # Opens each of the file paths in filename variable.
+        pdf_file = open(
+            filename, "rb"
+        )  # Opens each of the file paths in filename variable.
         # Reads each of the files in the new variable you've created above and stores into memory.
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         if all_pages:
             for i in range(len(pdf_reader.pages)):
                 pdfWriter.add_page(pdf_reader.pages[i])
         else:
-            page = pdf_reader.pages[0]  # Documents of only one page, so we are interested in the first
+            page = pdf_reader.pages[
+                0
+            ]  # Documents of only one page, so we are interested in the first
             pdfWriter.add_page(page)  # Adds each of the PDFs it's read to a new page.
-    f = open(output_path, 'wb')
+    f = open(output_path, "wb")
     # Writing the output file using the pdfWriter function.
     pdfWriter.write(f)
     f.close()
@@ -212,8 +225,15 @@ def merge_pdfs(pdf_paths, output_path, all_pages=False):
 
 def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path):
     reader = PdfReader(document_path)
-    query_string = (unparse_month(delay_begin) + "/" + delay_begin.year.__str__() + " - " + unparse_month(delay_end)
-                    + "/" + delay_end.year.__str__())
+    query_string = (
+        unparse_month(delay_begin)
+        + "/"
+        + delay_begin.year.__str__()
+        + " - "
+        + unparse_month(delay_end)
+        + "/"
+        + delay_end.year.__str__()
+    )
     pattern = re.compile(query_string)
 
     for page_num, page in enumerate(reader.pages):
@@ -244,7 +264,11 @@ def compact_folder(path_folder):
     """
     paths = list_dir(path_folder)
     if len(paths) == 0:
-        log.warning("Refusing to compact folder " + path_folder + " because it is empty. Aborting compression.")
+        log.warning(
+            "Refusing to compact folder "
+            + path_folder
+            + " because it is empty. Aborting compression."
+        )
         return
 
     paths.sort()
@@ -255,15 +279,21 @@ def compact_folder(path_folder):
 
 
 def merge_equal_files_from_two_folders(folder1, folder2, folder_out):
-    log.info(f"Merging files with same name in folders {str(folder1)} and {str(folder2)} and outputting them in "
-                f"{str(folder_out)}.")
+    log.info(
+        f"Merging files with same name in folders {str(folder1)} and {str(folder2)} and outputting them in "
+        f"{str(folder_out)}."
+    )
     files1 = list_dir(folder1)
     if len(files1) == 0:
-        log.warning(f"Refusing to compact folders because {str(folder1)} is empty. Aborting compression.")
+        log.warning(
+            f"Refusing to compact folders because {str(folder1)} is empty. Aborting compression."
+        )
         return
     files2 = list_dir(folder2)
     if len(files2) == 0:
-        log.warning(f"Refusing to compact folders because {str(folder2)} is empty. Aborting compression.")
+        log.warning(
+            f"Refusing to compact folders because {str(folder2)} is empty. Aborting compression."
+        )
         return
 
     for i in range(len(files1)):

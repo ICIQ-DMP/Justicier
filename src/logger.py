@@ -65,7 +65,11 @@ def setup_logging(
     console.addFilter(secrets_filter)
     handlers.append(console)
 
-    log_files = [(user_report_file, level), (admin_log_file, logging.ERROR), (supervisor_log_file, logging.WARNING)]
+    log_files = [
+        (user_report_file, level),
+        (admin_log_file, logging.ERROR),
+        (supervisor_log_file, logging.WARNING),
+    ]
 
     for log_file_i in log_files:
         if log_file_i[0]:
@@ -145,5 +149,3 @@ def configure_logging_from_settings(
         supervisor_log_file=supervisor_log_file,
         secrets=secrets,
     )  # Preventive creation of log for logging the loading of settings
-
-

@@ -1,4 +1,3 @@
-
 class ArgumentDateError(Exception):
     pass
 
@@ -21,4 +20,3 @@ class UndefinedRegularSalaryType(Exception):
 
 class UndefinedInputType(Exception):
     pass
-
