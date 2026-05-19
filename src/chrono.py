@@ -2,7 +2,7 @@ import time
 from datetime import timedelta
 
 
-def elapsed_time(start_time):
+def elapsed_time(start_time: float) -> str:
 
     elapsed = time.time() - start_time
     delta = timedelta(seconds=int(elapsed))

@@ -1,4 +1,6 @@
 import os
+from typing import cast
+
 import requests
 import urllib3
 from pathlib import Path
@@ -36,7 +38,7 @@ _PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 log = get_logger(__name__)
 
 
-def _read_credential(name):
+def _read_credential(name: str) -> str:
     """Read a credential from (in order):
     1. /run/secrets/<name>
     2. <project_root>/secrets/<name>
@@ -56,9 +58,9 @@ def _read_credential(name):
 
 
 class _VaultClient:
-    def __init__(self):
-        self._token = None
-        self._cache = {}  # subpath -> {field: value}
+    def __init__(self) -> None:
+        self._token: str | None = None
+        self._cache: dict[str, dict[str, str]] = {}  # subpath -> {field: value}
 
         self._session = requests.Session()
         ca_cert = _read_credential("VAULT_CACERT").strip()
@@ -69,7 +71,7 @@ class _VaultClient:
             self._session.verify = False
         # If neither is set, requests will use its default CA bundle.
 
-    def _authenticate(self):
+    def _authenticate(self) -> None:
         # 1. Try a pre-issued Vault token.
         try:
             self._token = _read_credential("VAULT_TOKEN")
@@ -87,15 +89,16 @@ class _VaultClient:
             timeout=10,
         )
         resp.raise_for_status()
-        self._token = resp.json()["auth"]["client_token"]
+        self._token = cast(str, resp.json()["auth"]["client_token"])
 
-    def _fetch_subpath(self, subpath):
+    def _fetch_subpath(self, subpath: str) -> dict[str, str]:
         if subpath in self._cache:
             return self._cache[subpath]
 
         if self._token is None:
             self._authenticate()
 
+        assert self._token is not None
         vault_addr = _read_credential("VAULT_ADDR")
         url = f"{vault_addr}/v1/{_VAULT_BASE_PATH}/{subpath}"
         resp = self._session.get(
@@ -104,11 +107,11 @@ class _VaultClient:
             timeout=10,
         )
         resp.raise_for_status()
-        data = resp.json()["data"]["data"]
+        data = cast(dict[str, str], resp.json()["data"]["data"])
         self._cache[subpath] = data
         return data
 
-    def read_secret(self, secret_name):
+    def read_secret(self, secret_name: str) -> str:
         if secret_name not in _SECRET_MAP:
             raise KeyError(f"No vault mapping defined for secret '{secret_name}'")
         subpath, field = _SECRET_MAP[secret_name]
@@ -126,7 +129,7 @@ class _VaultClient:
 _client = None
 
 
-def read_vault_secret(secret_name):
+def read_vault_secret(secret_name: str) -> str:
     """Return the value of *secret_name* fetched from Vault.
 
     Raises KeyError  if the secret has no vault mapping or the field is absent.

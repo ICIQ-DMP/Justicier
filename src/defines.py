@@ -36,7 +36,7 @@ class DocType(Enum):
     SALARIES_AND_PROOFS = "salaries with proofs"
 
 
-def from_string(value: str):
+def from_string(value: str) -> "DocType":
     _aliases = {
         DocType.SALARY: {"salary", "salaries", "SALARY", "Salary", "payslip"},
         DocType.CONTRACT: {"contract", "CONTRACT", "Contract", "agreement"},

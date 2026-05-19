@@ -37,7 +37,7 @@ def get_dni(pdf_path: Path) -> str:
     raise ValueError("DNI could not be detected in PDF " + str(pdf_path))
 
 
-def write_page(page: PyPDF2.PageObject, path: Path):
+def write_page(page: PyPDF2.PageObject, path: Path) -> None:
     writer = PdfWriter()
     writer.add_page(page)
 
@@ -102,7 +102,7 @@ def get_matching_page(
     )
 
 
-def parse_dates_from_delayed_salary(page):
+def parse_dates_from_delayed_salary(page: PyPDF2.PageObject) -> tuple[datetime, datetime]:
     query_str = r"\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}"
     pattern = re.compile(query_str, re.MULTILINE)
 
@@ -126,7 +126,7 @@ def parse_dates_from_delayed_salary(page):
     return start_date, end_date
 
 
-def is_monthly_salary(salary_page):
+def is_monthly_salary(salary_page: PyPDF2.PageObject) -> bool:
     text = salary_page.extract_text()
 
     if not text:
@@ -150,7 +150,7 @@ def is_monthly_salary(salary_page):
     return False
 
 
-def is_settlement_salary(salary_page):
+def is_settlement_salary(salary_page: PyPDF2.PageObject) -> bool:
     text = salary_page.extract_text()
     if not text:
         return False
@@ -164,7 +164,7 @@ def is_settlement_salary(salary_page):
     return False
 
 
-def parse_regular_salary_type(salary_page):
+def parse_regular_salary_type(salary_page: PyPDF2.PageObject) -> RegularSalaryType:
     if is_monthly_salary(salary_page):
         return RegularSalaryType.MONTHLY
     elif is_settlement_salary(salary_page):
@@ -173,7 +173,7 @@ def parse_regular_salary_type(salary_page):
         raise UndefinedRegularSalaryType("The type was not recognized")
 
 
-def merge_pdfs(pdf_paths: List[Path], output_path: Path, all_pages=False):
+def merge_pdfs(pdf_paths: List[Path], output_path: Path, all_pages: bool = False) -> None:
     """
     Merge multiple PDF files into a single PDF.
 
@@ -194,7 +194,7 @@ def merge_pdfs(pdf_paths: List[Path], output_path: Path, all_pages=False):
     f.close()
 
 
-def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path: Path):
+def is_date_present_in_rlc_delay(delay_begin: datetime, delay_end: datetime, document_path: Path) -> bool:
     reader = PdfReader(document_path)
     query_string = (
         unparse_month(delay_begin)
@@ -224,7 +224,7 @@ def is_date_present_in_rlc_delay(delay_begin, delay_end, document_path: Path):
     return False
 
 
-def compact_folder(path_folder: Path):
+def compact_folder(path_folder: Path) -> None:
     """
     Gets a path to a folder with only PDF files in it.
     Merges all PDFs into a single file at path_folder.pdf, then removes the folder.
@@ -244,7 +244,7 @@ def compact_folder(path_folder: Path):
     shutil.rmtree(path_folder)
 
 
-def merge_equal_files_from_two_folders(folder1: Path, folder2: Path, folder_out: Path):
+def merge_equal_files_from_two_folders(folder1: Path, folder2: Path, folder_out: Path) -> None:
     log.info(
         f"Merging files with same name in folders {folder1} and {folder2} and outputting them in "
         f"{folder_out}."

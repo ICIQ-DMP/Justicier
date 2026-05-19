@@ -1,8 +1,14 @@
+import argparse
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import TypeVar
 
+import PyPDF2
+
+from DNI import DNI
 from NAF import NAF
+from Name import Name
 from arguments import parse_date
 from custom_except import UndefinedRegularSalaryType
 from data import (
@@ -44,7 +50,7 @@ log = get_logger(__name__)
 
 
 def process_rlc_aux(
-    salary_date, rlc_folder_path: Path, months_found, rlc_subtype: str, rlc_type: str
+    salary_date: datetime, rlc_folder_path: Path, months_found: dict[datetime, list[bool]], rlc_subtype: str, rlc_type: str
 ) -> Path:
     month = unparse_month(salary_date)
     year = str(salary_date.year)
@@ -71,14 +77,14 @@ def process_rlc_aux(
 
 
 def process_generic_rlc(
-    rlc_type,
-    salary_date,
+    rlc_type: str,
+    salary_date: datetime,
     salary_file_path: Path,
     rlc_folder_path: Path,
     naf_dir: Path,
     salary_output_path: Path,
-    salaries_found,
-):
+    salaries_found: dict[datetime, list[bool]],
+) -> None:
     salaries_found[salary_date][0] = True
     try:
         rlc_n_path = process_rlc_aux(
@@ -109,14 +115,14 @@ def process_generic_rlc(
 
 def process_rlc_l03(
     salary_file_path: Path,
-    salary_page_number,
-    salary_page,
-    salary_date,
+    salary_page_number: int,
+    salary_page: PyPDF2.PageObject,
+    salary_date: datetime,
     naf_dir: Path,
     rlc_folder_path: Path,
     salary_output_path: Path,
-    months_found,
-):
+    months_found: dict[datetime, list[bool]],
+) -> None:
     log.info(
         "Salary file "
         + str(salary_file_path)
@@ -168,8 +174,8 @@ def process_rlc_l03(
 
 
 def process_salaries_with_rlc(
-    salaries_folder_path: Path, rlc_folder_path: Path, naf_dir: Path, naf, begin, end
-):
+    salaries_folder_path: Path, rlc_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
+) -> dict[RLCType, dict[datetime, list[bool] | bool]]:
     regular_monthly_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
     regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(
         begin, end
@@ -337,8 +343,8 @@ def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
 
 
 def process_proofs(
-    proofs_folder_path: Path, proofs_output_path: Path, naf, begin, end, naf_to_dni
-):
+    proofs_folder_path: Path, proofs_output_path: Path, naf: NAF, begin: datetime, end: datetime, naf_to_dni: dict[NAF, DNI]
+) -> None:
     all_bankproof_folders = flatten_dirs(proofs_folder_path)
 
     bankproof_folders_selected = []
@@ -451,7 +457,7 @@ def process_proofs(
             continue
 
 
-def process_contracts(contracts_folder_path: Path, naf_dir: Path, naf, begin, end):
+def process_contracts(contracts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime) -> bool:
     found = False
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
@@ -521,7 +527,7 @@ def process_contracts(contracts_folder_path: Path, naf_dir: Path, naf, begin, en
     return found
 
 
-def process_RNTs(rnts_folder_path: Path, naf_dir: Path, naf, begin, end):
+def process_RNTs(rnts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime) -> dict[datetime, bool | list[bool]]:
     rnts_found = get_rlc_monthly_result_structure(begin, end, False)
 
     rnt_files = flatten_dirs(rnts_folder_path)
@@ -583,7 +589,7 @@ def process_RNTs(rnts_folder_path: Path, naf_dir: Path, naf, begin, end):
     return rnts_found
 
 
-def datetime_range(begin, end):
+def datetime_range(begin: datetime, end: datetime) -> list[datetime]:
     current = datetime(begin.year, begin.month, 1)
 
     result = []
@@ -607,7 +613,7 @@ def merge_rnts_rlcs(
     merged_rnts_rlcs_folder_output: Path,
     begin: datetime,
     end: datetime,
-):
+) -> None:
     months_list = datetime_range(begin, end)
     log.info(
         "Generated months list from "
@@ -658,7 +664,11 @@ def merge_rnts_rlcs(
         log.trace("Merged PDFs: " + str(paths_to_merge) + " -> " + str(output_path))
 
 
-def reverse_dict(d: dict):
+_K = TypeVar("_K")
+_V = TypeVar("_V")
+
+
+def reverse_dict(d: dict[_K, _V]) -> dict[_V, _K]:
     r = {}
     for key in d.keys():
         r[d[key]] = key
@@ -666,8 +676,14 @@ def reverse_dict(d: dict):
 
 
 def complete_arguments(
-    args, NAME_TO_NAF, NAF_TO_DNI, DNI_TO_NAF, NAF_TO_NAME, EMAIL_TO_NAF, NAF_TO_EMAIL
-):
+    args: argparse.Namespace,
+    NAME_TO_NAF: dict[Name, NAF],
+    NAF_TO_DNI: dict[NAF, DNI],
+    DNI_TO_NAF: dict[DNI, NAF],
+    NAF_TO_NAME: dict[NAF, Name],
+    EMAIL_TO_NAF: dict[str, NAF],
+    NAF_TO_EMAIL: dict[NAF, str],
+) -> None:
     if args.naf:
         if not args.dni:
             args.dni = NAF_TO_DNI[args.naf]

@@ -1,6 +1,10 @@
+import argparse
 import os
 import shutil
 from pathlib import Path
+
+from NAF import NAF
+from Name import Name
 
 from defines import (
     GENERAL_OUTPUT_FOLDER,
@@ -18,7 +22,7 @@ from logger import get_logger
 log = get_logger(__name__)
 
 
-def read_env_var(var_name):
+def read_env_var(var_name: str) -> str:
     """
     Reads an environment variable.
 
@@ -43,14 +47,14 @@ def read_env_var(var_name):
     return value
 
 
-def read_file_content(file_path: Path):
+def read_file_content(file_path: Path) -> str:
     content = read_file(file_path)
     if not content:
         raise ValueError(f"The file '{file_path}' is empty.")
     return content
 
 
-def read_file(file_path: Path):
+def read_file(file_path: Path) -> str:
     """
     Reads a file and returns its content.
 
@@ -78,7 +82,7 @@ def read_file(file_path: Path):
     return content
 
 
-def ensure_output_gitignore():
+def ensure_output_gitignore() -> None:
     gitignore_path = GENERAL_OUTPUT_FOLDER / ".gitignore"
     gitignore_content = "*\n!.gitignore\n"
     with open(gitignore_path, "w+") as f:
@@ -106,12 +110,12 @@ def flatten_dirs(folder_to_flat: Path) -> list[Path]:
     return flatted_folders
 
 
-def compute_id(now, args, naf_to_name):
+def compute_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]) -> str:
     id_str = compute_impersonal_id(now, args, naf_to_name)
-    return id_str + "_" + args.author
+    return id_str + "_" + str(args.author)
 
 
-def compute_impersonal_id(now, args, naf_to_name):
+def compute_impersonal_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]) -> str:
     id_str = ""
     if args.request:
         id_str = "_" + str(args.request)
@@ -130,16 +134,16 @@ def compute_impersonal_id(now, args, naf_to_name):
         + "_"
         + name.replace(" ", "_")
         + "_"
-        + args.begin.strftime("%Y-%m-%d")
+        + str(args.begin.strftime("%Y-%m-%d"))
         + "_"
-        + args.end.strftime("%Y-%m-%d")
+        + str(args.end.strftime("%Y-%m-%d"))
         + id_str
     )
     return r
 
 
 def compute_paths(
-    args, id_str, impersonal_id_str
+    args: argparse.Namespace, id_str: str, impersonal_id_str: str
 ) -> tuple[Path, Path, Path, Path, Path]:
     log_filename = id_str + ".log.txt"
     log_filename_impersonal = impersonal_id_str + ".log.txt"
@@ -161,7 +165,7 @@ def compute_paths(
     )
 
 
-def remove_folder(folder_path: Path):
+def remove_folder(folder_path: Path) -> None:
     """Remove the folder at the given path if it exists. Do nothing if it doesn't."""
     try:
         shutil.rmtree(folder_path)
@@ -173,7 +177,7 @@ def remove_folder(folder_path: Path):
 
 def ensure_file_structure(
     current_user_folder: Path, current_justification_folder: Path
-):
+) -> None:
     GENERAL_OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
     ensure_output_gitignore()
 

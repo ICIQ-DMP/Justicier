@@ -73,13 +73,13 @@ class DNI:
         else:
             raise ValueError(f"DNI {raw_dni} could not be parsed")
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.is_nie:
             return f"{self.initial}-{self.number}-{self.letter}"
         else:
             return f"{self.number}-{self.letter}"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, DNI):
             return False
         if self.is_nie:
@@ -91,10 +91,10 @@ class DNI:
         else:
             return self.number == other.number and self.letter == other.letter
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.number)
 
-    def no_dash_str(self):
+    def no_dash_str(self) -> str:
         if self.is_nie:
             if self.is_temporal:
                 return f"{self.initial}{self.letter}{self.number}"
@@ -104,7 +104,7 @@ class DNI:
             return f"{self.number}{self.letter}"
 
 
-def parse_dni(value):
+def parse_dni(value: str) -> DNI:
     try:
         return DNI(value)
     except Exception as e:

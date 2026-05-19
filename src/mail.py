@@ -11,7 +11,7 @@ log = get_logger(__name__)
 
 def send_mail(
     to_email: str, subject: str, body: str, from_email: str, username: str, password: str, server: str, port: int
-):
+) -> None:
     # Create message
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -25,11 +25,11 @@ def send_mail(
         socket.login(username, password)
         socket.sendmail(from_email, [to_email], msg.as_string())
 
-def build_mail_body():
+def build_mail_body() -> None:
     """Builds the body of the email to send to the user"""
     pass
 
-def mail_process(result_link, log_link, args):
+def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> None:
     smtp_password = read_secret("SMTP_PASSWORD")
     smtp_user = read_secret("SMTP_USERNAME")
     smtp_server = read_secret("SMTP_SERVER")
@@ -73,7 +73,7 @@ def mail_process(result_link, log_link, args):
         smtp_user,
         smtp_password,
         smtp_server,
-        smtp_port,
+        int(smtp_port),
     )
 
     print("Email sent. Process complete. ")
@@ -99,5 +99,5 @@ if __name__ == "__main__":
         username=read_secret("SMTP_USERNAME"),
         password=read_secret("SMTP_PASSWORD"),
         server=read_secret("SMTP_SERVER"),
-        port=read_secret("SMTP_PORT"),
+        port=int(read_secret("SMTP_PORT")),
     )

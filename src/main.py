@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import logging
 import time
@@ -43,7 +44,7 @@ from tasks import (
 log = get_logger(__name__)
 
 
-def process(args, input_folder: Path):
+def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
@@ -283,7 +284,7 @@ def process(args, input_folder: Path):
     return link, log_link
 
 
-def main():
+def main() -> None:
     setup_logging()
     args = process_parse_arguments()
 

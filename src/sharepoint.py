@@ -2,37 +2,41 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Optional, cast
+from urllib.parse import quote
 
 import requests
 from requests.exceptions import HTTPError
 
 from TokenManager import TokenManager, get_token_manager
-from secret import read_secret
-from urllib.parse import quote
-
 from logger import get_logger
+from secret import read_secret
+
+# Type alias for a Microsoft Graph / SharePoint JSON field value
+SharepointFieldValue = str | int | bool | None
+SharepointItem = dict[str, SharepointFieldValue]
 
 log = get_logger(__name__)
 
 
-def get_list_id(token_manager, site_id, list_name):
+def get_list_id(token_manager: TokenManager, site_id: str, list_name: str) -> str:
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return response.json()["id"]
+    return cast(str, response.json()["id"])
 
 
-def get_site_id(token_manager, domain, site_name):
+def get_site_id(token_manager: TokenManager, domain: str, site_name: str) -> str:
     url = f"https://graph.microsoft.com/v1.0/sites/{domain}:/sites/{site_name}"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    the_id = response.json()["id"]
+    the_id = cast(str, response.json()["id"])
     return the_id
 
 
-def get_drive_id(token_manager, site_id, drive_name="Documents"):
+def get_drive_id(token_manager: TokenManager, site_id: str, drive_name: str = "Documents") -> str:
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
@@ -40,19 +44,19 @@ def get_drive_id(token_manager, site_id, drive_name="Documents"):
     drives = response.json()["value"]
     for drive in drives:
         if drive["name"] == drive_name:
-            return drive["id"]
+            return cast(str, drive["id"])
     raise Exception(f"Drive '{drive_name}' no encontrado.")
 
 
-def list_folder_contents(token_manager, drive_id, path):
+def list_folder_contents(token_manager: TokenManager, drive_id: str, path: str) -> list[SharepointItem]:
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{path}:/children"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return response.json()["value"]
+    return cast(list[SharepointItem], response.json()["value"])
 
 
-def download_file(token_mananger, drive_id, item_path, local_path: Path, max_retries=5):
+def download_file(token_mananger: TokenManager, drive_id: str, item_path: str, local_path: Path, max_retries: int = 5) -> None:
     url = (
         f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/content"
     )
@@ -94,8 +98,8 @@ def download_file(token_mananger, drive_id, item_path, local_path: Path, max_ret
 
 
 def download_folder_recursive(
-    token_manager: TokenManager, drive_id, remote_path, local_root: Path
-):
+    token_manager: TokenManager, drive_id: str, remote_path: str, local_root: Path
+) -> None:
     items = list_folder_contents(token_manager, drive_id, remote_path)
     for item in items:
         name = item["name"]
@@ -108,14 +112,14 @@ def download_folder_recursive(
             download_file(token_manager, drive_id, item_path, local_path)
 
 
-def download_input_folder(token_manager, drive_id, remote_path, input_path):
+def download_input_folder(token_manager: TokenManager, drive_id: str, remote_path: str, input_path: Path) -> None:
     print("Comenzando descarga recursiva de SharePoint...")
     download_folder_recursive(token_manager, drive_id, remote_path, input_path)
     print("✅ Descarga completada.")
 
 
 # Upload functions
-def upload_file(token_manager, drive_id, remote_path, local_file_path: Path):
+def upload_file(token_manager: TokenManager, drive_id: str, remote_path: str, local_file_path: Path) -> None:
 
     log.info("Uploading from local path " + str(local_file_path) + " to " + remote_path)
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
@@ -132,7 +136,7 @@ def upload_file(token_manager, drive_id, remote_path, local_file_path: Path):
     log.info("✅ Upload Done")
 
 
-def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
+def ensure_remote_folder(token_manager: TokenManager, drive_id: str, parent_path: str, folder_name: str) -> str:
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{parent_path}:/children"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
@@ -152,8 +156,8 @@ def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
 
 
 def upload_folder_recursive(
-    token_manager, drive_id, local_folder_path: Path, remote_folder_path: str
-):
+    token_manager: TokenManager, drive_id: str, local_folder_path: Path, remote_folder_path: str
+) -> None:
 
     for root, dirs, files in os.walk(local_folder_path):
         if (
@@ -177,7 +181,7 @@ def upload_folder_recursive(
             upload_file(token_manager, drive_id, remote_file, local_file)
 
 
-def update_resultat_sharepoint_rest(item_id, link):
+def update_resultat_sharepoint_rest(item_id: str, link: str) -> None:
     """
     Updates the 'Resultat' hyperlink field in a SharePoint list item using SharePoint REST API.
     Reads configuration from your secret store.
@@ -226,7 +230,7 @@ def update_resultat_sharepoint_rest(item_id, link):
     print("✅ Successfully updated 'Resultat' field via SharePoint REST API.")
 
 
-def get_result_column(item_id):
+def get_result_column(item_id: str) -> None:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -246,7 +250,7 @@ def get_result_column(item_id):
     print(list_resp.json())
 
 
-def print_columns():
+def print_columns() -> None:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -266,7 +270,7 @@ def print_columns():
     print(list_resp.json())
 
 
-def get_list_columns():
+def get_list_columns() -> list[SharepointItem]:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -291,10 +295,10 @@ def get_list_columns():
         print(f"   Full JSON: {json.dumps(col, indent=2)}")
         print("---")
 
-    return columns
+    return cast(list[SharepointItem], columns)
 
 
-def update_list_item_field(item_id, updated_fields: dict):
+def update_list_item_field(item_id: str, updated_fields: dict[str, str]) -> SharepointItem:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -319,10 +323,10 @@ def update_list_item_field(item_id, updated_fields: dict):
             f"Failed to update item {item_id}: {response.status_code} - {response.text}"
         )
 
-    return response.json()
+    return cast(SharepointItem, response.json())
 
 
-def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
+def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: str, job_id: str) -> SharepointItem:
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
 
@@ -371,7 +375,7 @@ def get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id):
     raise ValueError(f"Job ID {job_id} not found in SharePoint List")
 
 
-def get_sharepoint_web_url(token_manager, site_id, drive_id, folder_path):
+def get_sharepoint_web_url(token_manager: TokenManager, site_id: str, drive_id: str, folder_path: str) -> Optional[str]:
     """
     Given a folder path inside the drive, returns its webUrl for user access.
     Example path: Shared Documents/_output/amarine@iciq.es
@@ -384,4 +388,4 @@ def get_sharepoint_web_url(token_manager, site_id, drive_id, folder_path):
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     item = response.json()
-    return item.get("webUrl")
+    return cast(Optional[str], item.get("webUrl"))

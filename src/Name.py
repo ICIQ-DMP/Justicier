@@ -2,23 +2,23 @@ from custom_except import ArgumentNafInvalid
 
 
 class Name:
-    def __init__(self, name, surname):
+    def __init__(self, name: str, surname: str) -> None:
         self.name = name
         self.surname = surname
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} {self.surname}"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Name):
             return False
         return self.name == other.name and self.surname == other.surname
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name + self.surname)
 
 
-def parse_name_a3(value):
+def parse_name_a3(value: str) -> Name:
     # Coupled with NAF_DNI.xlsx format
     parts = value.split(",")
     name = parts[1].strip(" ")
@@ -35,11 +35,11 @@ def parse_name_a3(value):
         )  # TODO: change exceptions
 
 
-def parse_email_a3(value):
+def parse_email_a3(value: str) -> str:
     return value.lower()
 
 
-def parse_name_sharepoint(value: str):
+def parse_name_sharepoint(value: str) -> Name:
     value = value.replace("à", "a")
     value = value.replace("â", "a")
     value = value.replace("á", "a")

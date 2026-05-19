@@ -1,3 +1,6 @@
+import argparse
+from datetime import datetime
+
 from pyfiglet import Figlet
 
 from data import unparse_date, unparse_full_date
@@ -13,7 +16,7 @@ def format_line(content: str, width: int = 119) -> str:
     return f"* {content.ljust(width - 4)} *\n"
 
 
-def get_initial_user_report(args):
+def get_initial_user_report(args: argparse.Namespace) -> str:
     figlet = Figlet(font="slant")
     ascii_logo_normal = figlet.renderText("Justicier").strip("\n").rstrip(" ")
     ascii_logo = ""
@@ -81,7 +84,7 @@ def get_initial_user_report(args):
     return user_report
 
 
-def unparse_salary_rlc_result_settlement(content, args):
+def unparse_salary_rlc_result_settlement(content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
     msg = ""
     salaries_found = 0
     for key in content.keys():
@@ -123,7 +126,7 @@ def unparse_salary_rlc_result_settlement(content, args):
     return msg
 
 
-def unparse_salary_rlc_result_delay(content, args):
+def unparse_salary_rlc_result_delay(content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
     """
     Número de nómines d´endarreriments trobades i de quin mes.
     """
@@ -168,7 +171,7 @@ def unparse_salary_rlc_result_delay(content, args):
     return msg
 
 
-def unparse_salary_rlc_result_regular(content, args):
+def unparse_salary_rlc_result_regular(content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
     """
     Numero de Nomines totals que hi ha en el periode, és a dir, si fem una busqueda de gener de 2024 a desembre de 2024
     hi ha d´haver 12 nómines una per cada mes, les d´endarreriments no compten. Aleshores hi ha d´haver comparativa de
@@ -228,7 +231,7 @@ def unparse_salary_rlc_result_regular(content, args):
     return msg
 
 
-def unparse_salary_rlc_result(content, args):
+def unparse_salary_rlc_result(content: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace) -> str:
     msg = ""
 
     for key in content.keys():
@@ -248,7 +251,7 @@ def unparse_salary_rlc_result(content, args):
     return msg
 
 
-def unparse_salary_rnt_result(content, args):
+def unparse_salary_rnt_result(content: tuple[dict[datetime, bool | list[bool]], dict[RLCType, dict[datetime, list[bool]]]], args: argparse.Namespace) -> str:
     something_wrong = False
     rnt_results = content[0]
     salaries_result = content[1][RLCType.REGULAR]
@@ -271,7 +274,7 @@ def unparse_salary_rnt_result(content, args):
     return msg
 
 
-def unparse_contract_result(content, args):
+def unparse_contract_result(content: bool, args: argparse.Namespace) -> str:
     msg = ""
     if content:
         msg += (
@@ -296,12 +299,12 @@ def unparse_contract_result(content, args):
     return msg
 
 
-def unparse_proofs_result(report_content, args):
+def unparse_proofs_result(report_content: None, args: argparse.Namespace) -> str:
     msg = "At the time, there are no implemented check for the bankproofs in the user report.\n"
     return msg
 
 
-def get_end_user_report(reports, args):
+def get_end_user_report(reports: dict[DocType, dict[RLCType, dict[datetime, list[bool]]] | dict[datetime, bool | list[bool]] | bool | None], args: argparse.Namespace) -> str:
     msg = ""
     for report_type in reports.keys():
         report_content = reports[report_type]

@@ -25,7 +25,7 @@ def get_first_log_path(log_dir: Path) -> Path:
     raise FileNotFoundError(f"No files found in directory: {log_dir}")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "-r",

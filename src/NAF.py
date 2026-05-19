@@ -1,9 +1,11 @@
 import re
+from pathlib import Path
+from typing import Callable, Iterable, TypeVar
 
 import pandas as pd
 
-from DNI import parse_dni
-from Name import parse_name_a3, parse_email_a3
+from DNI import DNI, parse_dni
+from Name import Name, parse_name_a3, parse_email_a3
 from custom_except import ArgumentNafInvalid
 from logger import get_logger
 
@@ -11,7 +13,7 @@ log = get_logger(__name__)
 
 
 class NAF:
-    def __init__(self, raw_naf):
+    def __init__(self, raw_naf: str) -> None:
         # For some random reason, a whitespace appear between province code and middle number...
         pattern = r"(\d{2})([/\-]?)(\d{8})([/\-]?)(\d{2})"
         match = re.fullmatch(pattern, str(raw_naf))
@@ -27,10 +29,10 @@ class NAF:
         self.sep2 = match.group(4)
         self.last_number = match.group(5)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.province_code}{self.middle_number}{self.last_number}"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, NAF):
             return False
         return (
@@ -39,14 +41,14 @@ class NAF:
             and self.last_number == other.last_number
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.province_code + self.middle_number + self.last_number)
 
-    def slash_dash_str(self):
+    def slash_dash_str(self) -> str:
         return f"{self.province_code}/{self.middle_number}-{self.last_number}"
 
 
-def is_naf_format_correct(naf):
+def is_naf_format_correct(naf: str) -> bool:
     """Validate that NAF has NAF format"""
     try:
         NAF(naf)  # Parse using constructor
@@ -55,18 +57,26 @@ def is_naf_format_correct(naf):
     return True
 
 
-def is_naf_present(value, valid_nafs):
+def is_naf_present(value: str, valid_nafs: Iterable[NAF]) -> bool:
     return NAF(value) in valid_nafs
 
 
-def clean_naf(naf):
+def clean_naf(naf: str) -> str:
     """Removes symbols that are not numbers in a SS number"""
     return naf.replace("/", "").replace("-", "")
 
 
+_K = TypeVar("_K")
+_V = TypeVar("_V")
+
+
 def parse_two_columns(
-    df, key: int, value: int, func_apply_key=None, func_apply_value=None
-):
+    df: pd.DataFrame,
+    key: int,
+    value: int,
+    func_apply_key: Callable[[str], _K] | None = None,
+    func_apply_value: Callable[[str], _V] | None = None,
+) -> dict[_K, _V]:
     # Column C = index 2 (DNI), Column D = index 3 (NAF)
     val_col = df[value]
     key_col = df[key]
@@ -84,31 +94,31 @@ def parse_two_columns(
     return dict(zip(key_col, val_col))
 
 
-def read_dataframe(path, skiprows, header):
+def read_dataframe(path: Path, skiprows: int, header: int | None) -> pd.DataFrame:
     # Read the Excel file, skipping the first 3 rows.
     # Column C (index 2) contains NAF/NASS ids which may start with 0 — force str
     # to prevent pandas from parsing them as int and dropping the leading zero.
     return pd.read_excel(path, skiprows=skiprows, header=header, dtype={2: str})
 
 
-def build_naf_to_dni(path):
+def build_naf_to_dni(path: Path) -> dict[NAF, DNI]:
     df = read_dataframe(path, 3, None)
     r = parse_two_columns(df, 2, 3, parse_naf, parse_dni)
 
     return r
 
 
-def build_naf_to_name(path):
+def build_naf_to_name(path: Path) -> dict[NAF, Name]:
     df = read_dataframe(path, 3, None)
     return parse_two_columns(df, 2, 1, parse_naf, parse_name_a3)
 
 
-def build_naf_to_email(path):
+def build_naf_to_email(path: Path) -> dict[NAF, str]:
     df = read_dataframe(path, 3, None)
     return parse_two_columns(df, 2, 4, parse_naf, parse_email_a3)
 
 
-def parse_naf(value):
+def parse_naf(value: str) -> NAF:
     try:
         log.trace(f"Parsing NAF: {value}")
         return NAF(value)

@@ -13,8 +13,8 @@ log = logger.get_logger(__name__)
 
 
 def get_rlc_monthly_result_structure(
-    begin: datetime, end: datetime, result_structure=None
-) -> Dict[str, List[bool]]:
+    begin: datetime, end: datetime, result_structure: List[bool] | bool | None = None
+) -> Dict[datetime, List[bool] | bool]:
     log.trace("get_rlc_monthly_result_structure params: begin: " + str(begin) + " end: " + str(end))
     current = datetime(begin.year, begin.month, 1)
 
@@ -39,7 +39,7 @@ def get_rlc_monthly_result_structure(
     return result
 
 
-def parse_salary_type(salary_file_path: Path):
+def parse_salary_type(salary_file_path: Path) -> "SalaryType":
     parsed = Path(salary_file_path).stem.split("_")[1]
     log.debug("Data parsed from filename is: " + parsed)
     t = SalaryType(parsed)
@@ -47,33 +47,33 @@ def parse_salary_type(salary_file_path: Path):
     return t
 
 
-def parse_year_salary_path(salary_file):
+def parse_year_salary_path(salary_file: str) -> datetime:
     return datetime.strptime("20" + salary_file.split("/")[1].split("_")[0][:2], "%Y")
 
 
-def parse_month_salary_path(salary_file):
+def parse_month_salary_path(salary_file: str) -> datetime:
     return datetime.strptime(
         salary_file[::-1].split("/")[0][::-1].split("_")[0][2:], "%m"
     )
 
 
-def parse_date_from_key(key: str):
+def parse_date_from_key(key: str) -> datetime:
     return datetime.strptime(key, "%Y%m")
 
 
-def unparse_year(date_obj):
+def unparse_year(date_obj: datetime) -> str:
     return date_obj.year.__str__()
 
 
-def unparse_year_month_short(d):
+def unparse_year_month_short(d: datetime) -> str:
     return unparse_year_short(d) + unparse_month(d)
 
 
-def unparse_year_month(d):
+def unparse_year_month(d: datetime) -> str:
     return unparse_year(d) + unparse_month(d)
 
 
-def unparse_year_short(date_obj):
+def unparse_year_short(date_obj: datetime) -> str:
     rep = str(date_obj.year)
     if date_obj.year >= 1000:
         return rep[2:4]
@@ -81,35 +81,35 @@ def unparse_year_short(date_obj):
         return rep
 
 
-def unparse_month(date_obj):
+def unparse_month(date_obj: datetime) -> str:
     if date_obj.month >= 10:
         return date_obj.month.__str__()
     else:
         return "0" + date_obj.month.__str__()
 
 
-def unparse_day(date_obj):
+def unparse_day(date_obj: datetime) -> str:
     if date_obj.day >= 10:
         return date_obj.day.__str__()
     else:
         return "0" + date_obj.day.__str__()
 
 
-def unparse_date(d, separator="-"):
+def unparse_date(d: datetime, separator: str = "-") -> str:
     return unparse_month(d) + separator + d.year.__str__()
 
 
-def unparse_full_date(d, separator="-"):
+def unparse_full_date(d: datetime, separator: str = "-") -> str:
     return unparse_day(d) + separator + unparse_month(d) + separator + d.year.__str__()
 
 
-def parse_date_from_salary_filename(salary_path):
+def parse_date_from_salary_filename(salary_path: str) -> datetime:
     return datetime.strptime(
         "20" + salary_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[0], "%Y%m"
     )
 
 
-def parse_salary_type_from_salary_filename(salary_file_name):
+def parse_salary_type_from_salary_filename(salary_file_name: str) -> str:
     return salary_file_name.split("_")[1]
 
 

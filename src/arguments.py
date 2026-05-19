@@ -2,6 +2,7 @@ import argparse
 import datetime
 import sys
 from pathlib import Path
+from typing import Callable, Iterable
 
 from logger import get_logger
 
@@ -11,19 +12,19 @@ except ModuleNotFoundError:
     from backports.zoneinfo import ZoneInfo  # Python <3.9
 
 
-from NAF import is_naf_present, build_naf_to_dni, parse_naf
+from NAF import NAF, is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import ArgumentDateError, UndefinedInputType, ArgumentNafInvalid, ArgumentNafNotPresent, \
     ArgumentAuthorError
 from defines import DocType, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list
-from DNI import parse_dni
-from Name import parse_name_sharepoint, parse_name_a3, parse_email_a3
+from DNI import DNI, parse_dni
+from Name import Name, parse_name_sharepoint, parse_name_a3, parse_email_a3
 
 log = get_logger(__name__)
 
 
-def get_compact_init():
+def get_compact_init() -> dict[DocType, bool]:
     return {
         DocType.SALARY: False,
         DocType.PROOFS: False,
@@ -35,17 +36,17 @@ def get_compact_init():
 
 
 # Parser functions that validate the format and type of the data
-def parse_id(value):
+def parse_id(value: str) -> str:
     return value
 
 
 def parse_date(
     value: str,
-    formatting="%Y-%m-%d",
+    formatting: str = "%Y-%m-%d",
     tz_name: str = "Europe/Madrid",
     assume_tz: str = "UTC",
     return_naive: bool = True,
-):
+) -> datetime.datetime:
     """
     Parse a date/datetime string and convert to Europe/Madrid with DST awareness.
 
@@ -85,11 +86,11 @@ def parse_date(
         ) from e
 
 
-def parse_author(author):
+def parse_author(author: str) -> str:
     return author
 
 
-def parse_compact_options(value):
+def parse_compact_options(value: str) -> dict[DocType, bool]:
     to_compact = get_compact_init()
     try:
         if "," in value:
@@ -105,7 +106,7 @@ def parse_compact_options(value):
         exit(1)
 
 
-def parse_boolean(value):
+def parse_boolean(value: bool | str | None) -> bool | str | None:
     if value:
         return value
     elif not value:
@@ -123,7 +124,7 @@ def parse_boolean(value):
     )
 
 
-def parse_input_type(value):
+def parse_input_type(value: str) -> str:
     if value == "sharepoint":
         return value
     elif value == "local":
@@ -134,7 +135,7 @@ def parse_input_type(value):
         )
 
 
-def expand_job_id(job_id):
+def expand_job_id(job_id: str) -> dict[str, str | bool | None]:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -142,7 +143,7 @@ def expand_job_id(job_id):
     return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
 
 
-def parse_arguments_helper(arg_text: str):
+def parse_arguments_helper(arg_text: str) -> None:
     log.debug(
         f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
         f"select request ID. The provided {arg_text} via argument will be ignored and the {arg_text} from "
@@ -152,7 +153,7 @@ def parse_arguments_helper(arg_text: str):
 
 # Explicit contract: these args are sourced from SharePoint when --id/--request is given.
 # Any locally supplied values for them will be warned about and then overwritten.
-_ID_OVERRIDES = {
+_ID_OVERRIDES: dict[str, Callable[[argparse.Namespace], NAF | Name | DNI | datetime.datetime | bool | str | None]] = {
     "naf": lambda a: a.naf,
     "name": lambda a: a.name,
     "target_email": lambda a: a.target_email,
@@ -166,7 +167,7 @@ _ID_OVERRIDES = {
 }
 
 
-def _warn_ignored_local_args(args):
+def _warn_ignored_local_args(args: argparse.Namespace) -> None:
     """Warn for any local arg that will be ignored because --id/--request was given."""
     for name, was_set in _ID_OVERRIDES.items():
         if was_set(args):
@@ -182,7 +183,7 @@ def parse_input_location(value: str) -> Path:
     return path
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """Parse and validate command-line arguments"""
     parser = argparse.ArgumentParser(description="Justicier")
 
@@ -293,7 +294,7 @@ def parse_arguments():
     return args
 
 
-def _populate_from_sharepoint(args, common):
+def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
     config = expand_job_id(args.request)
 
     log.trace("configuration from sharepoint: " + str(config))
@@ -342,7 +343,7 @@ def _populate_from_sharepoint(args, common):
         exit(5)
 
 
-def process_parse_arguments():
+def process_parse_arguments() -> argparse.Namespace:
     common = (
         "Error parsing arguments. Program aborting. The arguments are: "
         + str(sys.argv)
@@ -387,28 +388,28 @@ def process_parse_arguments():
 # Validations functions that check if the data from the request is valid regarding business rules
 
 
-def validate_naf(naf, valid_nafs):
+def validate_naf(naf: NAF, valid_nafs: Iterable[NAF]) -> None:
     if not is_naf_present(naf, valid_nafs):
         raise ArgumentNafNotPresent
 
 
-def is_author_present(author, valid_authors):
+def is_author_present(author: str, valid_authors: Iterable[str]) -> bool:
     return author in valid_authors
 
 
-def validate_author(author, valid_authors):
+def validate_author(author: str, valid_authors: Iterable[str]) -> None:
     if not is_author_present(author, valid_authors):
         raise ArgumentAuthorError(
             'Author "' + str(author) + " is not valid. "
         )  # more specific exception
 
 
-def validate_arguments(args, valid_nafs, valid_authors):
+def validate_arguments(args: argparse.Namespace, valid_nafs: Iterable[NAF], valid_authors: Iterable[str]) -> None:
     validate_author(args.author, valid_authors)
     validate_naf(args.naf, valid_nafs)
 
 
-def process_validate_arguments(args, naf_data_path, user_list_data_path):
+def process_validate_arguments(args: argparse.Namespace, naf_data_path: Path, user_list_data_path: Path) -> None:
     common = (
         "Error validating arguments. Program aborting. The arguments are: "
         + str(sys.argv)
