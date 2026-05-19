@@ -60,7 +60,7 @@ def is_naf_present(value, valid_nafs):
 
 
 def clean_naf(naf):
-    "Removes symbols that are not numbers in a SS number"
+    """Removes symbols that are not numbers in a SS number"""
     return naf.replace("/", "").replace("-", "")
 
 
@@ -71,19 +71,15 @@ def parse_two_columns(
     val_col = df[value]
     key_col = df[key]
     try:
-        print("before val func")
         if func_apply_value is not None:
             val_col = val_col.apply(func_apply_value)
     except Exception as e:
-        print("func apply value failed with exception: " + str(e))
+        log.error("func apply value failed with exception: " + str(e))
     try:
-        print("before key func")
         if func_apply_key is not None:
             key_col = key_col.apply(func_apply_key)
     except Exception as e:
-        print("func apply key failed with exception:  " + str(e))
-
-    print("before dictio")
+        log.error("func apply key failed with exception:  " + str(e))
 
     return dict(zip(key_col, val_col))
 
@@ -97,9 +93,7 @@ def read_dataframe(path, skiprows, header):
 
 def build_naf_to_dni(path):
     df = read_dataframe(path, 3, None)
-    print("build_naf_to_dni: before parse two cols")
     r = parse_two_columns(df, 2, 3, parse_naf, parse_dni)
-    print("build_naf_to_dni: after parse two cols")
 
     return r
 
@@ -116,7 +110,7 @@ def build_naf_to_email(path):
 
 def parse_naf(value):
     try:
-        log.debug(f"Parsing NAF: {value}")
+        log.trace(f"Parsing NAF: {value}")
         return NAF(value)
     except Exception as e:
         raise ArgumentNafInvalid("NAF is not valid" + e.__str__())

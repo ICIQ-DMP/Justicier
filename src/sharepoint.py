@@ -148,7 +148,7 @@ def ensure_remote_folder(token_manager, drive_id, parent_path, folder_name):
     if response.status_code not in (200, 201):
         response.raise_for_status()
 
-    return (parent_path.rstrip("/") + "/" + folder_name)
+    return parent_path.rstrip("/") + "/" + folder_name
 
 
 def upload_folder_recursive(

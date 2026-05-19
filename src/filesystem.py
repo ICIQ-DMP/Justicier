@@ -116,31 +116,31 @@ def compute_impersonal_id(now, args, naf_to_name):
     if args.request:
         id_str = "_" + str(args.request)
     try:
-        r = (
-            now
-            + "_"
-            + args.naf.__str__()
-            + "_"
-            + str(naf_to_name[args.naf]).replace(" ", "_")
-            + "_"
-            + args.begin.strftime("%Y-%m-%d")
-            + "_"
-            + args.end.strftime("%Y-%m-%d")
-            + id_str
-        )
-    except:
-        print("sdfafdsdf")
-        log.info("info")
-        log.error("error")
+        name = str(naf_to_name[args.naf])
+    except KeyError:
         log.debug(
             "NAF provided was not possible to be translated into name, NAF is: "
             + str(args.naf)
         )
-
+        raise KeyError
+    r = (
+        now
+        + "_"
+        + str(args.naf)
+        + "_"
+        + name.replace(" ", "_")
+        + "_"
+        + args.begin.strftime("%Y-%m-%d")
+        + "_"
+        + args.end.strftime("%Y-%m-%d")
+        + id_str
+    )
     return r
 
 
-def compute_paths(args, id_str, impersonal_id_str) -> tuple[Path, Path, Path, Path, Path]:
+def compute_paths(
+    args, id_str, impersonal_id_str
+) -> tuple[Path, Path, Path, Path, Path]:
     log_filename = id_str + ".log.txt"
     log_filename_impersonal = impersonal_id_str + ".log.txt"
 
@@ -171,7 +171,9 @@ def remove_folder(folder_path: Path):
         print(f"Error removing folder {folder_path}: {e}")
 
 
-def ensure_file_structure(current_user_folder: Path, current_justification_folder: Path):
+def ensure_file_structure(
+    current_user_folder: Path, current_justification_folder: Path
+):
     GENERAL_OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
     ensure_output_gitignore()
 
@@ -180,9 +182,17 @@ def ensure_file_structure(current_user_folder: Path, current_justification_folde
     current_user_folder.mkdir(parents=True, exist_ok=True)
     current_justification_folder.mkdir(parents=True, exist_ok=True)
 
-    (current_justification_folder / SALARIES_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
-    (current_justification_folder / PROOFS_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
-    (current_justification_folder / CONTRACTS_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
+    (current_justification_folder / SALARIES_OUTPUT_NAME).mkdir(
+        parents=True, exist_ok=True
+    )
+    (current_justification_folder / PROOFS_OUTPUT_NAME).mkdir(
+        parents=True, exist_ok=True
+    )
+    (current_justification_folder / CONTRACTS_OUTPUT_NAME).mkdir(
+        parents=True, exist_ok=True
+    )
     (current_justification_folder / RNTS_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
     (current_justification_folder / RLCS_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
-    (current_justification_folder / SALARIES_AND_PROOFS_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
+    (current_justification_folder / SALARIES_AND_PROOFS_OUTPUT_NAME).mkdir(
+        parents=True, exist_ok=True
+    )

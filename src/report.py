@@ -2,6 +2,9 @@ from pyfiglet import Figlet
 
 from data import unparse_date, unparse_full_date
 from defines import DocType, RLCType
+from logger import get_logger
+
+log = get_logger(__name__)
 
 
 def format_line(content: str, width: int = 119) -> str:
@@ -250,9 +253,7 @@ def unparse_salary_rnt_result(content, args):
     rnt_results = content[0]
     salaries_result = content[1][RLCType.REGULAR]
 
-    print("results previous to building report")
-    print(rnt_results)
-    print(salaries_result)
+    log.trace("results previous to building report: RNT results: " + str(rnt_results) + " salaries: " + str(salaries_result))
 
     msg = ""
     for key in salaries_result.keys():

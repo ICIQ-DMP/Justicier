@@ -49,7 +49,9 @@ def main():
         upload_file(
             token_manager,
             drive_id,
-            read_secret("SHAREPOINT_FOLDER_OUTPUT") + "/_admin_logs/" + supervisor_log_path.name,
+            read_secret("SHAREPOINT_FOLDER_OUTPUT")
+            + "/_admin_logs/"
+            + supervisor_log_path.name,
             supervisor_log_path,
         )
 

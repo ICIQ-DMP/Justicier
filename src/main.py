@@ -1,16 +1,21 @@
+import datetime
 import logging
 import time
-import datetime
 from pathlib import Path
-
-import pytz
 
 from NAF import build_naf_to_dni, build_naf_to_name, build_naf_to_email
 from TokenManager import get_token_manager
 from arguments import process_parse_arguments
 from chrono import elapsed_time
-from defines import *
-from filesystem import *
+from defines import SALARIES_OUTPUT_NAME, PROOFS_OUTPUT_NAME, RLCS_OUTPUT_NAME, DocType, \
+    SALARIES_AND_PROOFS_OUTPUT_NAME, CONTRACTS_OUTPUT_NAME, RNTS_OUTPUT_NAME, RNTS_AND_RLCS_OUTPUT_NAME, ROOT_FOLDER
+from filesystem import (
+    remove_folder,
+    compute_id,
+    compute_impersonal_id,
+    compute_paths,
+    ensure_file_structure,
+)
 from logger import get_logger, setup_logging
 from mail import mail_process
 from pdf import merge_pdfs, compact_folder, merge_equal_files_from_two_folders
@@ -35,14 +40,14 @@ from tasks import (
     merge_rnts_rlcs,
 )
 
+log = get_logger(__name__)
+
 
 def process(args, input_folder: Path):
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
-    tz = pytz.timezone("Europe/Madrid")
-
-    USER_LIST_DATA_PATH: Path = input_folder / "input"
+    #tz = pytz.timezone("Europe/Madrid")
 
     SALARIES_FOLDER: Path = input_folder / "_salaries"
     PROOFS_FOLDER: Path = input_folder / "_proofs"
@@ -246,9 +251,7 @@ def process(args, input_folder: Path):
         + "/"
         + impersonal_id_str,
     )
-    log.info(
-        f"Clickable SharePoint URL: {link}  "
-    )
+    log.info(f"Clickable SharePoint URL: {link}  ")
 
     SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
     upload_file(
@@ -291,9 +294,7 @@ def main():
 
     try:
         result_link, log_link = process(args, INPUT_FOLDER)
-    except (
-        ValueError
-    ) as e:
+    except ValueError as e:
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         update_list_item_field(args.request, {"Missatge_x0020_error": err})
         mail_process(result_link, log_link, args)

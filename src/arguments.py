@@ -12,7 +12,8 @@ except ModuleNotFoundError:
 
 
 from NAF import is_naf_present, build_naf_to_dni, parse_naf
-from custom_except import *
+from custom_except import ArgumentDateError, UndefinedInputType, ArgumentNafInvalid, ArgumentNafNotPresent, \
+    ArgumentAuthorError
 from defines import DocType, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list
@@ -105,9 +106,9 @@ def parse_compact_options(value):
 
 
 def parse_boolean(value):
-    if value is True:
+    if value:
         return value
-    elif value is False:
+    elif not value:
         return value
     if value is bool:
         return value

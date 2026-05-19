@@ -2,9 +2,12 @@ import sys
 from pathlib import Path
 
 from filesystem import read_file_content, read_env_var
+from logger import get_logger
 from vault import read_vault_secret
 
 _PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
+
+log = get_logger(__name__)
 
 
 def read_secret(secret_name):
@@ -30,5 +33,5 @@ def read_secret(secret_name):
             print(e)
             continue
 
-    print(f"Could not read {secret_name} from any source")
+    log.error(f"Could not read {secret_name} from any source")
     sys.exit(1)

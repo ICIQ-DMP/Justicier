@@ -16,8 +16,18 @@ from data import (
     unparse_year_month_short,
     parse_salary_type_from_salary_filename,
 )
-from defines import *
-from filesystem import *
+from defines import (
+    RLCS_OUTPUT_NAME,
+    SALARIES_OUTPUT_NAME,
+    SalaryType,
+    RegularSalaryType,
+    RLCType,
+    CONTRACTS_OUTPUT_NAME,
+    RNTS_OUTPUT_NAME,
+)
+
+from filesystem import flatten_dirs, list_dir
+
 from pdf import (
     get_matching_page,
     write_page,
@@ -54,7 +64,8 @@ def process_rlc_aux(
             + " RLC of type "
             + rlc_subtype
             + " was not found in the expected location "
-            + str(rlc_n_path) + ". Skipping merge of this salary file."
+            + str(rlc_n_path)
+            + ". Skipping merge of this salary file."
         )
         raise ValueError("File was not detected")  # TODO custom except
 
@@ -160,7 +171,9 @@ def process_salaries_with_rlc(
     salaries_folder_path: Path, rlc_folder_path: Path, naf_dir: Path, naf, begin, end
 ):
     regular_monthly_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
-    regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
+    regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(
+        begin, end
+    )
     delay_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
 
     salary_files = flatten_dirs(salaries_folder_path)
@@ -175,7 +188,7 @@ def process_salaries_with_rlc(
                 f"Salary file {salary_file} is selected, because its date is {unparse_date(dir_date, '-')}."
             )
         else:
-            log.debug(
+            log.trace(
                 f"Salary file {salary_file} is not selected, because its date is {unparse_date(dir_date, '-')}."
             )
 
@@ -218,7 +231,7 @@ def process_salaries_with_rlc(
                     naf_dir
                     / SALARIES_OUTPUT_NAME
                     / f"{salary_date.year}{unparse_month(salary_date)}_"
-                      f"{salary_file_name.split('_')[1].split('.')[0]}_{index}.pdf"
+                    f"{salary_file_name.split('_')[1].split('.')[0]}_{index}.pdf"
                 )
                 index += 1
 
@@ -333,7 +346,7 @@ def process_proofs(
         dir_date = parse_date(bankproof_folder.name[:6], "%m%Y")
         if begin <= dir_date <= end:
             bankproof_folders_selected.append(bankproof_folder)
-            log.info(
+            log.debug(
                 "Proof folder "
                 + str(bankproof_folder)
                 + " is selected, because its date is "
@@ -344,15 +357,15 @@ def process_proofs(
     for bankproof_folder in bankproof_folders_selected:
         bank = "_".join(bankproof_folder.name.split("_")[1:])
         proof_date = parse_date(bankproof_folder.name[:6], "%m%Y")
-        log.debug("Working with folder " + str(bankproof_folder) + ". Bank type is " + bank)
+        log.trace(
+            "Working with folder " + str(bankproof_folder) + ". Bank type is " + bank
+        )
         if (
             bank.__eq__("BBVA")
             or bank.__eq__("BBVA_endarreriments")
             or bank.__eq__("BBVA_FINIQUITO")
         ):
-            for bankproof_file in list_dir(
-                proofs_folder_path / bankproof_folder
-            ):
+            for bankproof_file in list_dir(proofs_folder_path / bankproof_folder):
                 try:
                     page = get_matching_page(
                         proofs_folder_path / bankproof_folder / bankproof_file,
@@ -360,7 +373,7 @@ def process_proofs(
                         "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
                     )
                 except ValueError as e:
-                    log.debug(
+                    log.trace(
                         "DNI "
                         + str(naf_to_dni[naf])
                         + " not detected in "
@@ -438,9 +451,7 @@ def process_proofs(
             continue
 
 
-def process_contracts(
-    contracts_folder_path: Path, naf_dir: Path, naf, begin, end
-):
+def process_contracts(contracts_folder_path: Path, naf_dir: Path, naf, begin, end):
     found = False
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
@@ -451,11 +462,11 @@ def process_contracts(
         begin_date = parse_date("20" + dates[1], "%Y%m")
         if len(dates) == 3:
             if dates[2] == "A":
-                end_date = datetime.datetime.max
+                end_date = datetime.max
             else:
                 end_date = parse_date("20" + dates[2], "%Y%m")
         elif len(dates) == 2:
-            end_date = datetime.datetime.max
+            end_date = datetime.max
         else:
             log.error(
                 "expected 3 fields in the name of the file "
@@ -516,14 +527,11 @@ def process_RNTs(rnts_folder_path: Path, naf_dir: Path, naf, begin, end):
     rnt_files = flatten_dirs(rnts_folder_path)
     rnt_files.sort()
     for rnt_file in rnt_files:
-        file_date = parse_date(
-            "20" + rnt_file.name[:4], "%Y%m", return_naive=True
-        )
+        file_date = parse_date("20" + rnt_file.name[:4], "%Y%m", return_naive=True)
         if begin <= file_date <= end:
             rnt_file_name = rnt_file.name
             rnt_file_name_without_extension = Path(rnt_file_name).stem
             rnt_path = rnts_folder_path / str(file_date.year) / rnt_file_name
-            rnt_partial_path_destination = naf_dir / RNTS_OUTPUT_NAME / rnt_file_name
             log.info(
                 "RNT file "
                 + str(rnt_path)
@@ -666,14 +674,14 @@ def complete_arguments(
             if args.request:
                 update_list_item_field(args.request, {"DNI": str(args.dni)})
         else:
-            print(
-                "WARNING: DNI is defined but NAF is also defined. DNI will be ignored"
+            log.warning(
+                "DNI is defined but NAF is also defined. DNI will be ignored"
             )
         if not args.name:
             args.name = NAF_TO_NAME[args.naf]
         else:
-            print(
-                "WARNING: Name is defined but NAF is also defined. Name will be ignored"
+            log.warning(
+                "Name is defined but NAF is also defined. Name will be ignored"
             )
         return
     if args.dni:
@@ -686,8 +694,8 @@ def complete_arguments(
             if args.request:
                 update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
         else:
-            print(
-                "WARNING: Name is defined but DNI is also defined. Name will be ignored"
+            log.warning(
+                "Name is defined but DNI is also defined. Name will be ignored"
             )
         return
     if args.target_email:

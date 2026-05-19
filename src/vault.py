@@ -3,6 +3,8 @@ import requests
 import urllib3
 from pathlib import Path
 
+from logger import get_logger
+
 _VAULT_BASE_PATH = "secret/data/justicier/runtime"
 
 # Maps app-level secret names to (vault subpath, vault field key)
@@ -30,6 +32,8 @@ _SECRET_MAP = {
 
 
 _PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
+
+log = get_logger(__name__)
 
 
 def _read_credential(name):
@@ -129,7 +133,7 @@ def read_vault_secret(secret_name):
     Raises ValueError if the field exists but is empty.
     Raises requests.HTTPError / ConnectionError on network / auth failures.
     """
-    print("requested secret from vault: " + secret_name)
+    log.trace("requested secret from vault: " + secret_name)
     global _client
     if _client is None:
         _client = _VaultClient()
