@@ -294,50 +294,98 @@ def parse_arguments() -> argparse.Namespace:
     return args
 
 
-def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
-    config = expand_job_id(args.request)
+def _validate_required_sharepoint_fields(config: SharepointItem) -> None:
+    """
+    Step 2 – Required-field validation.
 
+    Receives the raw SharepointItem returned by extraction (step 1) and checks
+    that every field that is mandatory for the process to proceed is present
+    (non-None).
+
+    Responsibility: presence checks only — no type conversion, no business-rule
+    checks.  Raises domain exceptions (ArgumentDateError, ArgumentAuthorError)
+    when a required field is absent, so the caller can surface a meaningful error
+    message without mixing concerns into the parsing layer.
+    """
+    if config[SharepointListFields.BEGIN] is None:
+        raise ArgumentDateError("Field 'begin' is missing from SharePoint item")
+    if config[SharepointListFields.END] is None:
+        raise ArgumentDateError("Field 'end' is missing from SharePoint item")
+    if config[SharepointListFields.AUTHOR_NAME] is None:
+        raise ArgumentAuthorError("Field 'author' is missing from SharePoint item")
+
+
+def _parse_sharepoint_fields(config: SharepointItem) -> dict:
+    """
+    Step 3 – Format parsing.
+
+    Receives a raw SharepointItem whose required fields have already been
+    validated (step 2) and converts each raw string value into its typed domain
+    representation.
+
+    Responsibility: type conversion only — no None-presence checks (already
+    handled in step 2) and no business-rule validation (handled in step 4).
+    Optional fields are included in the returned dict only when their raw value
+    is truthy, so the caller can detect which fields were actually populated and
+    avoid overwriting argparse defaults with None.
+
+    Raises format exceptions (ArgumentDateError, ArgumentNafInvalid, …) when a
+    field value cannot be converted into the expected type.
+    """
+    parsed: dict = {}
+
+    if config[SharepointListFields.NAF]:
+        parsed["naf"] = parse_naf(str(config[SharepointListFields.NAF]))
+    if config[SharepointListFields.TARGET_NAME]:
+        parsed["name"] = parse_name_sharepoint(str(config[SharepointListFields.TARGET_NAME]))
+    if config[SharepointListFields.TARGET_EMAIL]:
+        parsed["target_email"] = str(config[SharepointListFields.TARGET_EMAIL])
+    if config[SharepointListFields.DNI]:
+        parsed["dni"] = parse_dni(str(config[SharepointListFields.DNI]))
+
+    # Required fields — guaranteed non-None after step 2
+    parsed["begin"] = parse_date(
+        str(config[SharepointListFields.BEGIN]), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+    ).replace(tzinfo=None)
+    parsed["end"] = parse_date(
+        str(config[SharepointListFields.END]), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+    ).replace(tzinfo=None)
+    parsed["title"] = config[SharepointListFields.REQUEST_TITLE]
+    parsed["author"] = parse_author(str(config[SharepointListFields.AUTHOR_NAME]))
+    parsed["author_email"] = config[SharepointListFields.AUTHOR_EMAIL]
+
+    parsed["merge_salary"] = parse_boolean(config[SharepointListFields.MERGE_SALARY_BANKPROOF])
+    if parse_boolean(config[SharepointListFields.MERGE_RESULTS]):  # TODO use a column for each fusion
+        compact_default = get_compact_init()
+        for key in compact_default.keys():
+            compact_default[key] = True
+        parsed["merge_result"] = compact_default
+    parsed["merge_rnt_rlc"] = parse_boolean(config[SharepointListFields.MERGE_RLC_RNT])
+
+    return parsed
+
+
+def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
+    """
+    Orchestrates the SharePoint population pipeline (steps 1–3) and writes the
+    resulting typed values into the argparse Namespace.
+
+    Steps performed in order:
+      1. Extraction            – fetch the raw SharepointItem via expand_job_id().
+      2. Required-field check  – delegate to _validate_required_sharepoint_fields().
+      3. Format parsing        – delegate to _parse_sharepoint_fields().
+
+    Responsibility: coordination and error handling only — the individual steps
+    carry no knowledge of each other.  Catches domain and format exceptions raised
+    by steps 2–3, prints a user-friendly message, and exits with the appropriate
+    error code.  Only fields that were present in SharePoint are written to args;
+    optional absent fields keep whatever default was set by parse_arguments().
+    """
+    config = expand_job_id(args.request)
     log.trace("configuration from sharepoint: " + str(config))
     try:
-        if config[SharepointListFields.NAF]:
-            args.naf = parse_naf(str(config[SharepointListFields.NAF]))
-        if config[SharepointListFields.TARGET_NAME]:
-            args.name = parse_name_sharepoint(str(config[SharepointListFields.TARGET_NAME]))
-        if config[SharepointListFields.TARGET_EMAIL]:
-            args.target_email = str(config[SharepointListFields.TARGET_EMAIL])
-        if config[SharepointListFields.DNI]:
-            args.dni = parse_dni(str(config[SharepointListFields.DNI]))
-
-        raw_begin = config[SharepointListFields.BEGIN]
-        if raw_begin is None:
-            raise ArgumentDateError("Field 'begin' is missing from SharePoint item")
-        args.begin = parse_date(
-            str(raw_begin), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
-        ).replace(tzinfo=None)
-
-        raw_end = config[SharepointListFields.END]
-        if raw_end is None:
-            raise ArgumentDateError("Field 'end' is missing from SharePoint item")
-        args.end = parse_date(
-            str(raw_end), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
-        ).replace(tzinfo=None)
-
-        args.title = config[SharepointListFields.REQUEST_TITLE]
-
-        raw_author = config[SharepointListFields.AUTHOR_NAME]
-        if raw_author is None:
-            raise ArgumentAuthorError("Field 'author' is missing from SharePoint item")
-        args.author = parse_author(str(raw_author))
-
-        args.author_email = config[SharepointListFields.AUTHOR_EMAIL]
-
-        args.merge_salary = parse_boolean(config[SharepointListFields.MERGE_SALARY_BANKPROOF])
-        if parse_boolean(config[SharepointListFields.MERGE_RESULTS]):  # TODO use a column for each fusion
-            compact_default = get_compact_init()
-            for key in compact_default.keys():
-                compact_default[key] = True
-            args.merge_result = compact_default
-        args.merge_rnt_rlc = parse_boolean(config[SharepointListFields.MERGE_RLC_RNT])
+        _validate_required_sharepoint_fields(config)
+        parsed = _parse_sharepoint_fields(config)
     except ArgumentNafInvalid as e:
         print("The NAF provided is invalid. Internal error is " + e.__str__())
         print(common)
@@ -350,6 +398,9 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
         print("Arguments could not have been parsed. Internal error is " + e.__str__())
         print(common)
         exit(5)
+
+    for field, value in parsed.items():
+        setattr(args, field, value)
 
 
 def process_parse_arguments() -> argparse.Namespace:
@@ -398,15 +449,36 @@ def process_parse_arguments() -> argparse.Namespace:
 
 
 def validate_naf(naf: NAF, valid_nafs: Iterable[NAF]) -> None:
+    """
+    Step 4 – Business-rule validation for NAF.
+
+    Checks whether the already-parsed NAF value is allowed by the business rules
+    (i.e. it exists in the known-employee list).
+
+    Responsibility: domain constraint checks only — the NAF has already been
+    converted to its typed form in step 3.  Raises ArgumentNafNotPresent when
+    the NAF is not found in the authorised set.
+    """
     if not is_naf_present(naf, valid_nafs):
         raise ArgumentNafNotPresent
 
 
 def is_author_present(author: str, valid_authors: Iterable[str]) -> bool:
+    """Return True if *author* appears in the iterable of authorised authors."""
     return author in valid_authors
 
 
 def validate_author(author: str, valid_authors: Iterable[str]) -> None:
+    """
+    Step 4 – Business-rule validation for author.
+
+    Checks whether the already-parsed author value is allowed by the business
+    rules (i.e. it belongs to the list of authorised requesters).
+
+    Responsibility: domain constraint checks only — the author string has already
+    been normalised in step 3.  Raises ArgumentAuthorError when the author is not
+    found in the authorised set.
+    """
     if not is_author_present(author, valid_authors):
         raise ArgumentAuthorError(
             'Author "' + str(author) + " is not valid. "
@@ -414,6 +486,13 @@ def validate_author(author: str, valid_authors: Iterable[str]) -> None:
 
 
 def validate_arguments(args: argparse.Namespace, valid_nafs: Iterable[NAF], valid_authors: Iterable[str]) -> None:
+    """
+    Step 4 – Business-rule validation for all arguments.
+
+    Delegates to the individual field validators (validate_author, validate_naf)
+    after all format parsing (step 3) has been completed.  Raises the first
+    domain exception encountered.
+    """
     validate_author(args.author, valid_authors)
     validate_naf(args.naf, valid_nafs)
 
