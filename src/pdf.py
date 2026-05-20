@@ -108,18 +108,18 @@ def parse_dates_from_delayed_salary(page: PyPDF2.PageObject) -> tuple[datetime, 
 
     text = page.extract_text()
     if not text:
-        pass  # TODO exceptions
+        raise ValueError("Could not extract text from delayed salary page")
 
     match = pattern.search(text)
     if not match:
-        pass  # TODO exceptions
+        raise ValueError("Could not find date range in delayed salary page")
 
-    match = match.group(0)
-    match = match.replace("\n", "")
+    match_str = match.group(0)
+    match_str = match_str.replace("\n", "")
 
     locale.setlocale(locale.LC_TIME, "es_ES.UTF-8")
 
-    start_str, end_str = match.split(" a ")
+    start_str, end_str = match_str.split(" a ")
 
     start_date = datetime.strptime(start_str.strip(), "%d %B %Y")
     end_date = datetime.strptime(end_str.strip(), "%d %B %Y")
