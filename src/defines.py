@@ -26,10 +26,9 @@ NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 
 DATE_FORMAT = "%d/%m/%Y"
 
-class SharepointValues(Enum):
+class SharepointListFields(Enum):
     """Maps semantic Python names to the internal SharePoint field names used by the Graph API."""
     REQUEST_TITLE = "Title"
-    ID_TYPE = "Tipusdidentificador"
     NAF = "NAF"
     TARGET_NAME = "Nomdelapersona"
     TARGET_EMAIL = "PersonaEmail"

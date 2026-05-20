@@ -9,12 +9,13 @@ import requests
 from requests.exceptions import HTTPError
 
 from TokenManager import TokenManager, get_token_manager
+from defines import SharepointListFields
 from logger import get_logger
 from secret import read_secret
 
 # Type alias for a Microsoft Graph / SharePoint JSON field value
-SharepointFieldValue = str | int | bool | None
-SharepointItem = dict[str, SharepointFieldValue]
+SharepointListFieldType = str | int | bool | None
+SharepointItem = dict[SharepointListFields, SharepointListFieldType]
 
 log = get_logger(__name__)
 
@@ -76,7 +77,7 @@ def download_file(token_mananger: TokenManager, drive_id: str, item_path: str, l
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-            print(f"✅ Descargado: {item_path}")
+            log.trace(f"Downloaded: {item_path}")
             return
 
         except HTTPError as e:
@@ -85,15 +86,15 @@ def download_file(token_mananger: TokenManager, drive_id: str, item_path: str, l
             if response.status_code == 503:
                 retry_count += 1
                 wait_time = backoff * retry_count
-                print(
-                    f"⚠️ Error 503 en '{item_path}' - Reintentando en {wait_time}s (intento {retry_count}/{max_retries})..."
+                log.warning(
+                    f"Error 503 in '{item_path}' - retrying in {wait_time}s (attempt {retry_count}/{max_retries})..."
                 )
                 time.sleep(wait_time)
             else:
-                raise e  # Si no es 503, relanzamos la excepción inmediatamente
+                raise e  # If it is not 503, reraise exception immediately
 
     raise RuntimeError(
-        f"❌ Fallo permanente al descargar '{item_path}' tras {max_retries} reintentos."
+        f"Permanent fail when downloading '{item_path}' after {max_retries} attempts."
     )
 
 
@@ -334,8 +335,7 @@ def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: 
     # Build query in a clearer way: expand fields and select only needed fields
     # Note: requests will correctly encode $ and parentheses in params
     select_fields = (
-        "Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,NAF,"
-        "DNI,DataInici,Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,SolicitantEmail,PersonaEmail,id"
+        ",".join(v.value for v in SharepointListFields)
     )
 
     params = {
