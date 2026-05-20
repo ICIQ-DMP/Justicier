@@ -26,6 +26,10 @@ NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 
 DATE_FORMAT = "%d/%m/%Y"
 
+class SharepointValues(Enum):
+    REQUEST_TITLE = "Title"
+    # todo
+#Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,SolicitantEmail,PersonaEmail,id
 
 class DocType(Enum):
     SALARY = "salary"

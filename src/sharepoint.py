@@ -329,7 +329,6 @@ def update_list_item_field(item_id: str, updated_fields: dict[str, str]) -> Shar
 def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: str, job_id: str) -> SharepointItem:
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
-
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
 
     # Build query in a clearer way: expand fields and select only needed fields
