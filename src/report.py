@@ -304,7 +304,7 @@ def unparse_proofs_result(report_content: None, args: argparse.Namespace) -> str
     return msg
 
 
-def get_end_user_report(reports: dict[DocType, dict[RLCType, dict[datetime, list[bool]]] | dict[datetime, bool | list[bool]] | bool | None], args: argparse.Namespace) -> str:
+def get_end_user_report(reports: dict[DocType, dict[datetime, bool | list[bool]]], args: argparse.Namespace) -> str:
     msg = ""
     for report_type in reports.keys():
         report_content = reports[report_type]

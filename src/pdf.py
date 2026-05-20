@@ -46,11 +46,11 @@ def write_page(page: PyPDF2.PageObject, path: Path) -> None:
 
 
 def get_matching_pages(
-    pdf_path: Path, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}"
+    pdf_path: Path, query_string: str, pattern_str: str = r"\d{2}/\d{8}-\d{2}"
 ) -> List[Tuple[PyPDF2.PageObject, int]]:
     reader = PdfReader(pdf_path)
 
-    pattern = re.compile(pattern)
+    pattern = re.compile(pattern_str)
     pages = []
 
     for page_num, page in enumerate(reader.pages):
@@ -74,11 +74,11 @@ def get_matching_pages(
 
 
 def get_matching_page(
-    pdf_path: Path, query_string: str, pattern: str = r"\d{2}/\d{8}-\d{2}"
+    pdf_path: Path, query_string: str, pattern_str: str = r"\d{2}/\d{8}-\d{2}"
 ) -> PyPDF2.PageObject:
     reader = PdfReader(pdf_path)
 
-    pattern = re.compile(pattern)
+    pattern = re.compile(pattern_str)
 
     for page_num, page in enumerate(reader.pages):
         text = page.extract_text()
@@ -132,8 +132,8 @@ def is_monthly_salary(salary_page: PyPDF2.PageObject) -> bool:
     if not text:
         return False
 
-    pattern = r".*Mensual -.*"
-    pattern = re.compile(pattern)
+    pattern_str = r".*Mensual -.*"
+    pattern = re.compile(pattern_str)
 
     match = pattern.findall(text)
 
@@ -155,8 +155,8 @@ def is_settlement_salary(salary_page: PyPDF2.PageObject) -> bool:
     if not text:
         return False
 
-    pattern = r"Vacaciones Finiquito"
-    pattern = re.compile(pattern)
+    pattern_str = r"Vacaciones Finiquito"
+    pattern = re.compile(pattern_str)
 
     match = pattern.findall(text)
     if match:

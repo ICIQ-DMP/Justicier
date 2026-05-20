@@ -113,9 +113,9 @@ def download_folder_recursive(
 
 
 def download_input_folder(token_manager: TokenManager, drive_id: str, remote_path: str, input_path: Path) -> None:
-    print("Comenzando descarga recursiva de SharePoint...")
+    log.info("Comenzando descarga recursiva de SharePoint...")
     download_folder_recursive(token_manager, drive_id, remote_path, input_path)
-    print("✅ Descarga completada.")
+    log.info("✅ Descarga completada.")
 
 
 # Upload functions
