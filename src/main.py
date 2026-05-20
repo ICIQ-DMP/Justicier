@@ -288,10 +288,9 @@ def main() -> None:
     setup_logging()
     args = process_parse_arguments()
 
+    INPUT_FOLDER: Path = ROOT_FOLDER / "input"
     if args.input_location:
-        INPUT_FOLDER: Path = args.input_location
-    else:
-        INPUT_FOLDER: Path = ROOT_FOLDER / "input"
+        INPUT_FOLDER = args.input_location
 
     try:
         result_link, log_link = process(args, INPUT_FOLDER)

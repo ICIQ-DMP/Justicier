@@ -4,17 +4,26 @@ Frontier
 
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 
 import logger
 from defines import SalaryType
 
 log = logger.get_logger(__name__)
 
-
 def get_rlc_monthly_result_structure(
-    begin: datetime, end: datetime, result_structure: List[bool] | bool | None = None
-) -> Dict[datetime, List[bool] | bool]:
+    begin: datetime, end: datetime
+) -> Dict[datetime, List[bool]]:
+    return get_monthly_result_structure(begin, end, [False, False, False])
+
+def get_rnt_monthly_result_structure(
+    begin: datetime, end: datetime
+) -> Dict[datetime, bool]:
+    return get_monthly_result_structure(begin, end, False)
+
+def get_monthly_result_structure(
+    begin: datetime, end: datetime, result_structure: Any
+) -> Dict[datetime, Any]:
     log.trace("get_rlc_monthly_result_structure params: begin: " + str(begin) + " end: " + str(end))
     current = datetime(begin.year, begin.month, 1)
 
@@ -23,12 +32,9 @@ def get_rlc_monthly_result_structure(
         log.trace("Current datetime is: " + str(current))
         key = datetime.strptime(str(current.year * 100 + current.month), "%Y%m")
         log.trace("Parsed key is: " + str(key))
-        if result_structure is None:
-            result[key] = [False, False, False]
-        else:
-            result[key] = (
-                result_structure  # Monthly salary found, RLC L00N found, RLC L00P found
-            )
+        result[key] = (
+            result_structure  # Monthly salary found, RLC L00N found, RLC L00P found
+        )
         # Move to next month
         if current.month == 12:
             current = datetime(current.year + 1, 1, 1)
