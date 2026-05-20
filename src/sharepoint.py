@@ -334,7 +334,7 @@ def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: 
     # Build query in a clearer way: expand fields and select only needed fields
     # Note: requests will correctly encode $ and parentheses in params
     select_fields = (
-        "Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,"
+        "Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,NAF,"
         "DNI,DataInici,Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,SolicitantEmail,PersonaEmail,id"
     )
 
@@ -353,7 +353,6 @@ def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: 
     if str(list_resp.json()["fields"].get("id")) == str(job_id):
         data = {
             "Title": list_resp.json()["fields"].get("Title"),
-            "id_type": list_resp.json()["fields"].get("Tipusdidentificador"),
             "NAF": list_resp.json()["fields"].get("NAF"),
             "name": list_resp.json()["fields"].get("Nomdelapersona"),
             "target_email": list_resp.json()["fields"].get("PersonaEmail"),

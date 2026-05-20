@@ -27,9 +27,20 @@ NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 DATE_FORMAT = "%d/%m/%Y"
 
 class SharepointValues(Enum):
+    """Maps semantic Python names to the internal SharePoint field names used by the Graph API."""
     REQUEST_TITLE = "Title"
-    # todo
-#Title,Nomdelapersona,Fusi_x00f3_NominaiJustificantBan,Tipusdidentificador,NAF,DNI,DataInici,Datafinal,juntarpdfs,Fusi_x00f3_RLCRNT,Sol_x00b7_licitant,SolicitantEmail,PersonaEmail,id
+    ID_TYPE = "Tipusdidentificador"
+    NAF = "NAF"
+    TARGET_NAME = "Nomdelapersona"
+    TARGET_EMAIL = "PersonaEmail"
+    DNI = "DNI"
+    BEGIN = "DataInici"
+    END = "Datafinal"
+    AUTHOR_NAME = "Sol_x00b7_licitant"
+    AUTHOR_EMAIL = "SolicitantEmail"
+    MERGE_SALARY_BANKPROOF = "Fusi_x00f3_NominaiJustificantBan"
+    MERGE_RESULTS = "juntarpdfs"
+    MERGE_RLC_RNT = "Fusi_x00f3_RLCRNT"
 
 class DocType(Enum):
     SALARY = "salary"
