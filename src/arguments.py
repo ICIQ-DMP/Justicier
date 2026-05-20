@@ -17,7 +17,7 @@ from custom_except import ArgumentDateError, UndefinedInputType, ArgumentNafInva
     ArgumentAuthorError
 from defines import DocType, from_string
 from secret import read_secret
-from sharepoint import get_parameters_from_list
+from sharepoint import get_parameters_from_list, SharepointItem
 from DNI import DNI, parse_dni
 from Name import Name, parse_name_sharepoint, parse_name_a3, parse_email_a3
 
@@ -135,7 +135,7 @@ def parse_input_type(value: str) -> str:
         )
 
 
-def expand_job_id(job_id: str) -> dict[str, str | bool | None]:
+def expand_job_id(job_id: str) -> SharepointItem:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -431,16 +431,18 @@ def process_validate_arguments(args: argparse.Namespace, naf_data_path: Path, us
     except ArgumentNafNotPresent as e:
         print(
             "The NAF provided is valid but is not present in "
-            + naf_data_path
+            + str(naf_data_path)
             + ". Internal error is "
-            + e.__str__()
+            + str(e)
+            + ". Common error is: "
+            + common
         )
-        print(common)
         exit(1)
     except ArgumentAuthorError as e:
-        print(
+        log.error(
             "The author is not present in the accepted user list. Internal error is "
-            + e.__str__()
+            + str(e)
+            + ". Common error is: "
+            + common
         )
-        print(common)
         exit(4)

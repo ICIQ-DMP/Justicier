@@ -526,7 +526,7 @@ def process_contracts(contracts_folder_path: Path, naf_dir: Path, naf: NAF, begi
     return found
 
 
-def process_RNTs(rnts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime) -> dict[datetime, bool | list[bool]]:
+def process_RNTs(rnts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime) -> dict[datetime, bool]:
     rnts_found = get_rnt_monthly_result_structure(begin, end)
 
     rnt_files = flatten_dirs(rnts_folder_path)

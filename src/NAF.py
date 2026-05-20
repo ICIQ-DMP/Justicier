@@ -57,8 +57,8 @@ def is_naf_format_correct(naf: str) -> bool:
     return True
 
 
-def is_naf_present(value: str, valid_nafs: Iterable[NAF]) -> bool:
-    return NAF(value) in valid_nafs
+def is_naf_present(value: NAF, valid_nafs: Iterable[NAF]) -> bool:
+    return value in valid_nafs
 
 
 def clean_naf(naf: str) -> str:
