@@ -28,6 +28,7 @@ DATE_FORMAT = "%d/%m/%Y"
 
 class SharepointListFields(Enum):
     """Maps semantic Python names to the internal SharePoint field names used by the Graph API."""
+    ID = "id"
     REQUEST_TITLE = "Title"
     NAF = "NAF"
     TARGET_NAME = "Nomdelapersona"

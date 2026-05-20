@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 from NAF import NAF, is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import ArgumentDateError, UndefinedInputType, ArgumentNafInvalid, ArgumentNafNotPresent, \
     ArgumentAuthorError
-from defines import DocType, from_string
+from defines import DocType, SharepointListFields, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list, SharepointItem
 from DNI import DNI, parse_dni
@@ -299,36 +299,45 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
 
     log.trace("configuration from sharepoint: " + str(config))
     try:
-        if config["NAF"]:
-            args.naf = parse_naf(config["NAF"])
-        if config["name"]:
-            args.name = parse_name_sharepoint(config["name"])
-        if config["target_email"]:
-            args.target_email = config["target_email"]
-        if config["DNI"]:
-            args.dni = parse_dni(config["DNI"])
+        if config[SharepointListFields.NAF]:
+            args.naf = parse_naf(str(config[SharepointListFields.NAF]))
+        if config[SharepointListFields.TARGET_NAME]:
+            args.name = parse_name_sharepoint(str(config[SharepointListFields.TARGET_NAME]))
+        if config[SharepointListFields.TARGET_EMAIL]:
+            args.target_email = str(config[SharepointListFields.TARGET_EMAIL])
+        if config[SharepointListFields.DNI]:
+            args.dni = parse_dni(str(config[SharepointListFields.DNI]))
 
+        raw_begin = config[SharepointListFields.BEGIN]
+        if raw_begin is None:
+            raise ArgumentDateError("Field 'begin' is missing from SharePoint item")
         args.begin = parse_date(
-            config["begin"], "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+            str(raw_begin), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
         ).replace(tzinfo=None)
 
+        raw_end = config[SharepointListFields.END]
+        if raw_end is None:
+            raise ArgumentDateError("Field 'end' is missing from SharePoint item")
         args.end = parse_date(
-            config["end"], "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+            str(raw_end), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
         ).replace(tzinfo=None)
 
-        args.title = config["Title"]
+        args.title = config[SharepointListFields.REQUEST_TITLE]
 
-        args.author = parse_author(config["author"])
+        raw_author = config[SharepointListFields.AUTHOR_NAME]
+        if raw_author is None:
+            raise ArgumentAuthorError("Field 'author' is missing from SharePoint item")
+        args.author = parse_author(str(raw_author))
 
-        args.author_email = config["author_email"]
+        args.author_email = config[SharepointListFields.AUTHOR_EMAIL]
 
-        args.merge_salary = parse_boolean(config["merge_salary_bankproof"])
-        if parse_boolean(config["merge_results"]):  # TODO use a column for each fusion
+        args.merge_salary = parse_boolean(config[SharepointListFields.MERGE_SALARY_BANKPROOF])
+        if parse_boolean(config[SharepointListFields.MERGE_RESULTS]):  # TODO use a column for each fusion
             compact_default = get_compact_init()
             for key in compact_default.keys():
                 compact_default[key] = True
             args.merge_result = compact_default
-        args.merge_rnt_rlc = parse_boolean(config["merge_RLC_RNT"])
+        args.merge_rnt_rlc = parse_boolean(config[SharepointListFields.MERGE_RLC_RNT])
     except ArgumentNafInvalid as e:
         print("The NAF provided is invalid. Internal error is " + e.__str__())
         print(common)

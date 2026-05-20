@@ -114,9 +114,9 @@ def download_folder_recursive(
 
 
 def download_input_folder(token_manager: TokenManager, drive_id: str, remote_path: str, input_path: Path) -> None:
-    log.info("Comenzando descarga recursiva de SharePoint...")
+    log.info("Starting recusive download from SharePoint...")
     download_folder_recursive(token_manager, drive_id, remote_path, input_path)
-    log.info("✅ Descarga completada.")
+    log.info("Download completed.")
 
 
 # Upload functions
@@ -327,7 +327,7 @@ def update_list_item_field(item_id: str, updated_fields: dict[str, str]) -> Shar
     return cast(SharepointItem, response.json())
 
 
-def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: str, job_id: str) -> SharepointItem:
+def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: str, job_id: int) -> SharepointItem:
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
@@ -349,28 +349,11 @@ def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: 
     )
     list_resp.raise_for_status()
 
-    # Search for the job ID
-    if str(list_resp.json()["fields"].get("id")) == str(job_id):
-        data = {
-            "Title": list_resp.json()["fields"].get("Title"),
-            "NAF": list_resp.json()["fields"].get("NAF"),
-            "name": list_resp.json()["fields"].get("Nomdelapersona"),
-            "target_email": list_resp.json()["fields"].get("PersonaEmail"),
-            "DNI": list_resp.json()["fields"].get("DNI"),
-            "begin": list_resp.json()["fields"].get("DataInici"),
-            "end": list_resp.json()["fields"].get("Datafinal"),
-            "author_email": list_resp.json()["fields"].get("SolicitantEmail"),
-            "author": list_resp.json()["fields"].get("Sol_x00b7_licitant"),
-            "merge_salary_bankproof": list_resp.json()["fields"].get(
-                "Fusi_x00f3_NominaiJustificantBan"
-            ),
-            "merge_results": list_resp.json()["fields"].get("juntarpdfs"),
-            "merge_RLC_RNT": list_resp.json()["fields"].get("Fusi_x00f3_RLCRNT"),
-        }
-
-        return data
-
-    raise ValueError(f"Job ID {job_id} not found in SharePoint List")
+    # The request already targets /items/{job_id}, so raise_for_status() above
+    # guarantees we have the right item. No further ID verification is needed.
+    fields = list_resp.json()["fields"]
+    data: SharepointItem = {field: fields.get(field.value) for field in SharepointListFields}
+    return data
 
 
 def get_sharepoint_web_url(token_manager: TokenManager, site_id: str, drive_id: str, folder_path: str) -> Optional[str]:
