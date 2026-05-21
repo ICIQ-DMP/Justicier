@@ -48,8 +48,6 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
-    #tz = pytz.timezone("Europe/Madrid")
-
     SALARIES_FOLDER: Path = input_folder / "_salaries"
     PROOFS_FOLDER: Path = input_folder / "_proofs"
     CONTRACTS_FOLDER: Path = input_folder / "_contracts"
@@ -58,16 +56,16 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     NAF_DATA_PATH: Path = input_folder / "NAF_DNI.xlsx"
 
-    token_manager = get_token_manager()
-
-    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
-    site_name = read_secret("SITE_NAME")
-    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
-    drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
-    carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
-
     start_time = time.time()
     if args.location == "sharepoint":
+        token_manager = get_token_manager()
+
+        sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+        site_name = read_secret("SITE_NAME")
+        site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+        drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
+        carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
+
         remove_folder(input_folder)
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, input_folder)
     elif args.location == "local":
@@ -224,54 +222,55 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     report_text = get_end_user_report(reports, args)
     log.info(report_text)
 
-    end_time = elapsed_time(start_time)
-    log.info("Time elapsed for doing this justification: " + str(end_time) + ".")
-    start_time = time.time()
-    elapsed_time(start_time)
+    if args.request:
+        end_time = elapsed_time(start_time)
+        log.info("Time elapsed for doing this justification: " + str(end_time) + ".")
+        start_time = time.time()
+        elapsed_time(start_time)
 
-    upload_folder_recursive(
-        token_manager=token_manager,
-        drive_id=drive_id,
-        local_folder_path=current_justification_folder,
-        remote_folder_path=(
+        upload_folder_recursive(
+            token_manager=token_manager,
+            drive_id=drive_id,
+            local_folder_path=current_justification_folder,
+            remote_folder_path=(
+                read_secret("SHAREPOINT_FOLDER_OUTPUT")
+                + "/"
+                + args.author
+                + "/"
+                + impersonal_id_str
+            ),
+        )
+
+        link = get_sharepoint_web_url(
+            token_manager,
+            site_id,
+            drive_id,
             read_secret("SHAREPOINT_FOLDER_OUTPUT")
             + "/"
             + args.author
             + "/"
-            + impersonal_id_str
-        ),
-    )
+            + impersonal_id_str,
+        )
+        log.info(f"Clickable SharePoint URL: {link}  ")
 
-    link = get_sharepoint_web_url(
-        token_manager,
-        site_id,
-        drive_id,
-        read_secret("SHAREPOINT_FOLDER_OUTPUT")
-        + "/"
-        + args.author
-        + "/"
-        + impersonal_id_str,
-    )
-    log.info(f"Clickable SharePoint URL: {link}  ")
+        SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
+        upload_file(
+            token_manager,
+            drive_id,
+            SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
+            admin_log_path,
+        )
+        log_link = get_sharepoint_web_url(
+            token_manager,
+            site_id,
+            drive_id,
+            SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
+        )
 
-    SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
-    upload_file(
-        token_manager,
-        drive_id,
-        SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
-        admin_log_path,
-    )
-    log_link = get_sharepoint_web_url(
-        token_manager,
-        site_id,
-        drive_id,
-        SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
-    )
-
-    end_time = elapsed_time(start_time)
-    log.info("Time elapsed for uploading data: " + str(end_time) + ".")
-    start_time = time.time()
-    elapsed_time(start_time)
+        end_time = elapsed_time(start_time)
+        log.info("Time elapsed for uploading data: " + str(end_time) + ".")
+        start_time = time.time()
+        elapsed_time(start_time)
 
     if args.request:
         log.debug("Updating list element state to Completed")
