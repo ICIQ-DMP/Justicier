@@ -34,22 +34,30 @@ include more abstractions such as a PDF file, the different types of documents t
 structures such as the data structure for the requests.
 
 
+### Authorize onedrive (update refresh_token outside compose.yml)
+Run onedrive from docker compose (with correct permissions to avoid hassle of changing permissions).
+
+First delete old configuration: 
+
+```shell
+sudo rm -f .config.backup .config.hash items.sqlite3 refresh_token items.sqlite3-wal .sync_list.hash
+```
+
+Do not add any argument or you will change the behaviour of the entrypoint, which sets /onedrive/conf as default
+```
+docker compose run --remove-orphans -it onedrive
+```
+
+You will see the refresh_token file into /onedrive/conf folder. You can cancel with ctrl+c the whole sync, you only need 
+to regenerate the token.
+
+Now boot up all containers
 
 ```
-docker run \
-  -v $(pwd)/service/onedrive_conf:/onedrive/conf \
-  -v $(pwd)/service/onedrive_data:/onedrive/data \
-  -v $(pwd)/service/onedrive_logs:/onedrive/logs \
-  -e ONEDRIVE_DOWNLOADONLY=1 \
-  -e ONEDRIVE_CLEANUPLOCAL=1 \
-  -l io.containers.autoupdate=image \
-  --restart unless-stopped \
-  --health-cmd "sh -c '[ -s /onedrive/conf/items.sqlite3-wal ]'" \
-  --health-interval 60s \
-  --health-retries 2 \
-  --health-timeout 5s \
-  -it docker.io/driveone/onedrive:edge
+docker compose up --remove-orphans
 ```
+
+
 
 # Notes
 ```
@@ -73,6 +81,12 @@ After that, run:
 
 docker compose run --remove-orphans onedrive 
 
-### Execute a justification in developer env
-
+### Execute a justification in developer env with params in Sharepoint list
+```shell
 ./venv/bin/python src/main.py --id 159 --input-location service/onedrive_data/Documentació\ Nomines\,\ Seguretat\ Social/input/
+```
+
+### Execute a justification in developer env with params in Sharepoint list
+```shell
+./venv/bin/python src/main.py --naf 08/04135154/70 --begin 2023-01-01 --end 2025-05-31 --author pepito@iciq.es --input local
+```

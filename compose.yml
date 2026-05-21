@@ -1,49 +1,19 @@
 services:
-  jenkins:
-    container_name: jenkins
-    image: docker.io/jenkins/jenkins:lts
-    user: "1002:1002"
-    expose:
-      - ${JENKINS_PORT_INTERNAL}
-    volumes:
-      - ./service/jenkins_home:/var/jenkins_home
-    environment:
-      - JENKINS_OPTS="--httpPort=${JENKINS_PORT_INTERNAL}"
-    restart: always
-    networks:
-      - justicier_net
-    healthcheck:
-      test: curl -fsSL http://localhost:${JENKINS_PORT_INTERNAL}/login || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
-
-  agent:
+  justicier:
     build:
       context: .
-      dockerfile: agent.Dockerfile
-    container_name: agent
-    expose:
-      - ${AGENT_PORT_INTERNAL}
+      dockerfile: Dockerfile
+    depends_on:
+      onedrive:
+        condition: service_healthy
     volumes:
-      - ./service/onedrive_data:/home/jenkins/agent/onedrive_data
-      - type: bind
-        source: ./service/jenkins_agent_keys
-        target: /home/jenkins/.ssh
-        read_only: false
-    environment:
-      - JENKINS_AGENT_SSH_PUBKEY=${JENKINS_AGENT_SSH_PUBKEY}
+      - ./service/onedrive_data:/service/onedrive_data
     secrets:
       - VAULT_ADDR
       - VAULT_CACERT
       - VAULT_ROLE_ID
       - VAULT_SECRET_ID
       - vault.crt
-    restart: always
-    networks:
-      - justicier_net
     healthcheck:
       test: bash -c 'exec 3<>/dev/tcp/localhost/22'
       interval: 30s
@@ -58,7 +28,6 @@ services:
       - ./service/onedrive_conf:/onedrive/conf
       - ./service/onedrive_data:/onedrive/data
       - ./service/onedrive_logs:/onedrive/logs
-    #restart: unless-stopped
     networks:
       - justicier_net
     healthcheck:
@@ -66,36 +35,6 @@ services:
       interval: 60s
       timeout: 5s
       retries: 2
-    #command:
-    #  - "--reauth --monitor"
-
-
-
-  nginx:
-    image: nginx:stable
-    container_name: nginx-firewall
-    ports:
-      - "0.0.0.0:${FIREWALL_PORT_EXTERNAL}:${FIREWALL_PORT_INTERNAL}"
-    volumes:
-      - ./service/nginx_conf/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./service/nginx_conf/proxy_params:/etc/nginx/proxy_params:ro
-      - ./service/nginx_logs:/var/log/nginx
-    depends_on:
-      jenkins:
-        condition: service_healthy
-      agent:
-        condition: service_healthy
-      onedrive:
-        condition: service_healthy
-    restart: always
-    networks:
-      - justicier_net
-    healthcheck:
-      test: curl -fsSL http://localhost:80/healthz || exit 1
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
 
 secrets:
   VAULT_ADDR:
