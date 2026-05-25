@@ -85,4 +85,4 @@ def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> N
         int(smtp_port),
     )
 
-    print("Email sent. Process complete. ")
+    log.info("Email sent. Process complete.")

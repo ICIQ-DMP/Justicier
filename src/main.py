@@ -278,12 +278,14 @@ def main() -> None:
     if args.input_location:
         INPUT_FOLDER = args.input_location
 
+    result_link = ""
+    log_link = ""
     try:
         result_link, log_link = process(args, INPUT_FOLDER)
     except ValueError as e:
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
-        update_list_item_field(args.request, {"Missatge_x0020_error": err})
-        mail_process(result_link, log_link, args)
+        if args.request:
+            update_list_item_field(args.request, {"Missatge_x0020_error": err})
         log.error(err)
         exit(1)
 

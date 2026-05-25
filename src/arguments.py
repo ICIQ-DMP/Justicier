@@ -103,7 +103,7 @@ def parse_compact_options(value: str) -> dict[DocType, bool]:
             to_compact[doc_type] = True
         return to_compact
     except ValueError as e:
-        print(f"Error: {e}")
+        log.error(f"Error: {e}")
         exit(1)
 
 
@@ -365,7 +365,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
 
     if parse_boolean(
         config[SharepointListFields.MERGE_RESULTS]
-    ):  # TODO use a column for each fusion
+    ):
         compact_default = get_compact_init()
         compact_default = {key: True for key in compact_default}
         parsed["merge_result"] = compact_default
@@ -396,16 +396,16 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
         _validate_required_sharepoint_fields(config)
         parsed = _parse_sharepoint_fields(config)
     except ArgumentNafInvalid as e:
-        print(f"The NAF provided is invalid. Internal error is {e}")
-        print(common)
+        log.error(f"The NAF provided is invalid. Internal error is {e}")
+        log.error(common)
         exit(2)
     except ArgumentDateError as e:
-        print(f"The dates provided are invalid. Internal error is {e}")
-        print(common)
+        log.error(f"The dates provided are invalid. Internal error is {e}")
+        log.error(common)
         exit(3)
     except argparse.ArgumentTypeError as e:
-        print(f"Arguments could not have been parsed. Internal error is {e}")
-        print(common)
+        log.error(f"Arguments could not have been parsed. Internal error is {e}")
+        log.error(common)
         exit(5)
 
     for field, value in parsed.items():
@@ -423,16 +423,13 @@ def process_parse_arguments() -> argparse.Namespace:
         args = parse_arguments()
 
     except ArgumentNafInvalid as e:
-        print(f"The NAF provided is invalid. Internal error is {e}")
-        print(common)
+        log.error(f"The NAF provided is invalid. Internal error is {e}. Common error {common}")
         exit(2)
     except ArgumentDateError as e:
-        print(f"The dates provided are invalid. Internal error is {e}")
-        print(common)
+        log.error(f"The dates provided are invalid. Internal error is {e}. Common error {common}")
         exit(3)
     except argparse.ArgumentTypeError as e:
-        print(f"Arguments could not have been parsed. Internal error is {e}")
-        print(common)
+        log.error(f"Arguments could not have been parsed. Internal error is {e}. Common error {common}")
         exit(5)
 
     if args.request:
@@ -445,7 +442,6 @@ def process_parse_arguments() -> argparse.Namespace:
     # Set time to first second of day, so we do select all documents produced the same day as the beginning
     args.begin = args.begin.replace(hour=0, minute=0, second=0, microsecond=0)
     args.end = args.end.replace(hour=23, minute=59, second=59, microsecond=999999)
-    # TODO merge checks
     if args.begin >= args.end:
         raise ValueError(f"Begin date {args.begin} can not be after {args.end}")
     return args
@@ -524,7 +520,7 @@ def process_validate_arguments(
         validate_arguments(args, nafs, authors)
 
     except ArgumentNafNotPresent as e:
-        print(f"The NAF provided is valid but is not present in {naf_data_path}. Internal error is {e}. Common error is: {common}")
+        log.error(f"The NAF provided is valid but is not present in {naf_data_path}. Internal error is {e}. Common error is: {common}")
         exit(1)
     except ArgumentAuthorError as e:
         log.error(f"The author is not present in the accepted user list. Internal error is {e}. Common error is: {common}")

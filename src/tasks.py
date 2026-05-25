@@ -480,7 +480,7 @@ def process_RNTs(
                 rnt_path_destination = naf_dir / RNTS_OUTPUT_NAME / f"{rnt_file_name_without_extension}_{page_num}.pdf"
                 log.info(f"NAF {naf} was detected in {rnt_path} in page {page_num + 1}. Writing page to {rnt_path_destination}.")
                 write_page(page, rnt_path_destination)
-                print(f"rnt found with date: {file_date}")
+                log.debug(f"rnt found with date: {file_date}")
                 rnts_found[file_date] = True
         else:
             log.debug(f"RNT file {rnt_file} is not selected, because its date is {unparse_date(file_date)}.")

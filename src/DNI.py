@@ -1,6 +1,14 @@
 import re
+from enum import Enum
 
 from custom_except import ArgumentNafInvalid
+
+
+class DNIType(Enum):
+    DNI = "DNI"
+    NIE = "NIE"
+    TEMPORAL_NIE = "temporal NIE"
+    PASSPORT = "passport"
 
 
 class DNI:
@@ -32,8 +40,7 @@ class DNI:
             )
 
         if match.group("dni_number") and match.group("dni_letter"):
-            self.is_nie = False
-            self.is_temporal = False
+            self.dni_type = DNIType.DNI
             self.number = match.group("dni_number")
             self.letter = match.group("dni_letter").upper()
         elif (
@@ -41,8 +48,7 @@ class DNI:
             and match.group("nie_number")
             and match.group("nie_number")
         ):
-            self.is_nie = True
-            self.is_temporal = False
+            self.dni_type = DNIType.NIE
             self.initial = match.group("nie_initial").upper()
             self.number = match.group("nie_number")
             self.letter = match.group("nie_letter").upper()
@@ -51,10 +57,7 @@ class DNI:
             and match.group("nie_temporal_form1_letter_control")
             and match.group("nie_temporal_form1_number")
         ):
-            self.is_nie = True
-            self.is_temporal = (
-                True  # TODO change by property type instead of two booleans
-            )
+            self.dni_type = DNIType.TEMPORAL_NIE
             self.initial = match.group("nie_temporal_form1_letter").upper()
             self.number = match.group("nie_temporal_form1_letter_control")
             self.letter = match.group("nie_temporal_form1_number").upper()
@@ -63,10 +66,7 @@ class DNI:
             and match.group("nie_temporal_form2_letter_control")
             and match.group("nie_temporal_form2_number")
         ):
-            self.is_nie = True
-            self.is_temporal = (
-                True  # TODO change by property type instead of two booleans
-            )
+            self.dni_type = DNIType.PASSPORT
             self.initial = match.group("nie_temporal_form2_letter").upper()
             self.number = match.group("nie_temporal_form2_letter_control")
             self.letter = match.group("nie_temporal_form2_number").upper()
@@ -74,34 +74,30 @@ class DNI:
             raise ValueError(f"DNI {raw_dni} could not be parsed")
 
     def __str__(self) -> str:
-        if self.is_nie:
-            return f"{self.initial}-{self.number}-{self.letter}"
-        else:
+        if self.dni_type == DNIType.DNI:
             return f"{self.number}-{self.letter}"
+        return f"{self.initial}-{self.number}-{self.letter}"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, DNI):
             return False
-        if self.is_nie:
-            return (
-                self.initial == other.initial
-                and self.number == other.number
-                and self.letter == other.letter
-            )
-        else:
+        if self.dni_type == DNIType.DNI:
             return self.number == other.number and self.letter == other.letter
+        return (
+            self.initial == other.initial
+            and self.number == other.number
+            and self.letter == other.letter
+        )
 
     def __hash__(self) -> int:
         return hash(self.number)
 
     def no_dash_str(self) -> str:
-        if self.is_nie:
-            if self.is_temporal:
-                return f"{self.initial}{self.letter}{self.number}"
-            else:
-                return f"{self.initial}{self.number}{self.letter}"
-        else:
+        if self.dni_type == DNIType.DNI:
             return f"{self.number}{self.letter}"
+        if self.dni_type in (DNIType.TEMPORAL_NIE, DNIType.PASSPORT):
+            return f"{self.initial}{self.letter}{self.number}"
+        return f"{self.initial}{self.number}{self.letter}"
 
 
 def parse_dni(value: str) -> DNI:

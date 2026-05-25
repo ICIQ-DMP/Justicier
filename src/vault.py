@@ -51,7 +51,7 @@ def _read_credential(name: str) -> str:
             if value:
                 return value
     value = os.environ.get(name, "").strip()
-    print(f"Read secret from {name}")
+    log.debug(f"Read secret from {name}")
     if value:
         return value
     raise KeyError(f"Vault credential '{name}' not found in secrets or environment")
