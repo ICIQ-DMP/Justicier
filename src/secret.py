@@ -15,23 +15,23 @@ def read_secret(secret_name: str) -> str:
     """Retrieve a secret from predefined sources in order of priority.
 
     Sources tried in order:
-      1. HashiCorp Vault  (https://10.42.1.2:8200, policy justicier-runtime)
-      2. Docker secrets   (/run/secrets/<name>)
-      3. Local file       (<project_root>/secrets/<name>)
-      4. Environment variable
+      1. Docker secrets   (/run/secrets/<name>)
+      2. Local file       (<project_root>/secrets/<name>)
+      3. Environment variable
+      4. HashiCorp Vault  (https://{VAULT_ADDR}, policy justicier-runtime)
     """
     sources: list[Callable[[], str]] = [
-        lambda: read_vault_secret(secret_name),
         lambda: read_file_content(Path("/run/secrets") / secret_name),
         lambda: read_file_content(_PROJECT_ROOT / "secrets" / secret_name),
         lambda: read_env_var(secret_name),
+        lambda: read_vault_secret(secret_name)
     ]
 
     for source in sources:
         try:
             return source()
         except Exception as e:
-            print(e)
+            log.warning(e)
             continue
 
     log.error(f"Could not read {secret_name} from any source")
