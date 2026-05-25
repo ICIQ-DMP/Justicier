@@ -140,12 +140,9 @@ def is_monthly_salary(salary_page: pypdf.PageObject) -> bool:
     if not match:
         return False
 
-    match_selected = None
     if len(match) > 0:
         return True
 
-    if match_selected is not None:
-        return True
     return False
 
 
@@ -169,8 +166,6 @@ def parse_regular_salary_type(salary_page: pypdf.PageObject) -> RegularSalaryTyp
     elif is_settlement_salary(salary_page):
         return RegularSalaryType.SETTLEMENT
     else:
-        print("undefined regular salary type")
-        input()
         raise UndefinedRegularSalaryType("The type was not recognized")
 
 
