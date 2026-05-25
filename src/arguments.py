@@ -2,7 +2,7 @@ import argparse
 import datetime
 import sys
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
 
 from logger import get_logger
 
@@ -106,12 +106,11 @@ def parse_compact_options(value: str) -> dict[DocType, bool]:
         exit(1)
 
 
-def parse_boolean(value: bool | int | str | None) -> bool | None:
-    if value:
-        return value
-    elif not value:
-        return value
-    if value is bool:
+def parse_boolean(value: bool | int | str | None) -> bool:
+    if value is None:
+        return False
+
+    if isinstance(value, bool):
         return value
     if value == "True":
         return True
@@ -135,7 +134,7 @@ def parse_input_type(value: str) -> str:
         )
 
 
-def expand_job_id(job_id: str) -> SharepointItem:
+def expand_job_id(job_id: int) -> SharepointItem:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -315,7 +314,7 @@ def _validate_required_sharepoint_fields(config: SharepointItem) -> None:
         raise ArgumentAuthorError("Field 'author' is missing from SharePoint item")
 
 
-def _parse_sharepoint_fields(config: SharepointItem) -> dict:
+def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
     """
     Step 3 – Format parsing.
 
@@ -332,7 +331,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict:
     Raises format exceptions (ArgumentDateError, ArgumentNafInvalid, …) when a
     field value cannot be converted into the expected type.
     """
-    parsed: dict = {}
+    parsed: dict[str, Any] = {}
 
     if config[SharepointListFields.NAF]:
         parsed["naf"] = parse_naf(str(config[SharepointListFields.NAF]))
@@ -355,6 +354,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict:
     parsed["author_email"] = config[SharepointListFields.AUTHOR_EMAIL]
 
     parsed["merge_salary"] = parse_boolean(config[SharepointListFields.MERGE_SALARY_BANKPROOF])
+
     if parse_boolean(config[SharepointListFields.MERGE_RESULTS]):  # TODO use a column for each fusion
         compact_default = get_compact_init()
         for key in compact_default.keys():
