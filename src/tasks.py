@@ -174,7 +174,7 @@ def process_rlc_l03(
 
 def process_salaries_with_rlc(
     salaries_folder_path: Path, rlc_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
-) -> dict[RLCType, dict[datetime, list[bool] | bool]]:
+) -> dict[RLCType, dict[datetime, list[bool]]]:
     regular_monthly_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
     regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(
         begin, end

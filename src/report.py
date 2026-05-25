@@ -5,7 +5,7 @@ from importlib.metadata import version, PackageNotFoundError
 from pyfiglet import Figlet
 
 from data import unparse_date, unparse_full_date
-from defines import DocType, RLCType
+from defines import RLCType
 from logger import get_logger
 
 log = get_logger(__name__)
@@ -255,10 +255,10 @@ def unparse_salary_rlc_result(content: dict[RLCType, dict[datetime, list[bool]]]
     return msg
 
 
-def unparse_salary_rnt_result(content: tuple[dict[datetime, bool | list[bool]], dict[RLCType, dict[datetime, list[bool]]]], args: argparse.Namespace) -> str:
+def unparse_salary_rnt_result(rnt: dict[datetime, bool], salary: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace) -> str:
     something_wrong = False
-    rnt_results = content[0]
-    salaries_result = content[1][RLCType.REGULAR]
+    rnt_results = rnt
+    salaries_result = salary[RLCType.REGULAR]
 
     log.trace("results previous to building report: RNT results: " + str(rnt_results) + " salaries: " + str(salaries_result))
 
@@ -303,29 +303,20 @@ def unparse_contract_result(content: bool, args: argparse.Namespace) -> str:
     return msg
 
 
-def unparse_proofs_result(report_content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
+def unparse_proofs_result(report_content: None, args: argparse.Namespace) -> str:
     msg = "At the time, there are no implemented check for the bankproofs in the user report.\n"
     return msg
 
 
-def get_end_user_report(reports: dict[DocType, dict[datetime, bool | list[bool]] | bool], args: argparse.Namespace) -> str:
+def get_end_user_report(
+    salaries_with_rlcs_result: dict[RLCType, dict[datetime, list[bool]]],
+    contracts_result: bool,
+    rnts_result: dict[datetime, bool],
+    args: argparse.Namespace,
+) -> str:
     msg = ""
-    for report_type in reports.keys():
-        report_content = reports[report_type]
-        if report_type == DocType.SALARY:
-            msg += "****** Salaries and RLC ****** \n" + unparse_salary_rlc_result(
-                report_content, args
-            )
-        elif report_type == DocType.PROOFS:
-            msg += "****** Bank proofs ****** \n" + unparse_proofs_result(
-                report_content, args
-            )
-        elif report_type == DocType.RNT:
-            msg += "****** RNT ****** \n" + unparse_salary_rnt_result(
-                (report_content, reports[DocType.SALARY]), args
-            )
-        elif report_type == DocType.CONTRACT:
-            msg += "****** CONTRACT ****** \n" + unparse_contract_result(
-                report_content, args
-            )
+    msg += "****** Salaries and RLC ****** \n" + unparse_salary_rlc_result(salaries_with_rlcs_result, args)
+    msg += "****** Bank proofs ****** \n" + unparse_proofs_result(None, args)
+    msg += "****** RNT ****** \n" + unparse_salary_rnt_result(rnts_result, salaries_with_rlcs_result, args)
+    msg += "****** CONTRACT ****** \n" + unparse_contract_result(contracts_result, args)
     return "\n" + msg

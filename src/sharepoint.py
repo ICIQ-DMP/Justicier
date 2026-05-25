@@ -2,7 +2,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 from urllib.parse import quote
 
 import requests
@@ -356,7 +356,7 @@ def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: 
     return data
 
 
-def get_sharepoint_web_url(token_manager: TokenManager, site_id: str, drive_id: str, folder_path: str) -> Optional[str]:
+def get_sharepoint_web_url(token_manager: TokenManager, site_id: str, drive_id: str, folder_path: str) -> str:
     """
     Given a folder path inside the drive, returns its webUrl for user access.
     Example path: Shared Documents/_output/amarine@iciq.es
@@ -369,4 +369,4 @@ def get_sharepoint_web_url(token_manager: TokenManager, site_id: str, drive_id: 
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     item = response.json()
-    return cast(Optional[str], item.get("webUrl"))
+    return cast(str, item.get("webUrl"))

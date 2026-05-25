@@ -127,11 +127,9 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     )
     start_time = time.time()
 
-    reports = {}
-
     # Salaries & RLC
     salary_output_path: Path = current_justification_folder / SALARIES_OUTPUT_NAME
-    reports[DocType.SALARY] = process_salaries_with_rlc(
+    salaries_with_rlcs_result = process_salaries_with_rlc(
         SALARIES_FOLDER,
         RLCS_FOLDER,
         current_justification_folder,
@@ -142,7 +140,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     # Bank proofs
     proof_output_path: Path = current_justification_folder / PROOFS_OUTPUT_NAME
-    reports[DocType.PROOFS] = process_proofs(
+    process_proofs(
         PROOFS_FOLDER, proof_output_path, args.naf, args.begin, args.end, NAF_TO_DNI
     )
 
@@ -165,7 +163,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     # Contracts
     try:
-        reports[DocType.CONTRACT] = process_contracts(
+        contracts_result = process_contracts(
             CONTRACTS_FOLDER,
             current_justification_folder,
             args.naf,
@@ -183,7 +181,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         compact_folder(contract_output_path)
 
     # RNTs
-    reports[DocType.RNT] = process_RNTs(
+    rnts_result = process_RNTs(
         RNTS_FOLDER, current_justification_folder, args.naf, args.begin, args.end
     )
     rnt_output_path: Path = current_justification_folder / RNTS_OUTPUT_NAME
@@ -226,7 +224,12 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
                 args.end,
             )
 
-    report_text = get_end_user_report(reports, args)
+    report_text = get_end_user_report(
+        salaries_with_rlcs_result=salaries_with_rlcs_result,
+        contracts_result=contracts_result,
+        rnts_result=rnts_result,
+        args=args,
+    )
     log.info(report_text)
 
     if args.request:
