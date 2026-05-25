@@ -57,7 +57,6 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     NAF_DATA_PATH: Path = input_folder / "NAF_DNI.xlsx"
 
     start_time = time.time()
-    token_manager = None
     if args.location == "sharepoint" or args.request is not None:
         token_manager = get_token_manager()
         sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
@@ -66,10 +65,12 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
 
     if args.location == "sharepoint":
+        token_manager = get_token_manager()
         sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
         site_name = read_secret("SITE_NAME")
         site_id = get_site_id(token_manager, sharepoint_domain, site_name)
         drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
+
         carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
 
         remove_folder(input_folder)
@@ -234,6 +235,11 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         start_time = time.time()
         elapsed_time(start_time)
 
+        token_manager = get_token_manager()
+        sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+        site_name = read_secret("SITE_NAME")
+        site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+        drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
         upload_folder_recursive(
             token_manager=token_manager,
             drive_id=drive_id,
