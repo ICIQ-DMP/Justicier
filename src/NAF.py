@@ -5,8 +5,11 @@ from typing import Callable, Iterable, TypeVar
 import pandas as pd
 
 from DNI import DNI, parse_dni
+
+
 from Name import Name, parse_name_a3, parse_email_a3
 from custom_except import ArgumentNafInvalid
+from defines import NAFFileColumn
 from logger import get_logger
 
 log = get_logger(__name__)
@@ -72,12 +75,11 @@ _V = TypeVar("_V")
 
 def parse_two_columns(
     df: pd.DataFrame,
-    key: int,
-    value: int,
+    key: str,
+    value: str,
     func_apply_key: Callable[[str], _K] | None = None,
     func_apply_value: Callable[[str], _V] | None = None,
 ) -> dict[_K, _V]:
-    # Column C = index 2 (DNI), Column D = index 3 (NAF)
     val_col = df[value]
     key_col = df[key]
     try:
@@ -98,24 +100,30 @@ def read_dataframe(path: Path, skiprows: int, header: int | None) -> pd.DataFram
     # Read the Excel file, skipping the first 3 rows.
     # Column C (index 2) contains NAF/NASS ids which may start with 0 — force str
     # to prevent pandas from parsing them as int and dropping the leading zero.
-    return pd.read_excel(path, skiprows=skiprows, header=header, dtype={2: str})
+    return pd.read_excel(
+        path, skiprows=skiprows, header=header, dtype={NAFFileColumn.NASS: str}
+    )
 
 
 def build_naf_to_dni(path: Path) -> dict[NAF, DNI]:
-    df = read_dataframe(path, 3, None)
-    r = parse_two_columns(df, 2, 3, parse_naf, parse_dni)
-
-    return r
+    df = read_dataframe(path, 0, 0)
+    return parse_two_columns(
+        df, NAFFileColumn.NASS, NAFFileColumn.NIF, parse_naf, parse_dni
+    )
 
 
 def build_naf_to_name(path: Path) -> dict[NAF, Name]:
-    df = read_dataframe(path, 3, None)
-    return parse_two_columns(df, 2, 1, parse_naf, parse_name_a3)
+    df = read_dataframe(path, 0, 0)
+    return parse_two_columns(
+        df, NAFFileColumn.NASS, NAFFileColumn.NAME, parse_naf, parse_name_a3
+    )
 
 
 def build_naf_to_email(path: Path) -> dict[NAF, str]:
-    df = read_dataframe(path, 3, None)
-    return parse_two_columns(df, 2, 4, parse_naf, parse_email_a3)
+    df = read_dataframe(path, 0, 0)
+    return parse_two_columns(
+        df, NAFFileColumn.NASS, NAFFileColumn.EMAIL, parse_naf, parse_email_a3
+    )
 
 
 def parse_naf(value: str) -> NAF:

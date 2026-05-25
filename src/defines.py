@@ -27,6 +27,13 @@ NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 DATE_FORMAT = "%d/%m/%Y"
 
 
+class NAFFileColumn(str, Enum):
+    NAME = "Nombre Completo"
+    NASS = "NASS"
+    NIF = "NIF"
+    EMAIL = "E-mail profesional"
+
+
 class SharepointListFields(Enum):
     """Maps semantic Python names to the internal SharePoint field names used by the Graph API."""
 
