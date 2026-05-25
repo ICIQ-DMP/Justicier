@@ -49,12 +49,12 @@ def get_drive_id(token_manager: TokenManager, site_id: str, drive_name: str = "D
     raise Exception(f"Drive '{drive_name}' no encontrado.")
 
 
-def list_folder_contents(token_manager: TokenManager, drive_id: str, path: str) -> list[SharepointItem]:
+def list_folder_contents(token_manager: TokenManager, drive_id: str, path: str) -> list[dict[str, str]]:
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{path}:/children"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return cast(list[SharepointItem], response.json()["value"])
+    return cast(list[dict[str, str]], response.json()["value"])
 
 
 def download_file(token_mananger: TokenManager, drive_id: str, item_path: str, local_path: Path, max_retries: int = 5) -> None:
