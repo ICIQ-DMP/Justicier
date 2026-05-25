@@ -117,11 +117,7 @@ def parse_boolean(value: bool | int | str | None) -> bool:
         return True
     elif value == "False":
         return False
-    raise ValueError(
-        "The value "
-        + str(value)
-        + " can not be parsed into a boolean. It should be 'True' or 'False'"
-    )
+    raise ValueError(f"The value {value} can not be parsed into a boolean. It should be 'True' or 'False'")
 
 
 def parse_input_type(value: str) -> str:
@@ -396,20 +392,20 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
     optional absent fields keep whatever default was set by parse_arguments().
     """
     config = expand_job_id(args.request)
-    log.trace("configuration from sharepoint: " + str(config))
+    log.trace(f"configuration from sharepoint: {config}")
     try:
         _validate_required_sharepoint_fields(config)
         parsed = _parse_sharepoint_fields(config)
     except ArgumentNafInvalid as e:
-        print("The NAF provided is invalid. Internal error is " + e.__str__())
+        print(f"The NAF provided is invalid. Internal error is {e}")
         print(common)
         exit(2)
     except ArgumentDateError as e:
-        print("The dates provided are invalid. Internal error is " + e.__str__())
+        print(f"The dates provided are invalid. Internal error is {e}")
         print(common)
         exit(3)
     except argparse.ArgumentTypeError as e:
-        print("Arguments could not have been parsed. Internal error is " + e.__str__())
+        print(f"Arguments could not have been parsed. Internal error is {e}")
         print(common)
         exit(5)
 
@@ -419,9 +415,8 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
 
 def process_parse_arguments() -> argparse.Namespace:
     common = (
-        "Error parsing arguments. Program aborting. The arguments are: "
-        + str(sys.argv)
-        + "The program is in a uninitialized state and cannot proceed. This error will be "
+        f"Error parsing arguments. Program aborting. The arguments are: {sys.argv}"
+        "The program is in a uninitialized state and cannot proceed. This error will be "
         "notified to the admin via log file. We can't create log file in user author folder "
         "because user author could not be parsed."
     )
@@ -429,15 +424,15 @@ def process_parse_arguments() -> argparse.Namespace:
         args = parse_arguments()
 
     except ArgumentNafInvalid as e:
-        print("The NAF provided is invalid. Internal error is " + e.__str__())
+        print(f"The NAF provided is invalid. Internal error is {e}")
         print(common)
         exit(2)
     except ArgumentDateError as e:
-        print("The dates provided are invalid. Internal error is " + e.__str__())
+        print(f"The dates provided are invalid. Internal error is {e}")
         print(common)
         exit(3)
     except argparse.ArgumentTypeError as e:
-        print("Arguments could not have been parsed. Internal error is " + e.__str__())
+        print(f"Arguments could not have been parsed. Internal error is {e}")
         print(common)
         exit(5)
 
@@ -453,9 +448,7 @@ def process_parse_arguments() -> argparse.Namespace:
     args.end = args.end.replace(hour=23, minute=59, second=59, microsecond=999999)
     # TODO merge checks
     if args.begin >= args.end:
-        raise ValueError(
-            "Begin date " + str(args.begin) + " can not be after " + str(args.end)
-        )
+        raise ValueError(f"Begin date {args.begin} can not be after {args.end}")
     return args
 
 
@@ -494,9 +487,7 @@ def validate_author(author: str, valid_authors: Iterable[str]) -> None:
     found in the authorised set.
     """
     if not is_author_present(author, valid_authors):
-        raise ArgumentAuthorError(
-            'Author "' + str(author) + " is not valid. "
-        )  # more specific exception
+        raise ArgumentAuthorError(f'Author "{author}" is not valid. ')  # more specific exception
 
 
 def validate_arguments(
@@ -517,9 +508,8 @@ def process_validate_arguments(
     args: argparse.Namespace, naf_data_path: Path, user_list_data_path: Path
 ) -> None:
     common = (
-        "Error validating arguments. Program aborting. The arguments are: "
-        + str(sys.argv)
-        + "The program is in a uninitialized state and cannot proceed. This error will be "
+        f"Error validating arguments. Program aborting. The arguments are: {sys.argv}"
+        "The program is in a uninitialized state and cannot proceed. This error will be "
         "notified to the admin via log file. We can't create log file in user author folder "
         "because the process that validates user author could not finish."
     )
@@ -535,20 +525,8 @@ def process_validate_arguments(
         validate_arguments(args, nafs, authors)
 
     except ArgumentNafNotPresent as e:
-        print(
-            "The NAF provided is valid but is not present in "
-            + str(naf_data_path)
-            + ". Internal error is "
-            + str(e)
-            + ". Common error is: "
-            + common
-        )
+        print(f"The NAF provided is valid but is not present in {naf_data_path}. Internal error is {e}. Common error is: {common}")
         exit(1)
     except ArgumentAuthorError as e:
-        log.error(
-            "The author is not present in the accepted user list. Internal error is "
-            + str(e)
-            + ". Common error is: "
-            + common
-        )
+        log.error(f"The author is not present in the accepted user list. Internal error is {e}. Common error is: {common}")
         exit(4)

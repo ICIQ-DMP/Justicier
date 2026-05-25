@@ -27,19 +27,14 @@ def get_rnt_monthly_result_structure(
 def get_monthly_result_structure(
     begin: datetime, end: datetime, result_structure: Any
 ) -> Dict[datetime, Any]:
-    log.trace(
-        "get_rlc_monthly_result_structure params: begin: "
-        + str(begin)
-        + " end: "
-        + str(end)
-    )
+    log.trace(f"get_rlc_monthly_result_structure params: begin: {begin} end: {end}")
     current = datetime(begin.year, begin.month, 1)
 
     result = {}
     while current <= end:
-        log.trace("Current datetime is: " + str(current))
+        log.trace(f"Current datetime is: {current}")
         key = datetime.strptime(str(current.year * 100 + current.month), "%Y%m")
-        log.trace("Parsed key is: " + str(key))
+        log.trace(f"Parsed key is: {key}")
         result[key] = (
             result_structure  # Monthly salary found, RLC L00N found, RLC L00P found
         )
@@ -49,7 +44,7 @@ def get_monthly_result_structure(
         else:
             current = datetime(current.year, current.month + 1, 1)
 
-    log.trace("result structure:" + str(result))
+    log.trace(f"result structure:{result}")
     return result
 
 
@@ -57,7 +52,7 @@ def parse_salary_type(salary_file_path: Path) -> "SalaryType":
     parsed = Path(salary_file_path).stem.split("_")[1]
     log.debug("Data parsed from filename is: " + parsed)
     t = SalaryType(parsed)
-    log.debug("Type detected is: " + str(t))
+    log.debug(f"Type detected is: {t}")
     return t
 
 

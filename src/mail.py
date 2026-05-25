@@ -44,11 +44,11 @@ def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> N
     smtp_server = read_secret("SMTP_SERVER")
     smtp_port = read_secret("SMTP_PORT")
 
-    log.trace('user is: "' + str(smtp_user) + '"')
-    log.trace('pass is: "' + str(smtp_password) + '"')
-    log.trace('server is: "' + str(smtp_server) + '"')
-    log.trace('port is: "' + str(smtp_port) + '"')
-    log.trace('recipient is: "' + str(args.author_email) + '"')
+    log.trace(f'user is: "{smtp_user}"')
+    log.trace(f'pass is: "{smtp_password}"')
+    log.trace(f'server is: "{smtp_server}"')
+    log.trace(f'port is: "{smtp_port}"')
+    log.trace(f'recipient is: "{args.author_email}"')
 
     subject = f'Justicier - La petició "{args.title}" amb ID {str(args.request)} ha estat completada amb èxit'
     body = (
@@ -95,11 +95,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("Sending email with another func")
-    print("To: " + args.author)
-    print("username: " + read_secret("SMTP_USERNAME"))
-    print("password: " + read_secret("SMTP_PASSWORD"))
-    print("port: " + read_secret("SMTP_PORT"))
-    print("Server: " + read_secret("SMTP_SERVER"))
+    print(f"To: {args.author}")
+    print(f"username: {read_secret('SMTP_USERNAME')}")
+    print(f"password: {read_secret('SMTP_PASSWORD')}")
+    print(f"port: {read_secret('SMTP_PORT')}")
+    print(f"Server: {read_secret('SMTP_SERVER')}")
     send_mail(
         to_email=args.author,
         subject="test email",

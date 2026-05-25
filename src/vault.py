@@ -51,7 +51,7 @@ def _read_credential(name: str) -> str:
             if value:
                 return value
     value = os.environ.get(name, "").strip()
-    print("Read secret from " + name)
+    print(f"Read secret from {name}")
     if value:
         return value
     raise KeyError(f"Vault credential '{name}' not found in secrets or environment")
@@ -136,7 +136,7 @@ def read_vault_secret(secret_name: str) -> str:
     Raises ValueError if the field exists but is empty.
     Raises requests.HTTPError / ConnectionError on network / auth failures.
     """
-    log.trace("requested secret from vault: " + secret_name)
+    log.trace(f"requested secret from vault: {secret_name}")
     global _client
     if _client is None:
         _client = _VaultClient()

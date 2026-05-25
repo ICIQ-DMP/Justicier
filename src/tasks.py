@@ -62,22 +62,14 @@ def process_rlc_aux(
     n_name = month + "_L" + rlc_type + rlc_subtype + "01.pdf"
     rlc_n_path = rlc_folder_path / year / n_name
     if rlc_n_path.exists():
-        log.debug("The RLC " + str(rlc_n_path) + " is present.")
+        log.debug(f"The RLC {rlc_n_path} is present.")
         if rlc_subtype == "N":
             months_found[salary_date][1] = True
         elif rlc_subtype == "P":
             months_found[salary_date][2] = True
         return rlc_n_path
     else:
-        log.error(
-            "Monthly salary was found, but the expected L"
-            + rlc_type
-            + " RLC of type "
-            + rlc_subtype
-            + " was not found in the expected location "
-            + str(rlc_n_path)
-            + ". Skipping merge of this salary file."
-        )
+        log.error(f"Monthly salary was found, but the expected L{rlc_type} RLC of type {rlc_subtype} was not found in the expected location {rlc_n_path}. Skipping merge of this salary file.")
         raise ValueError("File was not detected")  # TODO custom except
 
 
@@ -95,17 +87,13 @@ def process_generic_rlc(
         rlc_n_path = process_rlc_aux(
             salary_date, rlc_folder_path, salaries_found, "N", rlc_type
         )
-        log.debug("Expected RLC N path is: " + str(rlc_n_path))
+        log.debug(f"Expected RLC N path is: {rlc_n_path}")
         rlc_p_path = process_rlc_aux(
             salary_date, rlc_folder_path, salaries_found, "P", rlc_type
         )
-        log.debug("Expected RLC P path is: " + str(rlc_p_path))
+        log.debug(f"Expected RLC P path is: {rlc_p_path}")
     except ValueError:
-        log.error(
-            "Some of the RLC documents (N or P) has not been found. The salary file "
-            + str(salary_file_path)
-            + " will be skipped."
-        )
+        log.error(f"Some of the RLC documents (N or P) has not been found. The salary file {salary_file_path} will be skipped.")
         return
 
     pdf_merged_name = (
@@ -128,23 +116,13 @@ def process_rlc_l03(
     salary_output_path: Path,
     months_found: dict[datetime, list[bool]],
 ) -> None:
-    log.info(
-        "Salary file "
-        + str(salary_file_path)
-        + " page "
-        + str(salary_page_number + 1)
-        + " has been selected as delay salary for date "
-        + unparse_date(salary_date)
-    )
+    log.info(f"Salary file {salary_file_path} page {salary_page_number + 1} has been selected as delay salary for date {unparse_date(salary_date)}")
     try:
         delay_initial_date, delay_end_date = parse_dates_from_delayed_salary(
             salary_page
         )
     except ValueError as exc:
-        log.error(
-            "The delay date could not be parsed from the delay salary page. This document will be "
-            "skipped from search. The internal error is " + str(exc)
-        )
+        log.error(f"The delay date could not be parsed from the delay salary page. This document will be skipped from search. The internal error is {exc}")
         return
     log.debug(
         "Initial date is "
@@ -345,9 +323,7 @@ def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
     num_suffix = 1
     output_path = partial_path.parent / (partial_path.name + "_" + suffix + extension)
     while output_path.exists():
-        output_path = partial_path.parent / (
-            partial_path.name + "_" + suffix + "_" + str(num_suffix) + extension
-        )
+        output_path = partial_path.parent / f"{partial_path.name}_{suffix}_{num_suffix}{extension}"
         num_suffix += 1
     return output_path
 
@@ -367,20 +343,12 @@ def process_proofs(
         dir_date = parse_date(bankproof_folder.name[:6], "%m%Y")
         if begin <= dir_date <= end:
             bankproof_folders_selected.append(bankproof_folder)
-            log.debug(
-                "Proof folder "
-                + str(bankproof_folder)
-                + " is selected, because its date is "
-                + unparse_date(dir_date, "-")
-                + "."
-            )
+            log.debug(f"Proof folder {bankproof_folder} is selected, because its date is {unparse_date(dir_date, '-')}.")
 
     for bankproof_folder in bankproof_folders_selected:
         bank = "_".join(bankproof_folder.name.split("_")[1:])
         proof_date = parse_date(bankproof_folder.name[:6], "%m%Y")
-        log.trace(
-            "Working with folder " + str(bankproof_folder) + ". Bank type is " + bank
-        )
+        log.trace(f"Working with folder {bankproof_folder}. Bank type is {bank}")
         if (
             bank == "BBVA"
             or bank == "BBVA_endarreriments"
@@ -394,14 +362,7 @@ def process_proofs(
                         "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
                     )
                 except ValueError as e:
-                    log.trace(
-                        "DNI "
-                        + str(naf_to_dni[naf])
-                        + " not detected in "
-                        + str(proofs_folder_path / bankproof_folder / bankproof_file)
-                        + ". Error: "
-                        + str(e)
-                    )
+                    log.trace(f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}")
                     continue
                 if bank == "BBVA_endarreriments":
                     suffix = "Atrasos"
@@ -413,15 +374,7 @@ def process_proofs(
                     suffix = "BBVA-UnknownSalaryType"
                 output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
-                log.info(
-                    "DNI "
-                    + str(naf_to_dni[naf])
-                    + " was detected in "
-                    + str(proofs_folder_path / bankproof_folder / bankproof_file)
-                    + ". Writing page to "
-                    + str(output_path)
-                    + "."
-                )
+                log.info(f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Writing page to {output_path}.")
                 write_page(page, output_path)
 
         elif (
@@ -438,14 +391,7 @@ def process_proofs(
                         "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
                     )
                 except ValueError as e:
-                    log.debug(
-                        "DNI "
-                        + str(naf_to_dni[naf])
-                        + " not detected in "
-                        + str(proofs_folder_path / bankproof_folder / file_name)
-                        + ". Error: "
-                        + str(e)
-                    )
+                    log.debug(f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / file_name}. Error: {e}")
                     continue
                 if bank == "LA_CAIXA_endarreriments":
                     suffix = "Atrasos"
@@ -457,18 +403,10 @@ def process_proofs(
                     suffix = "LACAIXA-UnknownSalaryType"
                 output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
-                log.info(
-                    "DNI "
-                    + str(naf_to_dni[naf])
-                    + " was detected in "
-                    + str(proofs_folder_path / bankproof_folder / file_name)
-                    + ". Writing page to "
-                    + str(output_path)
-                    + "."
-                )
+                log.info(f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / file_name}. Writing page to {output_path}.")
                 write_page(page, output_path)
         else:
-            log.error(str(bank) + " is a bad bank. Skipping to next bank proof.")
+            log.error(f"{bank} is a bad bank. Skipping to next bank proof.")
             continue
 
 
@@ -479,7 +417,7 @@ def process_contracts(
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
     for contracts_file in contracts_files:
-        log.debug("contract file: " + contracts_file)
+        log.debug(f"contract file: {contracts_file}")
         naf_dirty = NAF(contracts_file.split("_")[0])
         dates = contracts_file.split(".")[0].split("_")
         begin_date = parse_date("20" + dates[1], "%Y%m")
@@ -491,38 +429,13 @@ def process_contracts(
         elif len(dates) == 2:
             end_date = datetime.max
         else:
-            log.error(
-                "expected 3 fields in the name of the file "
-                + contracts_file
-                + " but "
-                + str(len(dates))
-                + " have been found. The file will be ignored until it has proper format."
-            )
+            log.error(f"expected 3 fields in the name of the file {contracts_file} but {len(dates)} have been found. The file will be ignored until it has proper format.")
             continue
 
         if naf_dirty == naf:
-            log.debug(
-                "NAF "
-                + str(naf_dirty)
-                + " of file "
-                + contracts_file
-                + " coincides with queried NAF. Checking dates..."
-            )
+            log.debug(f"NAF {naf_dirty} of file {contracts_file} coincides with queried NAF. Checking dates...")
             if begin <= end_date and begin_date <= end:
-                log.info(
-                    contracts_file
-                    + " with date "
-                    + unparse_date(begin_date, "-")
-                    + ", "
-                    + unparse_date(end_date, "-")
-                    + "is in range "
-                    "of "
-                    + unparse_date(begin, "-")
-                    + ", "
-                    + unparse_date(end, "-")
-                    + ". Copying it to "
-                    + str(naf_dir)
-                )
+                log.info(f"{contracts_file} with date {unparse_date(begin_date, '-')}, {unparse_date(end_date, '-')} is in range of {unparse_date(begin, '-')}, {unparse_date(end, '-')}. Copying it to {naf_dir}")
                 try:
                     shutil.copy(
                         src=contracts_folder_path / contracts_file,
@@ -540,7 +453,7 @@ def process_contracts(
                     raise Exception(err_msg)
 
     if not found:
-        log.warning("Contract not found with NAF " + str(naf))
+        log.warning(f"Contract not found with NAF {naf}")
     return found
 
 
@@ -557,53 +470,20 @@ def process_RNTs(
             rnt_file_name = rnt_file.name
             rnt_file_name_without_extension = Path(rnt_file_name).stem
             rnt_path = rnts_folder_path / str(file_date.year) / rnt_file_name
-            log.info(
-                "RNT file "
-                + str(rnt_path)
-                + " is selected, because its date is "
-                + unparse_date(file_date)
-                + "."
-            )
+            log.info(f"RNT file {rnt_path} is selected, because its date is {unparse_date(file_date)}.")
             try:
                 pages = get_matching_pages(rnt_path, str(naf), r"\d{12}")
             except ValueError as e:
-                log.debug(
-                    "NAF "
-                    + str(naf)
-                    + " not detected in "
-                    + str(rnt_path)
-                    + ". Error: "
-                    + str(e)
-                )
+                log.debug(f"NAF {naf} not detected in {rnt_path}. Error: {e}")
                 continue
             for page, page_num in pages:
-                rnt_path_destination = (
-                    naf_dir
-                    / RNTS_OUTPUT_NAME
-                    / (rnt_file_name_without_extension + "_" + str(page_num) + ".pdf")
-                )
-                log.info(
-                    "NAF "
-                    + str(naf)
-                    + " was detected in "
-                    + str(rnt_path)
-                    + " in page "
-                    + str(page_num + 1)
-                    + ". Writing page to "
-                    + str(rnt_path_destination)
-                    + "."
-                )
+                rnt_path_destination = naf_dir / RNTS_OUTPUT_NAME / f"{rnt_file_name_without_extension}_{page_num}.pdf"
+                log.info(f"NAF {naf} was detected in {rnt_path} in page {page_num + 1}. Writing page to {rnt_path_destination}.")
                 write_page(page, rnt_path_destination)
-                print("rnt found with date: " + str(file_date))
+                print(f"rnt found with date: {file_date}")
                 rnts_found[file_date] = True
         else:
-            log.debug(
-                "RNT file "
-                + str(rnt_file)
-                + " is not selected, because its date is "
-                + unparse_date(file_date)
-                + "."
-            )
+            log.debug(f"RNT file {rnt_file} is not selected, because its date is {unparse_date(file_date)}.")
 
     return rnts_found
 
@@ -634,53 +514,41 @@ def merge_rnts_rlcs(
     end: datetime,
 ) -> None:
     months_list = datetime_range(begin, end)
-    log.info(
-        "Generated months list from "
-        + str(begin)
-        + " to "
-        + str(end)
-        + " is: "
-        + str(months_list)
-    )
+    log.info(f"Generated months list from {begin} to {end} is: {months_list}")
     rnts_filenames = list_dir(rnts_folder)
     rlcs_filenames = list_dir(rlcs_folder)
-    log.trace("RNT available files are: " + str(rnts_filenames))
-    log.trace("RLC available files are: " + str(rlcs_filenames))
+    log.trace(f"RNT available files are: {rnts_filenames}")
+    log.trace(f"RLC available files are: {rlcs_filenames}")
 
     for current_date in months_list:
         full_year_date = unparse_year_month(current_date)
         partial_year_date = unparse_year_month_short(current_date)
-        log.trace("Full year date is: " + str(full_year_date))
-        log.trace("Partial year date is: " + str(partial_year_date))
+        log.trace(f"Full year date is: {full_year_date}")
+        log.trace(f"Partial year date is: {partial_year_date}")
 
         paths_to_merge = []
         for rnt_filename in rnts_filenames:
             date_str = rnt_filename.split("_")[0]
-            log.trace("date str is: " + str(date_str))
+            log.trace(f"date str is: {date_str}")
             if date_str == partial_year_date:
                 paths_to_merge.append(rnts_folder_output / rnt_filename)
         for rlc_filename in rlcs_filenames:
             date_str = rlc_filename.split("_")[0]
-            log.trace("date str is: " + str(date_str))
+            log.trace(f"date str is: {date_str}")
             if date_str == full_year_date:
                 paths_to_merge.append(rlcs_folder_output / rlc_filename)
 
         output_path = merged_rnts_rlcs_folder_output / (
             unparse_year_month(current_date) + "_Merged.pdf"
         )
-        log.debug("PDFs to merge: " + str(paths_to_merge))
-        log.debug("Output path: " + str(output_path))
+        log.debug(f"PDFs to merge: {paths_to_merge}")
+        log.debug(f"Output path: {output_path}")
 
         if len(paths_to_merge) >= 2:
             merge_pdfs(paths_to_merge, output_path, True)
         else:
-            log.warning(
-                "During date "
-                + unparse_year_month(current_date)
-                + " there were less than one RNTs "
-                "or RLCs to merge (at least one is missing). Skipping"
-            )
-        log.trace("Merged PDFs: " + str(paths_to_merge) + " -> " + str(output_path))
+            log.warning(f"During date {unparse_year_month(current_date)} there were less than one RNTs or RLCs to merge (at least one is missing). Skipping")
+        log.trace(f"Merged PDFs: {paths_to_merge} -> {output_path}")
 
 
 _K = TypeVar("_K")

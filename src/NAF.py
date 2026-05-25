@@ -83,12 +83,12 @@ def parse_two_columns(
     try:
         keys: list[_K] = [func_apply_key(k) for k in df[key]]
     except Exception as e:
-        log.error("func apply key failed with exception:  " + str(e))
+        log.error(f"func apply key failed with exception:  {e}")
         raise
     try:
         values: list[_V] = [func_apply_value(v) for v in df[value]]
     except Exception as e:
-        log.error("func apply value failed with exception: " + str(e))
+        log.error(f"func apply value failed with exception: {e}")
         raise
     return dict(zip(keys, values))
 
@@ -128,4 +128,4 @@ def parse_naf(value: str) -> NAF:
         log.trace(f"Parsing NAF: {value}")
         return NAF(value)
     except Exception as e:
-        raise ArgumentNafInvalid("NAF is not valid" + e.__str__())
+        raise ArgumentNafInvalid(f"NAF is not valid{e}")

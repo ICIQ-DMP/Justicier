@@ -132,7 +132,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     end_time = elapsed_time(start_time)
     log.info(
-        "Time elapsed for obtaining and validating input data: " + str(end_time) + "."
+        f"Time elapsed for obtaining and validating input data: {end_time}."
     )
     start_time = time.time()
 
@@ -243,7 +243,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     if args.request:
         end_time = elapsed_time(start_time)
-        log.info("Time elapsed for doing this justification: " + str(end_time) + ".")
+        log.info(f"Time elapsed for doing this justification: {end_time}.")
         start_time = time.time()
         elapsed_time(start_time)
 
@@ -292,7 +292,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         )
 
         end_time = elapsed_time(start_time)
-        log.info("Time elapsed for uploading data: " + str(end_time) + ".")
+        log.info(f"Time elapsed for uploading data: {end_time}.")
         start_time = time.time()
         elapsed_time(start_time)
 

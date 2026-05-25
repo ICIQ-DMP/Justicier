@@ -112,7 +112,7 @@ def flatten_dirs(folder_to_flat: Path) -> list[Path]:
 
 def compute_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]) -> str:
     id_str = compute_impersonal_id(now, args, naf_to_name)
-    return id_str + "_" + str(args.author)
+    return f"{id_str}_{args.author}"
 
 
 def compute_impersonal_id(
@@ -120,27 +120,13 @@ def compute_impersonal_id(
 ) -> str:
     id_str = ""
     if args.request:
-        id_str = "_" + str(args.request)
+        id_str = f"_{args.request}"
     try:
         name = str(naf_to_name[args.naf])
     except KeyError:
-        log.debug(
-            "NAF provided was not possible to be translated into name, NAF is: "
-            + str(args.naf)
-        )
+        log.debug(f"NAF provided was not possible to be translated into name, NAF is: {args.naf}")
         raise KeyError
-    r = (
-        now
-        + "_"
-        + str(args.naf)
-        + "_"
-        + name.replace(" ", "_")
-        + "_"
-        + str(args.begin.strftime("%Y-%m-%d"))
-        + "_"
-        + str(args.end.strftime("%Y-%m-%d"))
-        + id_str
-    )
+    r = f"{now}_{args.naf}_{name.replace(' ', '_')}_{args.begin.strftime('%Y-%m-%d')}_{args.end.strftime('%Y-%m-%d')}{id_str}"
     return r
 
 

@@ -31,7 +31,7 @@ def parse_name_a3(value: str) -> Name:
         return Name(name, surname)
     except ValueError as e:
         raise ArgumentNafInvalid(
-            "Name is not valid" + e.__str__()
+            f"Name is not valid{e}"
         )  # TODO: change exceptions
 
 
@@ -64,5 +64,5 @@ def parse_name_sharepoint(value: str) -> Name:
         return Name(name, surname)
     except ValueError as e:
         raise ArgumentNafInvalid(
-            "Name is not valid" + e.__str__()
+            f"Name is not valid{e}"
         )  # TODO: change exceptions

@@ -136,7 +136,7 @@ def upload_file(
     token_manager: TokenManager, drive_id: str, remote_path: str, local_file_path: Path
 ) -> None:
 
-    log.info("Uploading from local path " + str(local_file_path) + " to " + remote_path)
+    log.info(f"Uploading from local path {local_file_path} to {remote_path}")
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
@@ -169,7 +169,7 @@ def ensure_remote_folder(
     if response.status_code not in (200, 201):
         response.raise_for_status()
 
-    return parent_path.rstrip("/") + "/" + folder_name
+    return f"{parent_path.rstrip('/')}/{folder_name}"
 
 
 def upload_folder_recursive(
@@ -185,15 +185,13 @@ def upload_folder_recursive(
         ):  # Ignore empty folders because they cause issue
             continue
 
-        log.debug(
-            "root: " + str(root) + " dirs: " + str(dirs) + " files: " + str(files)
-        )
+        log.debug(f"root: {root} dirs: {dirs} files: {files}")
         rel_path = Path(root).relative_to(local_folder_path)
-        log.debug("rel path: " + str(rel_path))
+        log.debug(f"rel path: {rel_path}")
         sharepoint_current_path = (
             remote_folder_path.rstrip("/") + "/" + rel_path.as_posix()
         ).strip("/")
-        log.debug("sharepoint current path: " + str(sharepoint_current_path))
+        log.debug(f"sharepoint current path: {sharepoint_current_path}")
 
         for file_name in files:
             local_file = Path(root) / file_name

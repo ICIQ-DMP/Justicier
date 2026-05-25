@@ -34,7 +34,7 @@ def get_dni(pdf_path: Path) -> str:
 
         dni = match.group(0)
         return dni
-    raise ValueError("DNI could not be detected in PDF " + str(pdf_path))
+    raise ValueError(f"DNI could not be detected in PDF {pdf_path}")
 
 
 def write_page(page: pypdf.PageObject, path: Path) -> None:
@@ -97,9 +97,7 @@ def get_matching_page(
         if match_selected is not None:
             return page
 
-    raise ValueError(
-        "The string " + query_string + " can't be found in the file " + str(pdf_path)
-    )
+    raise ValueError(f"The string {query_string} can't be found in the file {pdf_path}")
 
 
 def parse_dates_from_delayed_salary(
@@ -193,24 +191,15 @@ def merge_pdfs(
                 pdfWriter.add_page(pdf_reader.pages[i])
         else:
             pdfWriter.add_page(pdf_reader.pages[0])
-    f = open(output_path, "wb")
-    pdfWriter.write(f)
-    f.close()
+    with open(output_path, "wb") as f:
+        pdfWriter.write(f)
 
 
 def is_date_present_in_rlc_delay(
     delay_begin: datetime, delay_end: datetime, document_path: Path
 ) -> bool:
     reader = PdfReader(document_path)
-    query_string = (
-        unparse_month(delay_begin)
-        + "/"
-        + str(delay_begin.year)
-        + " - "
-        + unparse_month(delay_end)
-        + "/"
-        + str(delay_end.year)
-    )
+    query_string = f"{unparse_month(delay_begin)}/{delay_begin.year} - {unparse_month(delay_end)}/{delay_end.year}"
     pattern = re.compile(query_string)
 
     for page_num, page in enumerate(reader.pages):
@@ -222,7 +211,7 @@ def is_date_present_in_rlc_delay(
         if not match:
             continue
 
-        log.debug("Detected this matches: " + str(match))
+        log.debug(f"Detected this matches: {match}")
         for match_i in match:
             if match_i == query_string:
                 return True
@@ -237,11 +226,7 @@ def compact_folder(path_folder: Path) -> None:
     """
     names = list_dir(path_folder)
     if len(names) == 0:
-        log.warning(
-            "Refusing to compact folder "
-            + str(path_folder)
-            + " because it is empty. Aborting compression."
-        )
+        log.warning(f"Refusing to compact folder {path_folder} because it is empty. Aborting compression.")
         return
 
     names.sort()

@@ -109,5 +109,5 @@ def parse_dni(value: str) -> DNI:
         return DNI(value)
     except Exception as e:
         raise ArgumentNafInvalid(
-            "DNI " + str(value) + " is not valid" + e.__str__()
+            f"DNI {value} is not valid{e}"
         )  # TODO change exception

@@ -24,13 +24,9 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     for line in ascii_logo_normal.split("\n"):
         # Ensure the line is at least 120 characters long before slicing
         if len(line) >= 120:
-            line = (
-                "=                                     " + line[:77] + "   ="
-            )  # Replace char at index 120
+            line = f"=                                     {line[:77]}   ="  # Replace char at index 120
         else:
-            line = (
-                "=                                     " + line.ljust(77) + "   ="
-            )  # Pad to 120 and then add "="
+            line = f"=                                     {line.ljust(77)}   ="  # Pad to 120 and then add "="
         ascii_logo += line + "\n"
 
     compact_something = any(args.merge_result.values())
@@ -46,13 +42,9 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
 
     user_report = "\n"
     user_report += "=======================================================================================================================\n"
-    user_report += "" + ascii_logo
+    user_report += ascii_logo
     user_report += "=======================================================================================================================\n"
-    user_report += (
-        "                                        :: Justicier ::   Version: "
-        + pkg_version
-        + "\n"
-    )
+    user_report += f"                                        :: Justicier ::   Version: {pkg_version}\n"
     user_report += "                          Copyright © 2025-2025 Institut Català d'Investigació Química (ICIQ)\n"
     user_report += (
         "                                            This program is free software\n"
@@ -68,20 +60,16 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     user_report += "*                                                USER REQUEST DETAILS                                                 *\n"
     user_report += "***********************************************************************************************************************\n"
     user_report += "* PARAMETERS:                                                                                                         *\n"
-    user_report += format_line("- NAF requested: " + args.naf.__str__())
-    user_report += format_line("- Initial date: " + unparse_full_date(args.begin))
-    user_report += format_line("- End date: " + unparse_full_date(args.end))
+    user_report += format_line(f"- NAF requested: {args.naf}")
+    user_report += format_line(f"- Initial date: {unparse_full_date(args.begin)}")
+    user_report += format_line(f"- End date: {unparse_full_date(args.end)}")
     user_report += "* OPTIONS:                                                                                                            *\n"
-    user_report += format_line(
-        "- Merge salaries with corresponding bankproof: " + str(args.merge_salary)
-    )
-    user_report += format_line(
-        "- Merge RNTs and RLCs of each month: " + str(args.merge_rnt_rlc)
-    )
+    user_report += format_line(f"- Merge salaries with corresponding bankproof: {args.merge_salary}")
+    user_report += format_line(f"- Merge RNTs and RLCs of each month: {args.merge_rnt_rlc}")
     user_report += format_line("- Document categories to merge: " + compact_text)
     user_report += "* IDENTIFICATION:                                                                                                     *\n"
     user_report += format_line("- Email of the user doing the request: " + args.author)
-    user_report += format_line("- Request id: " + str(args.request))
+    user_report += format_line(f"- Request id: {args.request}")
     user_report += "***********************************************************************************************************************\n"
     user_report += "\n"
 
@@ -96,39 +84,13 @@ def unparse_salary_rlc_result_settlement(
     for key in content.keys():
         if content[key][0]:
             salaries_found += 1
-            msg += (
-                "A settlement for NAF "
-                + str(args.naf)
-                + " was found for month "
-                + unparse_date(key, "-")
-                + "\n"
-            )
+            msg += f"A settlement for NAF {args.naf} was found for month {unparse_date(key, '-')}\n"
             if not content[key][1]:
-                msg += (
-                    "The corresponding RLC L13 N for the settlement salary for NAF "
-                    + str(args.naf)
-                    + " was not found during month "
-                    + unparse_date(key, "-")
-                    + "\n"
-                )
+                msg += f"The corresponding RLC L13 N for the settlement salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
             if not content[key][2]:
-                msg += (
-                    "The corresponding RLC L13 P for the settlement salary for NAF "
-                    + str(args.naf)
-                    + " was not found during month "
-                    + unparse_date(key, "-")
-                    + "\n"
-                )
+                msg += f"The corresponding RLC L13 P for the settlement salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
 
-    msg += (
-        "In the period from "
-        + unparse_date(args.begin, "-")
-        + " to "
-        + unparse_date(args.end, "-")
-        + " there are "
-        + str(salaries_found)
-        + " settlement salaries.\n"
-    )
+    msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {salaries_found} settlement salaries.\n"
     return msg
 
 
@@ -143,39 +105,13 @@ def unparse_salary_rlc_result_delay(
     for key in content.keys():
         if content[key][0]:
             salaries_found += 1
-            msg += (
-                "A delay salary for NAF "
-                + str(args.naf)
-                + " was found for month "
-                + unparse_date(key, "-")
-                + "\n"
-            )
+            msg += f"A delay salary for NAF {args.naf} was found for month {unparse_date(key, '-')}\n"
             if not content[key][1]:
-                msg += (
-                    "The corresponding RLC L03 N for the delay salary for NAF "
-                    + str(args.naf)
-                    + " was not found during month "
-                    + unparse_date(key, "-")
-                    + "\n"
-                )
+                msg += f"The corresponding RLC L03 N for the delay salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
             if not content[key][2]:
-                msg += (
-                    "The corresponding RLC L03 P for the delay salary for NAF "
-                    + str(args.naf)
-                    + " was not found during month "
-                    + unparse_date(key, "-")
-                    + "\n"
-                )
+                msg += f"The corresponding RLC L03 P for the delay salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
 
-    msg += (
-        "In the period from "
-        + unparse_date(args.begin, "-")
-        + " to "
-        + unparse_date(args.end, "-")
-        + " there are "
-        + str(salaries_found)
-        + " delay salaries.\n"
-    )
+    msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {salaries_found} delay salaries.\n"
     return msg
 
 
@@ -196,45 +132,17 @@ def unparse_salary_rlc_result_regular(
             salaries_found += 1
             if not content[key][1]:
                 something_wrong = True
-                msg += (
-                    "The corresponding RLC L00 N for the regular monthly salary for NAF "
-                    + str(args.naf)
-                    + " was not found during month "
-                    + unparse_date(key, "-")
-                    + "\n"
-                )
+                msg += f"The corresponding RLC L00 N for the regular monthly salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
             if not content[key][2]:
                 something_wrong = True
-                msg += (
-                    "The corresponding RLC L00 P for the regular monthly salary for NAF "
-                    + str(args.naf)
-                    + " was not found during month "
-                    + unparse_date(key, "-")
-                    + "\n"
-                )
+                msg += f"The corresponding RLC L00 P for the regular monthly salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
         if not content[key][0]:
             something_wrong = True
-            msg += (
-                "Regular monthly salary for NAF "
-                + str(args.naf)
-                + " was not found during month "
-                + unparse_date(key, "-")
-                + "\n"
-            )
+            msg += f"Regular monthly salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
 
     if salaries_found != len(content.keys()):
         something_wrong = True
-        msg += (
-            "In the period from "
-            + unparse_date(args.begin, "-")
-            + " to "
-            + unparse_date(args.end, "-")
-            + " there are "
-            + str(len(content.keys()))
-            + " months, but only "
-            + str(salaries_found)
-            + " regular salaries were found.\n"
-        )
+        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {len(content.keys())} months, but only {salaries_found} regular salaries were found.\n"
 
     if not something_wrong:
         msg += "All regular monthly salaries and their requested RLC L00 N and RLC L00 P have been found :D\n"
@@ -272,23 +180,14 @@ def unparse_salary_rnt_result(
     rnt_results = rnt
     salaries_result = salary[RLCType.REGULAR]
 
-    log.trace(
-        "results previous to building report: RNT results: "
-        + str(rnt_results)
-        + " salaries: "
-        + str(salaries_result)
-    )
+    log.trace(f"results previous to building report: RNT results: {rnt_results} salaries: {salaries_result}")
 
     msg = ""
     for key in salaries_result.keys():
         if salaries_result[key][0]:  # Salary for that month has been found
             if not rnt_results[key]:
                 something_wrong = True
-                msg += (
-                    "In the month "
-                    + unparse_date(key, "-")
-                    + " there is a salary, but no RNT has been found.\n"
-                )
+                msg += f"In the month {unparse_date(key, '-')} there is a salary, but no RNT has been found.\n"
 
     if not something_wrong:
         msg += "All RNTs have been found for all the months requested where a regular monthly salary is found :D\n"
@@ -298,25 +197,9 @@ def unparse_salary_rnt_result(
 def unparse_contract_result(content: bool, args: argparse.Namespace) -> str:
     msg = ""
     if content:
-        msg += (
-            "In the period from "
-            + unparse_date(args.begin, "-")
-            + " to "
-            + unparse_date(args.end, "-")
-            + " a contract has been found for naf "
-            + str(args.naf)
-            + " :D\n"
-        )
+        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} a contract has been found for naf {args.naf} :D\n"
     else:
-        msg += (
-            "In the period from "
-            + unparse_date(args.begin, "-")
-            + " to "
-            + unparse_date(args.end, "-")
-            + " a contract has not been found for naf "
-            + str(args.naf)
-            + "\n"
-        )
+        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} a contract has not been found for naf {args.naf}\n"
     return msg
 
 
