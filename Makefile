@@ -68,7 +68,7 @@ dev: $(DEV_STAMP)  ## Install package and dev dependencies
 
 lint: dev  ## Run static checks (ruff + mypy)
 	@$(VENV_BIN)/ruff check .
-	@$(VENV_BIN)/mypy src
+	@$(VENV_BIN)/mypy --strict src
 
 fmt: dev  ## Auto-format (black + ruff --fix)
 	@$(VENV_BIN)/black src tests
