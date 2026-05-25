@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
-import PyPDF2
+import pypdf
 from pypdf import PdfReader, PdfWriter
 
 from custom_except import UndefinedRegularSalaryType
@@ -37,7 +37,7 @@ def get_dni(pdf_path: Path) -> str:
     raise ValueError("DNI could not be detected in PDF " + str(pdf_path))
 
 
-def write_page(page: PyPDF2.PageObject, path: Path) -> None:
+def write_page(page: pypdf.PageObject, path: Path) -> None:
     writer = PdfWriter()
     writer.add_page(page)
 
@@ -47,7 +47,7 @@ def write_page(page: PyPDF2.PageObject, path: Path) -> None:
 
 def get_matching_pages(
     pdf_path: Path, query_string: str, pattern_str: str = r"\d{2}/\d{8}-\d{2}"
-) -> List[Tuple[PyPDF2.PageObject, int]]:
+) -> List[Tuple[pypdf.PageObject, int]]:
     reader = PdfReader(pdf_path)
 
     pattern = re.compile(pattern_str)
@@ -75,7 +75,7 @@ def get_matching_pages(
 
 def get_matching_page(
     pdf_path: Path, query_string: str, pattern_str: str = r"\d{2}/\d{8}-\d{2}"
-) -> PyPDF2.PageObject:
+) -> pypdf.PageObject:
     reader = PdfReader(pdf_path)
 
     pattern = re.compile(pattern_str)
@@ -102,7 +102,7 @@ def get_matching_page(
     )
 
 
-def parse_dates_from_delayed_salary(page: PyPDF2.PageObject) -> tuple[datetime, datetime]:
+def parse_dates_from_delayed_salary(page: pypdf.PageObject) -> tuple[datetime, datetime]:
     query_str = r"\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}"
     pattern = re.compile(query_str, re.MULTILINE)
 
@@ -126,7 +126,7 @@ def parse_dates_from_delayed_salary(page: PyPDF2.PageObject) -> tuple[datetime, 
     return start_date, end_date
 
 
-def is_monthly_salary(salary_page: PyPDF2.PageObject) -> bool:
+def is_monthly_salary(salary_page: pypdf.PageObject) -> bool:
     text = salary_page.extract_text()
 
     if not text:
@@ -150,7 +150,7 @@ def is_monthly_salary(salary_page: PyPDF2.PageObject) -> bool:
     return False
 
 
-def is_settlement_salary(salary_page: PyPDF2.PageObject) -> bool:
+def is_settlement_salary(salary_page: pypdf.PageObject) -> bool:
     text = salary_page.extract_text()
     if not text:
         return False
@@ -164,7 +164,7 @@ def is_settlement_salary(salary_page: PyPDF2.PageObject) -> bool:
     return False
 
 
-def parse_regular_salary_type(salary_page: PyPDF2.PageObject) -> RegularSalaryType:
+def parse_regular_salary_type(salary_page: pypdf.PageObject) -> RegularSalaryType:
     if is_monthly_salary(salary_page):
         return RegularSalaryType.MONTHLY
     elif is_settlement_salary(salary_page):
@@ -180,10 +180,10 @@ def merge_pdfs(pdf_paths: List[Path], output_path: Path, all_pages: bool = False
     :param pdf_paths: List of paths to PDF files to merge.
     :param output_path: Path to save the merged PDF.
     """
-    pdfWriter = PyPDF2.PdfWriter()
+    pdfWriter = pypdf.PdfWriter()
     for filename in pdf_paths:
         pdf_file = open(filename, "rb")
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        pdf_reader = pypdf.PdfReader(pdf_file)
         if all_pages:
             for i in range(len(pdf_reader.pages)):
                 pdfWriter.add_page(pdf_reader.pages[i])

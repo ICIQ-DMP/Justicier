@@ -19,7 +19,6 @@ dependencies = [
     "typer",
     "types-requests",
     "pypdf",
-    "PyPDF2",
     "PyCryptodome",
     "Office365-REST-Python-Client",
     "pyfiglet",

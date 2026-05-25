@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TypeVar
 
-import PyPDF2
+import pypdf
 
 from DNI import DNI
 from NAF import NAF
@@ -115,7 +115,7 @@ def process_generic_rlc(
 def process_rlc_l03(
     salary_file_path: Path,
     salary_page_number: int,
-    salary_page: PyPDF2.PageObject,
+    salary_page: pypdf.PageObject,
     salary_date: datetime,
     naf_dir: Path,
     rlc_folder_path: Path,
