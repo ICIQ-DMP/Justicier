@@ -77,23 +77,20 @@ def parse_two_columns(
     df: pd.DataFrame,
     key: str,
     value: str,
-    func_apply_key: Callable[[str], _K] | None = None,
-    func_apply_value: Callable[[str], _V] | None = None,
+    func_apply_key: Callable[[str], _K],
+    func_apply_value: Callable[[str], _V],
 ) -> dict[_K, _V]:
-    val_col = df[value]
-    key_col = df[key]
     try:
-        if func_apply_value is not None:
-            val_col = val_col.apply(func_apply_value)
-    except Exception as e:
-        log.error("func apply value failed with exception: " + str(e))
-    try:
-        if func_apply_key is not None:
-            key_col = key_col.apply(func_apply_key)
+        keys: list[_K] = [func_apply_key(k) for k in df[key]]
     except Exception as e:
         log.error("func apply key failed with exception:  " + str(e))
-
-    return dict(zip(key_col, val_col))
+        raise
+    try:
+        values: list[_V] = [func_apply_value(v) for v in df[value]]
+    except Exception as e:
+        log.error("func apply value failed with exception: " + str(e))
+        raise
+    return dict(zip(keys, values))
 
 
 def read_dataframe(path: Path, skiprows: int, header: int | None) -> pd.DataFrame:
