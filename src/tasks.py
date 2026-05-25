@@ -557,8 +557,8 @@ _V = TypeVar("_V")
 
 def reverse_dict(d: dict[_K, _V]) -> dict[_V, _K]:
     r = {}
-    for key in d.keys():
-        r[d[key]] = key
+    for key, value in d.items():
+        r[value] = key
     return r
 
 

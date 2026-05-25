@@ -367,8 +367,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
         config[SharepointListFields.MERGE_RESULTS]
     ):  # TODO use a column for each fusion
         compact_default = get_compact_init()
-        for key in compact_default.keys():
-            compact_default[key] = True
+        compact_default = {key: True for key in compact_default}
         parsed["merge_result"] = compact_default
     parsed["merge_rnt_rlc"] = parse_boolean(config[SharepointListFields.MERGE_RLC_RNT])
 

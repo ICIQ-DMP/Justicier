@@ -1,4 +1,5 @@
 import argparse
+from dataclasses import dataclass
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
 
@@ -76,76 +77,76 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     return user_report
 
 
-def unparse_salary_rlc_result_settlement(
-    content: dict[datetime, list[bool]], args: argparse.Namespace
+@dataclass(frozen=True)
+class SalaryRLCConfig:
+    rlc_code: str       # e.g. "L00", "L03", "L13"
+    salary_label: str   # singular label used in per-month messages
+    count_label: str    # plural label used in summary and success messages
+    report_found: bool  # emit a "found" line when salary is present
+    report_missing: bool  # emit a "not found" line when salary is absent
+    track_quality: bool   # use something_wrong flag and emit a success/failure summary
+
+
+_RLC_TYPE_CONFIG: dict[RLCType, SalaryRLCConfig] = {
+    RLCType.SETTLEMENT: SalaryRLCConfig(
+        rlc_code="L13",
+        salary_label="settlement salary",
+        count_label="settlement salaries",
+        report_found=True,
+        report_missing=False,
+        track_quality=False,
+    ),
+    RLCType.DELAY: SalaryRLCConfig(
+        rlc_code="L03",
+        salary_label="delay salary",
+        count_label="delay salaries",
+        report_found=True,
+        report_missing=False,
+        track_quality=False,
+    ),
+    RLCType.REGULAR: SalaryRLCConfig(
+        rlc_code="L00",
+        salary_label="regular monthly salary",
+        count_label="regular monthly salaries",
+        report_found=False,
+        report_missing=True,
+        track_quality=True,
+    ),
+}
+
+
+def _unparse_salary_rlc_for_type(
+    content: dict[datetime, list[bool]],
+    config: SalaryRLCConfig,
+    args: argparse.Namespace,
 ) -> str:
-    msg = ""
-    salaries_found = 0
-    for key in content.keys():
-        if content[key][0]:
-            salaries_found += 1
-            msg += f"A settlement for NAF {args.naf} was found for month {unparse_date(key, '-')}\n"
-            if not content[key][1]:
-                msg += f"The corresponding RLC L13 N for the settlement salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
-            if not content[key][2]:
-                msg += f"The corresponding RLC L13 P for the settlement salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
-
-    msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {salaries_found} settlement salaries.\n"
-    return msg
-
-
-def unparse_salary_rlc_result_delay(
-    content: dict[datetime, list[bool]], args: argparse.Namespace
-) -> str:
-    """
-    Número de nómines d´endarreriments trobades i de quin mes.
-    """
-    msg = ""
-    salaries_found = 0
-    for key in content.keys():
-        if content[key][0]:
-            salaries_found += 1
-            msg += f"A delay salary for NAF {args.naf} was found for month {unparse_date(key, '-')}\n"
-            if not content[key][1]:
-                msg += f"The corresponding RLC L03 N for the delay salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
-            if not content[key][2]:
-                msg += f"The corresponding RLC L03 P for the delay salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
-
-    msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {salaries_found} delay salaries.\n"
-    return msg
-
-
-def unparse_salary_rlc_result_regular(
-    content: dict[datetime, list[bool]], args: argparse.Namespace
-) -> str:
-    """
-    Numero de Nomines totals que hi ha en el periode, és a dir, si fem una busqueda de gener de 2024 a desembre de 2024
-    hi ha d´haver 12 nómines una per cada mes, les d´endarreriments no compten. Aleshores hi ha d´haver comparativa de
-    número de nomines trobades en el periode  i número de nomines no trobades (de les no trobades el mes que no ha
-    trobat)
-    """
     msg = ""
     something_wrong = False
     salaries_found = 0
-    for key in content.keys():
-        if content[key][0]:
+    for key, values in content.items():
+        if values[0]:
             salaries_found += 1
-            if not content[key][1]:
+            if config.report_found:
+                msg += f"A {config.salary_label} for NAF {args.naf} was found for month {unparse_date(key, '-')}\n"
+            if not values[1]:
                 something_wrong = True
-                msg += f"The corresponding RLC L00 N for the regular monthly salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
-            if not content[key][2]:
+                msg += f"The corresponding RLC {config.rlc_code} N for the {config.salary_label} for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
+            if not values[2]:
                 something_wrong = True
-                msg += f"The corresponding RLC L00 P for the regular monthly salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
-        if not content[key][0]:
+                msg += f"The corresponding RLC {config.rlc_code} P for the {config.salary_label} for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
+        elif config.report_missing:
             something_wrong = True
-            msg += f"Regular monthly salary for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
+            msg += f"{config.salary_label.capitalize()} for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
 
-    if salaries_found != len(content.keys()):
-        something_wrong = True
-        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {len(content.keys())} months, but only {salaries_found} regular salaries were found.\n"
-
-    if not something_wrong:
-        msg += "All regular monthly salaries and their requested RLC L00 N and RLC L00 P have been found :D\n"
+    total = len(content)
+    if config.track_quality:
+        if salaries_found != total:
+            something_wrong = True
+            msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {total} months, but only {salaries_found} {config.count_label} were found.\n"
+        if not something_wrong:
+            msg += f"All {config.count_label} and their requested RLC {config.rlc_code} N and RLC {config.rlc_code} P have been found :D\n"
+    else:
+        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {salaries_found} {config.count_label}.\n"
     return msg
 
 
@@ -153,21 +154,10 @@ def unparse_salary_rlc_result(
     content: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace
 ) -> str:
     msg = ""
-
-    for key in content.keys():
-        if key == RLCType.REGULAR:
-            msg += "**** Salaries and RLC L00 \n" + unparse_salary_rlc_result_regular(
-                content[key], args
-            )
-        elif key == RLCType.DELAY:
-            msg += "**** Salaries and RLC L03 \n" + unparse_salary_rlc_result_delay(
-                content[key], args
-            )
-        elif key == RLCType.SETTLEMENT:
-            msg += (
-                "**** Salaries and RLC L13 \n"
-                + unparse_salary_rlc_result_settlement(content[key], args)
-            )
+    for rlc_type, type_content in content.items():
+        config = _RLC_TYPE_CONFIG[rlc_type]
+        msg += f"**** Salaries and RLC {config.rlc_code} \n"
+        msg += _unparse_salary_rlc_for_type(type_content, config, args)
     return msg
 
 
@@ -183,8 +173,8 @@ def unparse_salary_rnt_result(
     log.trace(f"results previous to building report: RNT results: {rnt_results} salaries: {salaries_result}")
 
     msg = ""
-    for key in salaries_result.keys():
-        if salaries_result[key][0]:  # Salary for that month has been found
+    for key, values in salaries_result.items():
+        if values[0]:  # Salary for that month has been found
             if not rnt_results[key]:
                 something_wrong = True
                 msg += f"In the month {unparse_date(key, '-')} there is a salary, but no RNT has been found.\n"
