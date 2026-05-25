@@ -40,6 +40,7 @@ from sharepoint import (
     update_list_item_field,
     get_sharepoint_web_url,
 )
+from TokenManager import TokenManager
 from tasks import (
     reverse_dict,
     complete_arguments,
@@ -51,6 +52,15 @@ from tasks import (
 )
 
 log = get_logger(__name__)
+
+
+def _connect_sharepoint() -> tuple[TokenManager, str, str]:
+    token_manager = get_token_manager()
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+    drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
+    return token_manager, site_id, drive_id
 
 
 def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
@@ -66,26 +76,12 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     NAF_DATA_PATH: Path = input_folder / "NAF_DNI.xlsx"
 
     start_time = time.time()
-    if args.location == "sharepoint" or args.request is not None:
-        token_manager = get_token_manager()
-        sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
-        site_name = read_secret("SITE_NAME")
-        site_id = get_site_id(token_manager, sharepoint_domain, site_name)
-        drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
 
     if args.location == "sharepoint":
-        token_manager = get_token_manager()
-        sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
-        site_name = read_secret("SITE_NAME")
-        site_id = get_site_id(token_manager, sharepoint_domain, site_name)
-        drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
-
+        token_manager, site_id, drive_id = _connect_sharepoint()
         carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
-
         remove_folder(input_folder)
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, input_folder)
-    elif args.location == "local":
-        pass
 
     NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
     DNI_TO_NAF = reverse_dict(NAF_TO_DNI)
@@ -240,49 +236,23 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         start_time = time.time()
         elapsed_time(start_time)
 
-        token_manager = get_token_manager()
-        sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
-        site_name = read_secret("SITE_NAME")
-        site_id = get_site_id(token_manager, sharepoint_domain, site_name)
-        drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
+        token_manager, site_id, drive_id = _connect_sharepoint()
+        SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
+        remote_output_path = f"{SHAREPOINT_FOLDER_OUTPUT}/{args.author}/{impersonal_id_str}"
+        remote_log_path = f"{SHAREPOINT_FOLDER_OUTPUT}/_admin_logs/{admin_log_path.name}"
+
         upload_folder_recursive(
             token_manager=token_manager,
             drive_id=drive_id,
             local_folder_path=current_justification_folder,
-            remote_folder_path=(
-                read_secret("SHAREPOINT_FOLDER_OUTPUT")
-                + "/"
-                + args.author
-                + "/"
-                + impersonal_id_str
-            ),
+            remote_folder_path=remote_output_path,
         )
 
-        link = get_sharepoint_web_url(
-            token_manager,
-            site_id,
-            drive_id,
-            read_secret("SHAREPOINT_FOLDER_OUTPUT")
-            + "/"
-            + args.author
-            + "/"
-            + impersonal_id_str,
-        )
+        link = get_sharepoint_web_url(token_manager, site_id, drive_id, remote_output_path)
         log.info(f"Clickable SharePoint URL: {link}  ")
 
-        SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
-        upload_file(
-            token_manager,
-            drive_id,
-            SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
-            admin_log_path,
-        )
-        log_link = get_sharepoint_web_url(
-            token_manager,
-            site_id,
-            drive_id,
-            SHAREPOINT_FOLDER_OUTPUT + "/_admin_logs/" + admin_log_path.name,
-        )
+        upload_file(token_manager, drive_id, remote_log_path, admin_log_path)
+        log_link = get_sharepoint_web_url(token_manager, site_id, drive_id, remote_log_path)
 
         end_time = elapsed_time(start_time)
         log.info(f"Time elapsed for uploading data: {end_time}.")
