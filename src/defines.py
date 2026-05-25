@@ -26,8 +26,10 @@ NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 
 DATE_FORMAT = "%d/%m/%Y"
 
+
 class SharepointListFields(Enum):
     """Maps semantic Python names to the internal SharePoint field names used by the Graph API."""
+
     ID = "id"
     REQUEST_TITLE = "Title"
     NAF = "NAF"
@@ -41,6 +43,7 @@ class SharepointListFields(Enum):
     MERGE_SALARY_BANKPROOF = "Fusi_x00f3_NominaiJustificantBan"
     MERGE_RESULTS = "juntarpdfs"
     MERGE_RLC_RNT = "Fusi_x00f3_RLCRNT"
+
 
 class DocType(Enum):
     SALARY = "salary"

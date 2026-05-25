@@ -6,15 +6,16 @@ from typing import Callable, Iterable, Any
 
 from logger import get_logger
 
-try:
-    from zoneinfo import ZoneInfo  # Python 3.9+
-except ModuleNotFoundError:
-    from backports.zoneinfo import ZoneInfo  # Python <3.9
-
+from zoneinfo import ZoneInfo  # Python 3.9+
 
 from NAF import NAF, is_naf_present, build_naf_to_dni, parse_naf
-from custom_except import ArgumentDateError, UndefinedInputType, ArgumentNafInvalid, ArgumentNafNotPresent, \
-    ArgumentAuthorError
+from custom_except import (
+    ArgumentDateError,
+    UndefinedInputType,
+    ArgumentNafInvalid,
+    ArgumentNafNotPresent,
+    ArgumentAuthorError,
+)
 from defines import DocType, SharepointListFields, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list, SharepointItem
@@ -152,7 +153,12 @@ def parse_arguments_helper(arg_text: str) -> None:
 
 # Explicit contract: these args are sourced from SharePoint when --id/--request is given.
 # Any locally supplied values for them will be warned about and then overwritten.
-_ID_OVERRIDES: dict[str, Callable[[argparse.Namespace], NAF | Name | DNI | datetime.datetime | bool | str | None]] = {
+_ID_OVERRIDES: dict[
+    str,
+    Callable[
+        [argparse.Namespace], NAF | Name | DNI | datetime.datetime | bool | str | None
+    ],
+] = {
     "naf": lambda a: a.naf,
     "name": lambda a: a.name,
     "target_email": lambda a: a.target_email,
@@ -336,7 +342,9 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
     if config[SharepointListFields.NAF]:
         parsed["naf"] = parse_naf(str(config[SharepointListFields.NAF]))
     if config[SharepointListFields.TARGET_NAME]:
-        parsed["name"] = parse_name_sharepoint(str(config[SharepointListFields.TARGET_NAME]))
+        parsed["name"] = parse_name_sharepoint(
+            str(config[SharepointListFields.TARGET_NAME])
+        )
     if config[SharepointListFields.TARGET_EMAIL]:
         parsed["target_email"] = str(config[SharepointListFields.TARGET_EMAIL])
     if config[SharepointListFields.DNI]:
@@ -344,7 +352,9 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
 
     # Required fields — guaranteed non-None after step 2
     parsed["begin"] = parse_date(
-        str(config[SharepointListFields.BEGIN]), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+        str(config[SharepointListFields.BEGIN]),
+        "%Y-%m-%dT%H:%M:%SZ",
+        return_naive=False,
     ).replace(tzinfo=None)
     parsed["end"] = parse_date(
         str(config[SharepointListFields.END]), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
@@ -353,9 +363,13 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
     parsed["author"] = parse_author(str(config[SharepointListFields.AUTHOR_NAME]))
     parsed["author_email"] = config[SharepointListFields.AUTHOR_EMAIL]
 
-    parsed["merge_salary"] = parse_boolean(config[SharepointListFields.MERGE_SALARY_BANKPROOF])
+    parsed["merge_salary"] = parse_boolean(
+        config[SharepointListFields.MERGE_SALARY_BANKPROOF]
+    )
 
-    if parse_boolean(config[SharepointListFields.MERGE_RESULTS]):  # TODO use a column for each fusion
+    if parse_boolean(
+        config[SharepointListFields.MERGE_RESULTS]
+    ):  # TODO use a column for each fusion
         compact_default = get_compact_init()
         for key in compact_default.keys():
             compact_default[key] = True
@@ -485,7 +499,9 @@ def validate_author(author: str, valid_authors: Iterable[str]) -> None:
         )  # more specific exception
 
 
-def validate_arguments(args: argparse.Namespace, valid_nafs: Iterable[NAF], valid_authors: Iterable[str]) -> None:
+def validate_arguments(
+    args: argparse.Namespace, valid_nafs: Iterable[NAF], valid_authors: Iterable[str]
+) -> None:
     """
     Step 4 – Business-rule validation for all arguments.
 
@@ -497,7 +513,9 @@ def validate_arguments(args: argparse.Namespace, valid_nafs: Iterable[NAF], vali
     validate_naf(args.naf, valid_nafs)
 
 
-def process_validate_arguments(args: argparse.Namespace, naf_data_path: Path, user_list_data_path: Path) -> None:
+def process_validate_arguments(
+    args: argparse.Namespace, naf_data_path: Path, user_list_data_path: Path
+) -> None:
     common = (
         "Error validating arguments. Program aborting. The arguments are: "
         + str(sys.argv)

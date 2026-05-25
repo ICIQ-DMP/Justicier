@@ -102,7 +102,9 @@ def get_matching_page(
     )
 
 
-def parse_dates_from_delayed_salary(page: pypdf.PageObject) -> tuple[datetime, datetime]:
+def parse_dates_from_delayed_salary(
+    page: pypdf.PageObject,
+) -> tuple[datetime, datetime]:
     query_str = r"\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}"
     pattern = re.compile(query_str, re.MULTILINE)
 
@@ -173,7 +175,9 @@ def parse_regular_salary_type(salary_page: pypdf.PageObject) -> RegularSalaryTyp
         raise UndefinedRegularSalaryType("The type was not recognized")
 
 
-def merge_pdfs(pdf_paths: List[Path], output_path: Path, all_pages: bool = False) -> None:
+def merge_pdfs(
+    pdf_paths: List[Path], output_path: Path, all_pages: bool = False
+) -> None:
     """
     Merge multiple PDF files into a single PDF.
 
@@ -194,7 +198,9 @@ def merge_pdfs(pdf_paths: List[Path], output_path: Path, all_pages: bool = False
     f.close()
 
 
-def is_date_present_in_rlc_delay(delay_begin: datetime, delay_end: datetime, document_path: Path) -> bool:
+def is_date_present_in_rlc_delay(
+    delay_begin: datetime, delay_end: datetime, document_path: Path
+) -> bool:
     reader = PdfReader(document_path)
     query_string = (
         unparse_month(delay_begin)
@@ -244,7 +250,9 @@ def compact_folder(path_folder: Path) -> None:
     shutil.rmtree(path_folder)
 
 
-def merge_equal_files_from_two_folders(folder1: Path, folder2: Path, folder_out: Path) -> None:
+def merge_equal_files_from_two_folders(
+    folder1: Path, folder2: Path, folder_out: Path
+) -> None:
     log.info(
         f"Merging files with same name in folders {folder1} and {folder2} and outputting them in "
         f"{folder_out}."

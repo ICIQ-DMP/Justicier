@@ -115,7 +115,9 @@ def compute_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name])
     return id_str + "_" + str(args.author)
 
 
-def compute_impersonal_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]) -> str:
+def compute_impersonal_id(
+    now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]
+) -> str:
     id_str = ""
     if args.request:
         id_str = "_" + str(args.request)

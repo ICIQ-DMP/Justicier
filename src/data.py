@@ -11,20 +11,28 @@ from defines import SalaryType
 
 log = logger.get_logger(__name__)
 
+
 def get_rlc_monthly_result_structure(
     begin: datetime, end: datetime
 ) -> Dict[datetime, List[bool]]:
     return get_monthly_result_structure(begin, end, [False, False, False])
+
 
 def get_rnt_monthly_result_structure(
     begin: datetime, end: datetime
 ) -> Dict[datetime, bool]:
     return get_monthly_result_structure(begin, end, False)
 
+
 def get_monthly_result_structure(
     begin: datetime, end: datetime, result_structure: Any
 ) -> Dict[datetime, Any]:
-    log.trace("get_rlc_monthly_result_structure params: begin: " + str(begin) + " end: " + str(end))
+    log.trace(
+        "get_rlc_monthly_result_structure params: begin: "
+        + str(begin)
+        + " end: "
+        + str(end)
+    )
     current = datetime(begin.year, begin.month, 1)
 
     result = {}

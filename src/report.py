@@ -88,7 +88,9 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     return user_report
 
 
-def unparse_salary_rlc_result_settlement(content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
+def unparse_salary_rlc_result_settlement(
+    content: dict[datetime, list[bool]], args: argparse.Namespace
+) -> str:
     msg = ""
     salaries_found = 0
     for key in content.keys():
@@ -130,7 +132,9 @@ def unparse_salary_rlc_result_settlement(content: dict[datetime, list[bool]], ar
     return msg
 
 
-def unparse_salary_rlc_result_delay(content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
+def unparse_salary_rlc_result_delay(
+    content: dict[datetime, list[bool]], args: argparse.Namespace
+) -> str:
     """
     Número de nómines d´endarreriments trobades i de quin mes.
     """
@@ -175,7 +179,9 @@ def unparse_salary_rlc_result_delay(content: dict[datetime, list[bool]], args: a
     return msg
 
 
-def unparse_salary_rlc_result_regular(content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
+def unparse_salary_rlc_result_regular(
+    content: dict[datetime, list[bool]], args: argparse.Namespace
+) -> str:
     """
     Numero de Nomines totals que hi ha en el periode, és a dir, si fem una busqueda de gener de 2024 a desembre de 2024
     hi ha d´haver 12 nómines una per cada mes, les d´endarreriments no compten. Aleshores hi ha d´haver comparativa de
@@ -235,7 +241,9 @@ def unparse_salary_rlc_result_regular(content: dict[datetime, list[bool]], args:
     return msg
 
 
-def unparse_salary_rlc_result(content: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace) -> str:
+def unparse_salary_rlc_result(
+    content: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace
+) -> str:
     msg = ""
 
     for key in content.keys():
@@ -255,12 +263,21 @@ def unparse_salary_rlc_result(content: dict[RLCType, dict[datetime, list[bool]]]
     return msg
 
 
-def unparse_salary_rnt_result(rnt: dict[datetime, bool], salary: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace) -> str:
+def unparse_salary_rnt_result(
+    rnt: dict[datetime, bool],
+    salary: dict[RLCType, dict[datetime, list[bool]]],
+    args: argparse.Namespace,
+) -> str:
     something_wrong = False
     rnt_results = rnt
     salaries_result = salary[RLCType.REGULAR]
 
-    log.trace("results previous to building report: RNT results: " + str(rnt_results) + " salaries: " + str(salaries_result))
+    log.trace(
+        "results previous to building report: RNT results: "
+        + str(rnt_results)
+        + " salaries: "
+        + str(salaries_result)
+    )
 
     msg = ""
     for key in salaries_result.keys():
@@ -315,8 +332,12 @@ def get_end_user_report(
     args: argparse.Namespace,
 ) -> str:
     msg = ""
-    msg += "****** Salaries and RLC ****** \n" + unparse_salary_rlc_result(salaries_with_rlcs_result, args)
+    msg += "****** Salaries and RLC ****** \n" + unparse_salary_rlc_result(
+        salaries_with_rlcs_result, args
+    )
     msg += "****** Bank proofs ****** \n" + unparse_proofs_result(None, args)
-    msg += "****** RNT ****** \n" + unparse_salary_rnt_result(rnts_result, salaries_with_rlcs_result, args)
+    msg += "****** RNT ****** \n" + unparse_salary_rnt_result(
+        rnts_result, salaries_with_rlcs_result, args
+    )
     msg += "****** CONTRACT ****** \n" + unparse_contract_result(contracts_result, args)
     return "\n" + msg

@@ -37,7 +37,9 @@ def get_site_id(token_manager: TokenManager, domain: str, site_name: str) -> str
     return the_id
 
 
-def get_drive_id(token_manager: TokenManager, site_id: str, drive_name: str = "Documents") -> str:
+def get_drive_id(
+    token_manager: TokenManager, site_id: str, drive_name: str = "Documents"
+) -> str:
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
@@ -49,7 +51,9 @@ def get_drive_id(token_manager: TokenManager, site_id: str, drive_name: str = "D
     raise Exception(f"Drive '{drive_name}' no encontrado.")
 
 
-def list_folder_contents(token_manager: TokenManager, drive_id: str, path: str) -> list[dict[str, str]]:
+def list_folder_contents(
+    token_manager: TokenManager, drive_id: str, path: str
+) -> list[dict[str, str]]:
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{path}:/children"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
@@ -57,7 +61,13 @@ def list_folder_contents(token_manager: TokenManager, drive_id: str, path: str) 
     return cast(list[dict[str, str]], response.json()["value"])
 
 
-def download_file(token_mananger: TokenManager, drive_id: str, item_path: str, local_path: Path, max_retries: int = 5) -> None:
+def download_file(
+    token_mananger: TokenManager,
+    drive_id: str,
+    item_path: str,
+    local_path: Path,
+    max_retries: int = 5,
+) -> None:
     url = (
         f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/content"
     )
@@ -113,14 +123,18 @@ def download_folder_recursive(
             download_file(token_manager, drive_id, item_path, local_path)
 
 
-def download_input_folder(token_manager: TokenManager, drive_id: str, remote_path: str, input_path: Path) -> None:
+def download_input_folder(
+    token_manager: TokenManager, drive_id: str, remote_path: str, input_path: Path
+) -> None:
     log.info("Starting recusive download from SharePoint...")
     download_folder_recursive(token_manager, drive_id, remote_path, input_path)
     log.info("Download completed.")
 
 
 # Upload functions
-def upload_file(token_manager: TokenManager, drive_id: str, remote_path: str, local_file_path: Path) -> None:
+def upload_file(
+    token_manager: TokenManager, drive_id: str, remote_path: str, local_file_path: Path
+) -> None:
 
     log.info("Uploading from local path " + str(local_file_path) + " to " + remote_path)
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
@@ -137,7 +151,9 @@ def upload_file(token_manager: TokenManager, drive_id: str, remote_path: str, lo
     log.info("✅ Upload Done")
 
 
-def ensure_remote_folder(token_manager: TokenManager, drive_id: str, parent_path: str, folder_name: str) -> str:
+def ensure_remote_folder(
+    token_manager: TokenManager, drive_id: str, parent_path: str, folder_name: str
+) -> str:
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{parent_path}:/children"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
@@ -157,7 +173,10 @@ def ensure_remote_folder(token_manager: TokenManager, drive_id: str, parent_path
 
 
 def upload_folder_recursive(
-    token_manager: TokenManager, drive_id: str, local_folder_path: Path, remote_folder_path: str
+    token_manager: TokenManager,
+    drive_id: str,
+    local_folder_path: Path,
+    remote_folder_path: str,
 ) -> None:
 
     for root, dirs, files in os.walk(local_folder_path):
@@ -299,7 +318,9 @@ def get_list_columns() -> list[SharepointItem]:
     return cast(list[SharepointItem], columns)
 
 
-def update_list_item_field(item_id: str, updated_fields: dict[str, str]) -> SharepointItem:
+def update_list_item_field(
+    item_id: str, updated_fields: dict[str, str]
+) -> SharepointItem:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -327,16 +348,16 @@ def update_list_item_field(item_id: str, updated_fields: dict[str, str]) -> Shar
     return cast(SharepointItem, response.json())
 
 
-def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: str, job_id: int) -> SharepointItem:
+def get_parameters_from_list(
+    sharepoint_domain: str, site_name: str, list_name: str, job_id: int
+) -> SharepointItem:
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
 
     # Build query in a clearer way: expand fields and select only needed fields
     # Note: requests will correctly encode $ and parentheses in params
-    select_fields = (
-        ",".join(v.value for v in SharepointListFields)
-    )
+    select_fields = ",".join(v.value for v in SharepointListFields)
 
     params = {
         "$expand": f"fields($select={select_fields})",
@@ -352,11 +373,15 @@ def get_parameters_from_list(sharepoint_domain: str, site_name: str, list_name: 
     # The request already targets /items/{job_id}, so raise_for_status() above
     # guarantees we have the right item. No further ID verification is needed.
     fields = list_resp.json()["fields"]
-    data: SharepointItem = {field: fields.get(field.value) for field in SharepointListFields}
+    data: SharepointItem = {
+        field: fields.get(field.value) for field in SharepointListFields
+    }
     return data
 
 
-def get_sharepoint_web_url(token_manager: TokenManager, site_id: str, drive_id: str, folder_path: str) -> str:
+def get_sharepoint_web_url(
+    token_manager: TokenManager, site_id: str, drive_id: str, folder_path: str
+) -> str:
     """
     Given a folder path inside the drive, returns its webUrl for user access.
     Example path: Shared Documents/_output/amarine@iciq.es

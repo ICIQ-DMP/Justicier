@@ -8,8 +8,17 @@ from NAF import build_naf_to_dni, build_naf_to_name, build_naf_to_email
 from TokenManager import get_token_manager
 from arguments import process_parse_arguments
 from chrono import elapsed_time
-from defines import SALARIES_OUTPUT_NAME, PROOFS_OUTPUT_NAME, RLCS_OUTPUT_NAME, DocType, \
-    SALARIES_AND_PROOFS_OUTPUT_NAME, CONTRACTS_OUTPUT_NAME, RNTS_OUTPUT_NAME, RNTS_AND_RLCS_OUTPUT_NAME, ROOT_FOLDER
+from defines import (
+    SALARIES_OUTPUT_NAME,
+    PROOFS_OUTPUT_NAME,
+    RLCS_OUTPUT_NAME,
+    DocType,
+    SALARIES_AND_PROOFS_OUTPUT_NAME,
+    CONTRACTS_OUTPUT_NAME,
+    RNTS_OUTPUT_NAME,
+    RNTS_AND_RLCS_OUTPUT_NAME,
+    ROOT_FOLDER,
+)
 from filesystem import (
     remove_folder,
     compute_id,

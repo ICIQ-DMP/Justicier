@@ -10,7 +10,14 @@ log = get_logger(__name__)
 
 
 def send_mail(
-    to_email: str, subject: str, body: str, from_email: str, username: str, password: str, server: str, port: int
+    to_email: str,
+    subject: str,
+    body: str,
+    from_email: str,
+    username: str,
+    password: str,
+    server: str,
+    port: int,
 ) -> None:
     # Create message
     msg = MIMEText(body)
@@ -25,9 +32,11 @@ def send_mail(
         socket.login(username, password)
         socket.sendmail(from_email, [to_email], msg.as_string())
 
+
 def build_mail_body() -> None:
     """Builds the body of the email to send to the user"""
     pass
+
 
 def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> None:
     smtp_password = read_secret("SMTP_PASSWORD")
@@ -35,11 +44,11 @@ def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> N
     smtp_server = read_secret("SMTP_SERVER")
     smtp_port = read_secret("SMTP_PORT")
 
-    log.trace("user is: \"" + str(smtp_user) + "\"")
-    log.trace("pass is: \"" + str(smtp_password) + "\"")
+    log.trace('user is: "' + str(smtp_user) + '"')
+    log.trace('pass is: "' + str(smtp_password) + '"')
     log.trace('server is: "' + str(smtp_server) + '"')
-    log.trace("port is: \"" + str(smtp_port) + "\"")
-    log.trace("recipient is: \"" + str(args.author_email) + "\"")
+    log.trace('port is: "' + str(smtp_port) + '"')
+    log.trace('recipient is: "' + str(args.author_email) + '"')
 
     subject = f'Justicier - La petició "{args.title}" amb ID {str(args.request)} ha estat completada amb èxit'
     body = (

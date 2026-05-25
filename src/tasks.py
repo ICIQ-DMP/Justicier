@@ -19,7 +19,9 @@ from data import (
     unparse_month,
     unparse_year_month,
     unparse_year_month_short,
-    parse_salary_type_from_salary_filename, get_rlc_monthly_result_structure, get_rnt_monthly_result_structure,
+    parse_salary_type_from_salary_filename,
+    get_rlc_monthly_result_structure,
+    get_rnt_monthly_result_structure,
 )
 from defines import (
     RLCS_OUTPUT_NAME,
@@ -49,7 +51,11 @@ log = get_logger(__name__)
 
 
 def process_rlc_aux(
-    salary_date: datetime, rlc_folder_path: Path, months_found: dict[datetime, list[bool]], rlc_subtype: str, rlc_type: str
+    salary_date: datetime,
+    rlc_folder_path: Path,
+    months_found: dict[datetime, list[bool]],
+    rlc_subtype: str,
+    rlc_type: str,
 ) -> Path:
     month = unparse_month(salary_date)
     year = str(salary_date.year)
@@ -173,7 +179,12 @@ def process_rlc_l03(
 
 
 def process_salaries_with_rlc(
-    salaries_folder_path: Path, rlc_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
+    salaries_folder_path: Path,
+    rlc_folder_path: Path,
+    naf_dir: Path,
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
 ) -> dict[RLCType, dict[datetime, list[bool]]]:
     regular_monthly_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
     regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(
@@ -342,7 +353,12 @@ def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
 
 
 def process_proofs(
-    proofs_folder_path: Path, proofs_output_path: Path, naf: NAF, begin: datetime, end: datetime, naf_to_dni: dict[NAF, DNI]
+    proofs_folder_path: Path,
+    proofs_output_path: Path,
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
+    naf_to_dni: dict[NAF, DNI],
 ) -> None:
     all_bankproof_folders = flatten_dirs(proofs_folder_path)
 
@@ -456,7 +472,9 @@ def process_proofs(
             continue
 
 
-def process_contracts(contracts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime) -> bool:
+def process_contracts(
+    contracts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
+) -> bool:
     found = False
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
@@ -526,7 +544,9 @@ def process_contracts(contracts_folder_path: Path, naf_dir: Path, naf: NAF, begi
     return found
 
 
-def process_RNTs(rnts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime) -> dict[datetime, bool]:
+def process_RNTs(
+    rnts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
+) -> dict[datetime, bool]:
     rnts_found = get_rnt_monthly_result_structure(begin, end)
 
     rnt_files = flatten_dirs(rnts_folder_path)
@@ -689,15 +709,11 @@ def complete_arguments(
             if args.request:
                 update_list_item_field(args.request, {"DNI": str(args.dni)})
         else:
-            log.warning(
-                "DNI is defined but NAF is also defined. DNI will be ignored"
-            )
+            log.warning("DNI is defined but NAF is also defined. DNI will be ignored")
         if not args.name:
             args.name = NAF_TO_NAME[args.naf]
         else:
-            log.warning(
-                "Name is defined but NAF is also defined. Name will be ignored"
-            )
+            log.warning("Name is defined but NAF is also defined. Name will be ignored")
         return
     if args.dni:
         if not args.naf:
@@ -709,9 +725,7 @@ def complete_arguments(
             if args.request:
                 update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
         else:
-            log.warning(
-                "Name is defined but DNI is also defined. Name will be ignored"
-            )
+            log.warning("Name is defined but DNI is also defined. Name will be ignored")
         return
     if args.target_email:
         if not args.naf:

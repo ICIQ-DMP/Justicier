@@ -52,6 +52,9 @@ minor_tags = ["ADDED", "UPDATED", "CHANGED"]
 patch_tags = ["FIXED", "REMOVED"]
 major_tags = ["RELEASED"]
 
+[tool.black]
+target-version = ["py311"]
+
 [tool.ruff]
 line-length = 120
 
