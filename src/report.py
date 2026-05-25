@@ -303,12 +303,12 @@ def unparse_contract_result(content: bool, args: argparse.Namespace) -> str:
     return msg
 
 
-def unparse_proofs_result(report_content: None, args: argparse.Namespace) -> str:
+def unparse_proofs_result(report_content: dict[datetime, list[bool]], args: argparse.Namespace) -> str:
     msg = "At the time, there are no implemented check for the bankproofs in the user report.\n"
     return msg
 
 
-def get_end_user_report(reports: dict[DocType, dict[datetime, bool | list[bool]]], args: argparse.Namespace) -> str:
+def get_end_user_report(reports: dict[DocType, dict[datetime, bool | list[bool]] | bool], args: argparse.Namespace) -> str:
     msg = ""
     for report_type in reports.keys():
         report_content = reports[report_type]

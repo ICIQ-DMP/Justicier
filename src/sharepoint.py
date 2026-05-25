@@ -103,7 +103,7 @@ def download_folder_recursive(
 ) -> None:
     items = list_folder_contents(token_manager, drive_id, remote_path)
     for item in items:
-        name = Path(str(item["name"]))
+        name = Path(item["name"])
         item_path = f"{remote_path}/{name}"
         local_path = local_root / name
 

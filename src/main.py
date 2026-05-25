@@ -57,9 +57,15 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     NAF_DATA_PATH: Path = input_folder / "NAF_DNI.xlsx"
 
     start_time = time.time()
-    if args.location == "sharepoint":
+    token_manager = None
+    if args.location == "sharepoint" or args.request is not None:
         token_manager = get_token_manager()
+        sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+        site_name = read_secret("SITE_NAME")
+        site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+        drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
 
+    if args.location == "sharepoint":
         sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
         site_name = read_secret("SITE_NAME")
         site_id = get_site_id(token_manager, sharepoint_domain, site_name)

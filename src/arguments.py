@@ -106,7 +106,7 @@ def parse_compact_options(value: str) -> dict[DocType, bool]:
         exit(1)
 
 
-def parse_boolean(value: bool | str | None) -> bool | str | None:
+def parse_boolean(value: bool | int | str | None) -> bool | None:
     if value:
         return value
     elif not value:
