@@ -24,14 +24,13 @@ def read_secret(secret_name: str) -> str:
         lambda: read_file_content(Path("/run/secrets") / secret_name),
         lambda: read_file_content(_PROJECT_ROOT / "secrets" / secret_name),
         lambda: read_env_var(secret_name),
-        lambda: read_vault_secret(secret_name)
+        lambda: read_vault_secret(secret_name),
     ]
 
     for source in sources:
         try:
             return source()
-        except Exception as e:
-            log.warning(e)
+        except Exception:
             continue
 
     log.error(f"Could not read {secret_name} from any source")
