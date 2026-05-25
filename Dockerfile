@@ -25,8 +25,6 @@ ENV LC_ALL=es_ES.UTF-8
 COPY pyproject.toml .
 RUN pip install .
 
-COPY version.txt .
-
 # Copy application code
 COPY src ./src
 

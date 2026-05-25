@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+from importlib.metadata import version, PackageNotFoundError
 
 from pyfiglet import Figlet
 
@@ -38,7 +39,10 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     else:
         compact_text = "No document categories to merge"
 
-    version = "".join(open("version.txt").readlines())
+    try:
+        pkg_version = version("justicier")
+    except PackageNotFoundError:
+        pkg_version = "unknown"
 
     user_report = "\n"
     user_report += "=======================================================================================================================\n"
@@ -46,7 +50,7 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     user_report += "=======================================================================================================================\n"
     user_report += (
         "                                        :: Justicier ::   Version: "
-        + version
+        + pkg_version
         + "\n"
     )
     user_report += "                          Copyright © 2025-2025 Institut Català d'Investigació Química (ICIQ)\n"
