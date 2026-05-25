@@ -33,28 +33,12 @@ def send_mail(
         socket.sendmail(from_email, [to_email], msg.as_string())
 
 
-def build_mail_body() -> None:
-    """Builds the body of the email to send to the user"""
-    pass
-
-
-def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> None:
-    smtp_password = read_secret("SMTP_PASSWORD")
-    smtp_user = read_secret("SMTP_USERNAME")
-    smtp_server = read_secret("SMTP_SERVER")
-    smtp_port = read_secret("SMTP_PORT")
-
-    log.trace(f'user is: "{smtp_user}"')
-    log.trace(f'pass is: "{smtp_password}"')
-    log.trace(f'server is: "{smtp_server}"')
-    log.trace(f'port is: "{smtp_port}"')
-    log.trace(f'recipient is: "{args.author_email}"')
-
-    subject = f'Justicier - La petició "{args.title}" amb ID {str(args.request)} ha estat completada amb èxit'
-    body = (
-        "Hola!\n"
+def build_mail_body(result_link: str, log_link: str, args: argparse.Namespace) -> str:
+    """Builds the body of the email to send to the user."""
+    return (
+        f"Hola!\n"
         f"\n"
-        f'T\'informo que la petició que vas fer al Justicier amb títol "{args.title}" i ID {str(args.request)} per'
+        f'T\'informo que la petició que vas fer al Justicier amb títol "{args.title}" i ID {args.request} per'
         f' a l\'empleat amb nom "{args.name}" des del {unparse_date(args.begin)} fins al {unparse_date(args.end)} '
         f"ja ha sigut resolta.\n"
         f"\n"
@@ -74,6 +58,22 @@ def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> N
         f"Aquest missatge ha estat auto-generat."
     )
 
+
+def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> None:
+    smtp_password = read_secret("SMTP_PASSWORD")
+    smtp_user = read_secret("SMTP_USERNAME")
+    smtp_server = read_secret("SMTP_SERVER")
+    smtp_port = read_secret("SMTP_PORT")
+
+    log.trace(f'user is: "{smtp_user}"')
+    log.trace(f'pass is: "{smtp_password}"')
+    log.trace(f'server is: "{smtp_server}"')
+    log.trace(f'port is: "{smtp_port}"')
+    log.trace(f'recipient is: "{args.author_email}"')
+
+    subject = f'Justicier - La petició "{args.title}" amb ID {args.request} ha estat completada amb èxit'
+    body = build_mail_body(result_link, log_link, args)
+
     send_mail(
         args.author_email,
         subject,
@@ -86,27 +86,3 @@ def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> N
     )
 
     print("Email sent. Process complete. ")
-
-
-if __name__ == "__main__":
-    print("Start program")
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--author", required=True, help="Recipient email")
-    args = parser.parse_args()
-
-    print("Sending email with another func")
-    print(f"To: {args.author}")
-    print(f"username: {read_secret('SMTP_USERNAME')}")
-    print(f"password: {read_secret('SMTP_PASSWORD')}")
-    print(f"port: {read_secret('SMTP_PORT')}")
-    print(f"Server: {read_secret('SMTP_SERVER')}")
-    send_mail(
-        to_email=args.author,
-        subject="test email",
-        body="a test of email",
-        from_email=read_secret("SMTP_USERNAME"),
-        username=read_secret("SMTP_USERNAME"),
-        password=read_secret("SMTP_PASSWORD"),
-        server=read_secret("SMTP_SERVER"),
-        port=int(read_secret("SMTP_PORT")),
-    )

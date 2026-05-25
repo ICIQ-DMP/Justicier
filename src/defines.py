@@ -110,7 +110,6 @@ class LogLevel(str, Enum):
     @classmethod
     def parse(cls, value: Optional[str]) -> Optional["LogLevel"]:
         """Parse case-insensitively; returns None if value is falsy."""
-        print("Executing function parse from LogLevel")
         if not value:
             return None
         norm = value.strip().lower()

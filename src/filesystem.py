@@ -160,7 +160,7 @@ def remove_folder(folder_path: Path) -> None:
     except FileNotFoundError:
         pass
     except Exception as e:
-        print(f"Error removing folder {folder_path}: {e}")
+        log.error(f"Error removing folder {folder_path}: {e}")
 
 
 def ensure_file_structure(

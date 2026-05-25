@@ -171,20 +171,13 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         compact_folder(proof_output_path)
 
     # Contracts
-    try:
-        contracts_result = process_contracts(
-            CONTRACTS_FOLDER,
-            current_justification_folder,
-            args.naf,
-            args.begin,
-            args.end,
-        )
-    except Exception as e:
-        if args.request:
-            update_list_item_field(
-                args.request, {"Estatworkflow": "Error", "Missatge_x0020_error": str(e)}
-            )
-        raise ValueError
+    contracts_result = process_contracts(
+        CONTRACTS_FOLDER,
+        current_justification_folder,
+        args.naf,
+        args.begin,
+        args.end,
+    )
     contract_output_path: Path = current_justification_folder / CONTRACTS_OUTPUT_NAME
     if args.merge_result[DocType.CONTRACT]:
         compact_folder(contract_output_path)
