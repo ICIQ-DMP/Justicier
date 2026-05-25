@@ -63,9 +63,9 @@ def process_rlc_aux(
     rlc_n_path = rlc_folder_path / year / n_name
     if rlc_n_path.exists():
         log.debug("The RLC " + str(rlc_n_path) + " is present.")
-        if rlc_subtype.__eq__("N"):
+        if rlc_subtype == "N":
             months_found[salary_date][1] = True
-        elif rlc_subtype.__eq__("P"):
+        elif rlc_subtype == "P":
             months_found[salary_date][2] = True
         return rlc_n_path
     else:
@@ -320,7 +320,7 @@ def process_salaries_with_rlc(
                     )
                     continue
 
-            elif salary_type.__eq__(SalaryType.EXTRA):
+            elif salary_type == SalaryType.EXTRA:
                 log.info(
                     f"Salary file {salary_file_path} page {salary_page_number + 1} has been selected "
                     f"as extra salary for date {unparse_date(salary_date)}"
@@ -382,9 +382,9 @@ def process_proofs(
             "Working with folder " + str(bankproof_folder) + ". Bank type is " + bank
         )
         if (
-            bank.__eq__("BBVA")
-            or bank.__eq__("BBVA_endarreriments")
-            or bank.__eq__("BBVA_FINIQUITO")
+            bank == "BBVA"
+            or bank == "BBVA_endarreriments"
+            or bank == "BBVA_FINIQUITO"
         ):
             for bankproof_file in list_dir(proofs_folder_path / bankproof_folder):
                 try:
@@ -403,11 +403,11 @@ def process_proofs(
                         + str(e)
                     )
                     continue
-                if bank.__eq__("BBVA_endarreriments"):
+                if bank == "BBVA_endarreriments":
                     suffix = "Atrasos"
-                elif bank.__eq__("BBVA"):
+                elif bank == "BBVA":
                     suffix = "Nomines"
-                elif bank.__eq__("BBVA_FINIQUITO"):
+                elif bank == "BBVA_FINIQUITO":
                     suffix = "Extra"
                 else:
                     suffix = "BBVA-UnknownSalaryType"
@@ -425,9 +425,9 @@ def process_proofs(
                 write_page(page, output_path)
 
         elif (
-            bank.__eq__("LA_CAIXA")
-            or bank.__eq__("LA_CAIXA_EXTRA")
-            or bank.__eq__("LA_CAIXA_endarreriments")
+            bank == "LA_CAIXA"
+            or bank == "LA_CAIXA_EXTRA"
+            or bank == "LA_CAIXA_endarreriments"
         ):
             file_names = list_dir(proofs_folder_path / bankproof_folder)
             for file_name in file_names:
@@ -447,11 +447,11 @@ def process_proofs(
                         + str(e)
                     )
                     continue
-                if bank.__eq__("LA_CAIXA_endarreriments"):
+                if bank == "LA_CAIXA_endarreriments":
                     suffix = "Atrasos"
-                elif bank.__eq__("LA_CAIXA"):
+                elif bank == "LA_CAIXA":
                     suffix = "Nomines"
-                elif bank.__eq__("LA_CAIXA_EXTRA"):
+                elif bank == "LA_CAIXA_EXTRA":
                     suffix = "Extra"
                 else:
                     suffix = "LACAIXA-UnknownSalaryType"
@@ -500,7 +500,7 @@ def process_contracts(
             )
             continue
 
-        if naf_dirty.__eq__(naf):
+        if naf_dirty == naf:
             log.debug(
                 "NAF "
                 + str(naf_dirty)

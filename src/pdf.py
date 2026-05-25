@@ -64,7 +64,7 @@ def get_matching_pages(
 
         match_selected = None
         for match_i in match:
-            if match_i.__eq__(query_string):
+            if match_i == query_string:
                 match_selected = match_i
                 break
 
@@ -144,7 +144,7 @@ def is_monthly_salary(salary_page: pypdf.PageObject) -> bool:
 
     match_selected = None
     for match_i in match:
-        if match_i.__eq__(pattern):
+        if match_i == pattern:
             match_selected = match_i
 
     if match_selected is not None:
@@ -224,7 +224,7 @@ def is_date_present_in_rlc_delay(
 
         log.debug("Detected this matches: " + str(match))
         for match_i in match:
-            if match_i.__eq__(query_string):
+            if match_i == query_string:
                 return True
 
     return False
