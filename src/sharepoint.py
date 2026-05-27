@@ -198,7 +198,6 @@ def upload_folder_recursive(
             upload_file(token_manager, drive_id, remote_file, local_file)
 
 
-
 def update_list_item_field(
     item_id: str, updated_fields: dict[str, str]
 ) -> SharepointItem:

@@ -127,9 +127,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     log.info(get_initial_user_report(args))
 
     end_time = elapsed_time(start_time)
-    log.info(
-        f"Time elapsed for obtaining and validating input data: {end_time}."
-    )
+    log.info(f"Time elapsed for obtaining and validating input data: {end_time}.")
     start_time = time.time()
 
     # Salaries & RLC
@@ -238,8 +236,12 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
         token_manager, site_id, drive_id = _connect_sharepoint()
         SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
-        remote_output_path = f"{SHAREPOINT_FOLDER_OUTPUT}/{args.author}/{impersonal_id_str}"
-        remote_log_path = f"{SHAREPOINT_FOLDER_OUTPUT}/_admin_logs/{admin_log_path.name}"
+        remote_output_path = (
+            f"{SHAREPOINT_FOLDER_OUTPUT}/{args.author}/{impersonal_id_str}"
+        )
+        remote_log_path = (
+            f"{SHAREPOINT_FOLDER_OUTPUT}/_admin_logs/{admin_log_path.name}"
+        )
 
         upload_folder_recursive(
             token_manager=token_manager,
@@ -248,11 +250,15 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
             remote_folder_path=remote_output_path,
         )
 
-        link = get_sharepoint_web_url(token_manager, site_id, drive_id, remote_output_path)
+        link = get_sharepoint_web_url(
+            token_manager, site_id, drive_id, remote_output_path
+        )
         log.info(f"Clickable SharePoint URL: {link}  ")
 
         upload_file(token_manager, drive_id, remote_log_path, admin_log_path)
-        log_link = get_sharepoint_web_url(token_manager, site_id, drive_id, remote_log_path)
+        log_link = get_sharepoint_web_url(
+            token_manager, site_id, drive_id, remote_log_path
+        )
 
         end_time = elapsed_time(start_time)
         log.info(f"Time elapsed for uploading data: {end_time}.")

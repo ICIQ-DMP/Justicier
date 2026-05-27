@@ -222,7 +222,9 @@ def compact_folder(path_folder: Path) -> None:
     """
     names = list_dir(path_folder)
     if len(names) == 0:
-        log.warning(f"Refusing to compact folder {path_folder} because it is empty. Aborting compression.")
+        log.warning(
+            f"Refusing to compact folder {path_folder} because it is empty. Aborting compression."
+        )
         return
 
     names.sort()

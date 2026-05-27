@@ -65,8 +65,12 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     user_report += format_line(f"- Initial date: {unparse_full_date(args.begin)}")
     user_report += format_line(f"- End date: {unparse_full_date(args.end)}")
     user_report += "* OPTIONS:                                                                                                            *\n"
-    user_report += format_line(f"- Merge salaries with corresponding bankproof: {args.merge_salary}")
-    user_report += format_line(f"- Merge RNTs and RLCs of each month: {args.merge_rnt_rlc}")
+    user_report += format_line(
+        f"- Merge salaries with corresponding bankproof: {args.merge_salary}"
+    )
+    user_report += format_line(
+        f"- Merge RNTs and RLCs of each month: {args.merge_rnt_rlc}"
+    )
     user_report += format_line("- Document categories to merge: " + compact_text)
     user_report += "* IDENTIFICATION:                                                                                                     *\n"
     user_report += format_line("- Email of the user doing the request: " + args.author)
@@ -79,12 +83,12 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
 
 @dataclass(frozen=True)
 class SalaryRLCConfig:
-    rlc_code: str       # e.g. "L00", "L03", "L13"
-    salary_label: str   # singular label used in per-month messages
-    count_label: str    # plural label used in summary and success messages
+    rlc_code: str  # e.g. "L00", "L03", "L13"
+    salary_label: str  # singular label used in per-month messages
+    count_label: str  # plural label used in summary and success messages
     report_found: bool  # emit a "found" line when salary is present
     report_missing: bool  # emit a "not found" line when salary is absent
-    track_quality: bool   # use something_wrong flag and emit a success/failure summary
+    track_quality: bool  # use something_wrong flag and emit a success/failure summary
 
 
 _RLC_TYPE_CONFIG: dict[RLCType, SalaryRLCConfig] = {
@@ -170,7 +174,9 @@ def unparse_salary_rnt_result(
     rnt_results = rnt
     salaries_result = salary[RLCType.REGULAR]
 
-    log.trace(f"results previous to building report: RNT results: {rnt_results} salaries: {salaries_result}")
+    log.trace(
+        f"results previous to building report: RNT results: {rnt_results} salaries: {salaries_result}"
+    )
 
     msg = ""
     for key, values in salaries_result.items():

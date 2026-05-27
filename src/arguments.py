@@ -117,7 +117,9 @@ def parse_boolean(value: bool | int | str | None) -> bool:
         return True
     elif value == "False":
         return False
-    raise ValueError(f"The value {value} can not be parsed into a boolean. It should be 'True' or 'False'")
+    raise ValueError(
+        f"The value {value} can not be parsed into a boolean. It should be 'True' or 'False'"
+    )
 
 
 def parse_input_type(value: str) -> str:
@@ -363,9 +365,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
         config[SharepointListFields.MERGE_SALARY_BANKPROOF]
     )
 
-    if parse_boolean(
-        config[SharepointListFields.MERGE_RESULTS]
-    ):
+    if parse_boolean(config[SharepointListFields.MERGE_RESULTS]):
         compact_default = get_compact_init()
         compact_default = {key: True for key in compact_default}
         parsed["merge_result"] = compact_default
@@ -423,13 +423,19 @@ def process_parse_arguments() -> argparse.Namespace:
         args = parse_arguments()
 
     except ArgumentNafInvalid as e:
-        log.error(f"The NAF provided is invalid. Internal error is {e}. Common error {common}")
+        log.error(
+            f"The NAF provided is invalid. Internal error is {e}. Common error {common}"
+        )
         exit(2)
     except ArgumentDateError as e:
-        log.error(f"The dates provided are invalid. Internal error is {e}. Common error {common}")
+        log.error(
+            f"The dates provided are invalid. Internal error is {e}. Common error {common}"
+        )
         exit(3)
     except argparse.ArgumentTypeError as e:
-        log.error(f"Arguments could not have been parsed. Internal error is {e}. Common error {common}")
+        log.error(
+            f"Arguments could not have been parsed. Internal error is {e}. Common error {common}"
+        )
         exit(5)
 
     if args.request:
@@ -482,7 +488,9 @@ def validate_author(author: str, valid_authors: Iterable[str]) -> None:
     found in the authorised set.
     """
     if not is_author_present(author, valid_authors):
-        raise ArgumentAuthorError(f'Author "{author}" is not valid. ')  # more specific exception
+        raise ArgumentAuthorError(
+            f'Author "{author}" is not valid. '
+        )  # more specific exception
 
 
 def validate_arguments(
@@ -520,8 +528,12 @@ def process_validate_arguments(
         validate_arguments(args, nafs, authors)
 
     except ArgumentNafNotPresent as e:
-        log.error(f"The NAF provided is valid but is not present in {naf_data_path}. Internal error is {e}. Common error is: {common}")
+        log.error(
+            f"The NAF provided is valid but is not present in {naf_data_path}. Internal error is {e}. Common error is: {common}"
+        )
         exit(1)
     except ArgumentAuthorError as e:
-        log.error(f"The author is not present in the accepted user list. Internal error is {e}. Common error is: {common}")
+        log.error(
+            f"The author is not present in the accepted user list. Internal error is {e}. Common error is: {common}"
+        )
         exit(4)

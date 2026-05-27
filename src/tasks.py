@@ -69,7 +69,9 @@ def process_rlc_aux(
             months_found[salary_date][2] = True
         return rlc_n_path
     else:
-        log.error(f"Monthly salary was found, but the expected L{rlc_type} RLC of type {rlc_subtype} was not found in the expected location {rlc_n_path}. Skipping merge of this salary file.")
+        log.error(
+            f"Monthly salary was found, but the expected L{rlc_type} RLC of type {rlc_subtype} was not found in the expected location {rlc_n_path}. Skipping merge of this salary file."
+        )
         raise ValueError("File was not detected")  # TODO custom except
 
 
@@ -93,7 +95,9 @@ def process_generic_rlc(
         )
         log.debug(f"Expected RLC P path is: {rlc_p_path}")
     except ValueError:
-        log.error(f"Some of the RLC documents (N or P) has not been found. The salary file {salary_file_path} will be skipped.")
+        log.error(
+            f"Some of the RLC documents (N or P) has not been found. The salary file {salary_file_path} will be skipped."
+        )
         return
 
     pdf_merged_name = (
@@ -116,13 +120,17 @@ def process_rlc_l03(
     salary_output_path: Path,
     months_found: dict[datetime, list[bool]],
 ) -> None:
-    log.info(f"Salary file {salary_file_path} page {salary_page_number + 1} has been selected as delay salary for date {unparse_date(salary_date)}")
+    log.info(
+        f"Salary file {salary_file_path} page {salary_page_number + 1} has been selected as delay salary for date {unparse_date(salary_date)}"
+    )
     try:
         delay_initial_date, delay_end_date = parse_dates_from_delayed_salary(
             salary_page
         )
     except ValueError as exc:
-        log.error(f"The delay date could not be parsed from the delay salary page. This document will be skipped from search. The internal error is {exc}")
+        log.error(
+            f"The delay date could not be parsed from the delay salary page. This document will be skipped from search. The internal error is {exc}"
+        )
         return
     log.debug(
         "Initial date is "
@@ -323,7 +331,10 @@ def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
     num_suffix = 1
     output_path = partial_path.parent / (partial_path.name + "_" + suffix + extension)
     while output_path.exists():
-        output_path = partial_path.parent / f"{partial_path.name}_{suffix}_{num_suffix}{extension}"
+        output_path = (
+            partial_path.parent
+            / f"{partial_path.name}_{suffix}_{num_suffix}{extension}"
+        )
         num_suffix += 1
     return output_path
 
@@ -343,17 +354,15 @@ def process_proofs(
         dir_date = parse_date(bankproof_folder.name[:6], "%m%Y")
         if begin <= dir_date <= end:
             bankproof_folders_selected.append(bankproof_folder)
-            log.debug(f"Proof folder {bankproof_folder} is selected, because its date is {unparse_date(dir_date, '-')}.")
+            log.debug(
+                f"Proof folder {bankproof_folder} is selected, because its date is {unparse_date(dir_date, '-')}."
+            )
 
     for bankproof_folder in bankproof_folders_selected:
         bank = "_".join(bankproof_folder.name.split("_")[1:])
         proof_date = parse_date(bankproof_folder.name[:6], "%m%Y")
         log.trace(f"Working with folder {bankproof_folder}. Bank type is {bank}")
-        if (
-            bank == "BBVA"
-            or bank == "BBVA_endarreriments"
-            or bank == "BBVA_FINIQUITO"
-        ):
+        if bank == "BBVA" or bank == "BBVA_endarreriments" or bank == "BBVA_FINIQUITO":
             for bankproof_file in list_dir(proofs_folder_path / bankproof_folder):
                 try:
                     page = get_matching_page(
@@ -362,7 +371,9 @@ def process_proofs(
                         "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
                     )
                 except ValueError as e:
-                    log.trace(f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}")
+                    log.trace(
+                        f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}"
+                    )
                     continue
                 if bank == "BBVA_endarreriments":
                     suffix = "Atrasos"
@@ -374,7 +385,9 @@ def process_proofs(
                     suffix = "BBVA-UnknownSalaryType"
                 output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
-                log.info(f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Writing page to {output_path}.")
+                log.info(
+                    f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Writing page to {output_path}."
+                )
                 write_page(page, output_path)
 
         elif (
@@ -391,7 +404,9 @@ def process_proofs(
                         "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
                     )
                 except ValueError as e:
-                    log.debug(f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / file_name}. Error: {e}")
+                    log.debug(
+                        f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / file_name}. Error: {e}"
+                    )
                     continue
                 if bank == "LA_CAIXA_endarreriments":
                     suffix = "Atrasos"
@@ -403,7 +418,9 @@ def process_proofs(
                     suffix = "LACAIXA-UnknownSalaryType"
                 output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
-                log.info(f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / file_name}. Writing page to {output_path}.")
+                log.info(
+                    f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / file_name}. Writing page to {output_path}."
+                )
                 write_page(page, output_path)
         else:
             log.error(f"{bank} is a bad bank. Skipping to next bank proof.")
@@ -429,13 +446,19 @@ def process_contracts(
         elif len(dates) == 2:
             end_date = datetime.max
         else:
-            log.error(f"expected 3 fields in the name of the file {contracts_file} but {len(dates)} have been found. The file will be ignored until it has proper format.")
+            log.error(
+                f"expected 3 fields in the name of the file {contracts_file} but {len(dates)} have been found. The file will be ignored until it has proper format."
+            )
             continue
 
         if naf_dirty == naf:
-            log.debug(f"NAF {naf_dirty} of file {contracts_file} coincides with queried NAF. Checking dates...")
+            log.debug(
+                f"NAF {naf_dirty} of file {contracts_file} coincides with queried NAF. Checking dates..."
+            )
             if begin <= end_date and begin_date <= end:
-                log.info(f"{contracts_file} with date {unparse_date(begin_date, '-')}, {unparse_date(end_date, '-')} is in range of {unparse_date(begin, '-')}, {unparse_date(end, '-')}. Copying it to {naf_dir}")
+                log.info(
+                    f"{contracts_file} with date {unparse_date(begin_date, '-')}, {unparse_date(end_date, '-')} is in range of {unparse_date(begin, '-')}, {unparse_date(end, '-')}. Copying it to {naf_dir}"
+                )
                 try:
                     shutil.copy(
                         src=contracts_folder_path / contracts_file,
@@ -470,20 +493,30 @@ def process_RNTs(
             rnt_file_name = rnt_file.name
             rnt_file_name_without_extension = Path(rnt_file_name).stem
             rnt_path = rnts_folder_path / str(file_date.year) / rnt_file_name
-            log.info(f"RNT file {rnt_path} is selected, because its date is {unparse_date(file_date)}.")
+            log.info(
+                f"RNT file {rnt_path} is selected, because its date is {unparse_date(file_date)}."
+            )
             try:
                 pages = get_matching_pages(rnt_path, str(naf), r"\d{12}")
             except ValueError as e:
                 log.debug(f"NAF {naf} not detected in {rnt_path}. Error: {e}")
                 continue
             for page, page_num in pages:
-                rnt_path_destination = naf_dir / RNTS_OUTPUT_NAME / f"{rnt_file_name_without_extension}_{page_num}.pdf"
-                log.info(f"NAF {naf} was detected in {rnt_path} in page {page_num + 1}. Writing page to {rnt_path_destination}.")
+                rnt_path_destination = (
+                    naf_dir
+                    / RNTS_OUTPUT_NAME
+                    / f"{rnt_file_name_without_extension}_{page_num}.pdf"
+                )
+                log.info(
+                    f"NAF {naf} was detected in {rnt_path} in page {page_num + 1}. Writing page to {rnt_path_destination}."
+                )
                 write_page(page, rnt_path_destination)
                 log.debug(f"rnt found with date: {file_date}")
                 rnts_found[file_date] = True
         else:
-            log.debug(f"RNT file {rnt_file} is not selected, because its date is {unparse_date(file_date)}.")
+            log.debug(
+                f"RNT file {rnt_file} is not selected, because its date is {unparse_date(file_date)}."
+            )
 
     return rnts_found
 
@@ -547,7 +580,9 @@ def merge_rnts_rlcs(
         if len(paths_to_merge) >= 2:
             merge_pdfs(paths_to_merge, output_path, True)
         else:
-            log.warning(f"During date {unparse_year_month(current_date)} there were less than one RNTs or RLCs to merge (at least one is missing). Skipping")
+            log.warning(
+                f"During date {unparse_year_month(current_date)} there were less than one RNTs or RLCs to merge (at least one is missing). Skipping"
+            )
         log.trace(f"Merged PDFs: {paths_to_merge} -> {output_path}")
 
 

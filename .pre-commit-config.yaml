@@ -1,0 +1,29 @@
+repos:
+  # Commit message validation
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  # Format, lint, and test via Makefile (single source of truth)
+  - repo: local
+    hooks:
+      - id: fmt
+        name: fmt
+        entry: make fmt
+        language: system
+        pass_filenames: false
+
+      - id: lint
+        name: lint
+        entry: make lint
+        language: system
+        pass_filenames: false
+
+      - id: test
+        name: test
+        entry: make test
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

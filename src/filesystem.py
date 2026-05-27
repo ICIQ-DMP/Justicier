@@ -124,7 +124,9 @@ def compute_impersonal_id(
     try:
         name = str(naf_to_name[args.naf])
     except KeyError:
-        log.debug(f"NAF provided was not possible to be translated into name, NAF is: {args.naf}")
+        log.debug(
+            f"NAF provided was not possible to be translated into name, NAF is: {args.naf}"
+        )
         raise KeyError
     r = f"{now}_{args.naf}_{name.replace(' ', '_')}_{args.begin.strftime('%Y-%m-%d')}_{args.end.strftime('%Y-%m-%d')}{id_str}"
     return r

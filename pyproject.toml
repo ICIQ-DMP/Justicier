@@ -35,6 +35,7 @@ dev = [
   "black",
   "pytest",
   "mypy",
+  "pre-commit",
   "ruff"
 ]
 
@@ -47,10 +48,9 @@ tag_format = "v{version}"
 mode = "update"
 
 [tool.semantic_release.commit_parser_options]
-allowed_tags = ["ADDED", "UPDATED", "REMOVED", "FIXED", "RELEASED", "CHANGED"]
-minor_tags = ["ADDED", "UPDATED", "CHANGED"]
-patch_tags = ["FIXED", "REMOVED"]
-major_tags = ["RELEASED"]
+allowed_tags = ["feat", "fix", "perf", "refactor", "docs", "style", "test", "chore", "build", "ci", "revert"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
 
 [tool.black]
 target-version = ["py311"]
