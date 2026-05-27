@@ -1,6 +1,9 @@
+# Copyright (C) AleixMT
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import pytest
 
-from DNI import DNI, parse_dni
+from DNI import DNI, parse_dni, DNIType
 from custom_except import ArgumentNafInvalid
 
 
@@ -9,7 +12,7 @@ class TestDNIParsing:
         dni = DNI("12345678K")
         assert dni.number == "12345678"
         assert dni.letter == "K"
-        assert dni.is_nie is False
+        assert dni.dni_type == DNIType.DNI
 
     def test_dni_with_dash(self):
         dni = DNI("12345678-K")
@@ -18,14 +21,14 @@ class TestDNIParsing:
 
     def test_nie_x(self):
         dni = DNI("X1234567T")
-        assert dni.is_nie is True
+        assert dni.dni_type == DNIType.NIE
         assert dni.initial == "X"
         assert dni.number == "1234567"
         assert dni.letter == "T"
 
     def test_nie_with_dashes(self):
         dni = DNI("X-1234567-T")
-        assert dni.is_nie is True
+        assert dni.dni_type == DNIType.NIE
         assert dni.initial == "X"
 
     def test_invalid_format_raises(self):
