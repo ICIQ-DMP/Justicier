@@ -32,26 +32,26 @@ DOCKER_IMAGE := AleixMT/justicier
 DEV_STAMP := $(VENV_DIR)/.dev-installed
 
 
-# ---- helpers --------------------------------------------------------------
+# ---- environment (file targets) -------------------------------------------
 
 # Create virtualenv
 $(VENV_BIN)/python:
 	@$(PYTHON_BIN) -m venv "$(VENV_DIR)"
-	@$(PYTHON_BIN) -m pip install --upgrade pip
+	@$(PIP) install --upgrade pip
 
 # Install runtime dependencies (creates justicier executable)
 $(VENV_BIN)/justicier: $(VENV_BIN)/python pyproject.toml
 	@$(PIP) install -e .
 
 # Install dev dependencies
-# We use PKG-INFO as the target because pip updates it when dependencies change.
-# This avoids the loop where 'make fmt && make lint' rebuilds twice because binaries
-# like 'bin/ruff' might not have their timestamp updated by pip if they are already present.
-$(DEV_STAMP): pyproject.toml $(VENV_BIN)/python
-	@$(PIP) install -e "."
+# We use a stamp file because pip may not update binary timestamps when a tool
+# is already present, which would fool Make into skipping the install on the
+# next run. Touching the stamp explicitly avoids that.
+$(DEV_STAMP): $(VENV_BIN)/python pyproject.toml
 	@$(PIP) install -e ".[dev]"
 	@touch $(DEV_STAMP)
 
+# Install git hooks (each hook is its own file target)
 .git/hooks/pre-commit: $(DEV_STAMP)
 	@$(VENV_BIN)/pre-commit install
 
@@ -65,34 +65,43 @@ $(DEV_STAMP): pyproject.toml $(VENV_BIN)/python
 $(VENV_BIN)/pyproject-build: $(VENV_BIN)/python
 	@$(PIP) install build
 
-# Phony aliases
+
+# ---- phony aliases --------------------------------------------------------
+
 venv: $(VENV_BIN)/python  ## Create virtualenv
-	@echo "✅ venv ready at $(VENV_DIR)"
 
 install: $(VENV_BIN)/justicier  ## Install package in editable mode
 
-dev: $(DEV_STAMP) .git/hooks/pre-commit .git/hooks/commit-msg .git/hooks/pre-push  ## Install package and dev dependencies
+hooks: .git/hooks/pre-commit .git/hooks/commit-msg .git/hooks/pre-push  ## Install git hooks
+
+dev: $(DEV_STAMP) hooks  ## Install dev dependencies and git hooks
+
 
 # ---- quality --------------------------------------------------------------
+# Depend on $(DEV_STAMP) directly (a real file) so Make can timestamp-check
+# whether the environment is fresh without walking the full dev alias tree.
+# The git hooks are intentionally excluded from this dependency chain.
 
-lint: dev  ## Run static checks (ruff + mypy)
+lint: $(DEV_STAMP)  ## Run static checks (ruff + mypy)
 	@$(VENV_BIN)/ruff check .
 	@$(VENV_BIN)/mypy --strict src
 
-fmt: dev  ## Auto-format (black + ruff --fix)
+fmt: $(DEV_STAMP)  ## Auto-format (black + ruff --fix)
 	@$(VENV_BIN)/black src tests
 	@$(VENV_BIN)/ruff check --fix .
 
-test: dev  ## Run tests
+test: $(DEV_STAMP)  ## Run tests
 	@PYTHONPATH=src PYTHONUNBUFFERED=1 $(VENV_BIN)/pytest -s -v
+
 
 # ---- run ------------------------------------------------------------------
 
 # Pass arguments to the CLI via CMD, e.g.:
 #   make run CMD="run -f demo.nds --debug"
 CMD ?= --help
-run: install  ## Run the justicier CLI (python -m justicier)
+run: $(VENV_BIN)/justicier  ## Run the justicier CLI (python -m justicier)
 	@$(PYTHON) -m $(PKG_NAME) $(CMD)
+
 
 # ---- docker ---------------------------------------------------------------
 
@@ -102,14 +111,16 @@ docker-build:  ## Build the Docker image
 docker-push:  ## Push the Docker image
 	@sudo docker push $(DOCKER_IMAGE)
 
+
 # ---- maintenance ----------------------------------------------------------
 
 clean:  ## Remove build/test artifacts
 	@rm -rf .pytest_cache .mypy_cache .ruff_cache dist build *.egg-info "$(VENV_DIR)"
 
+
 # ---- meta -----------------------------------------------------------------
 
-.PHONY: lint fmt test run clean help dist install docker-build docker-push
+.PHONY: venv install dev hooks lint fmt test run clean help dist docker-build docker-push
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .+$$' $(MAKEFILE_LIST) | \

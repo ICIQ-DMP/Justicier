@@ -6,6 +6,18 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
 
+  # License header insertion (runs before fmt so headers get formatted too)
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: insert-license
+        files: \.py$
+        args:
+          - --license-filepath
+          - LICENSE_HEADER
+          - --comment-style
+          - "#"
+
   # Format, lint, and test via Makefile (single source of truth)
   - repo: local
     hooks:
