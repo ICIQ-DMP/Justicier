@@ -28,7 +28,7 @@ def empty_args():
         naf=None,
         name=None,
         target_email=None,
-        dni=None,
+        nif=None,
         begin=None,
         end=None,
         author=None,
