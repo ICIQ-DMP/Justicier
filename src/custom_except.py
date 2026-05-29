@@ -37,3 +37,11 @@ class UndefinedRegularSalaryType(Exception):
 
 class UndefinedInputType(Exception):
     pass
+
+
+class BadSharepointListUpdateRequest(Exception):
+    pass
+
+
+class PersonDoesNotExistInSharepoint(Exception):
+    pass

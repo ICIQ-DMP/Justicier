@@ -20,14 +20,14 @@ from enum import Enum
 from custom_except import ArgumentNafInvalid
 
 
-class DNIType(Enum):
+class NIFType(Enum):
     DNI = "DNI"
     NIE = "NIE"
     TEMPORAL_NIE = "temporal NIE"
     PASSPORT = "passport"
 
 
-class DNI:
+class NIF:
     def __init__(self, raw_dni: str):
         pattern = r"""
             ^(
@@ -56,7 +56,7 @@ class DNI:
             )
 
         if match.group("dni_number") and match.group("dni_letter"):
-            self.dni_type = DNIType.DNI
+            self.dni_type = NIFType.DNI
             self.number = match.group("dni_number")
             self.letter = match.group("dni_letter").upper()
         elif (
@@ -64,7 +64,7 @@ class DNI:
             and match.group("nie_number")
             and match.group("nie_number")
         ):
-            self.dni_type = DNIType.NIE
+            self.dni_type = NIFType.NIE
             self.initial = match.group("nie_initial").upper()
             self.number = match.group("nie_number")
             self.letter = match.group("nie_letter").upper()
@@ -73,7 +73,7 @@ class DNI:
             and match.group("nie_temporal_form1_letter_control")
             and match.group("nie_temporal_form1_number")
         ):
-            self.dni_type = DNIType.TEMPORAL_NIE
+            self.dni_type = NIFType.TEMPORAL_NIE
             self.initial = match.group("nie_temporal_form1_letter").upper()
             self.number = match.group("nie_temporal_form1_letter_control")
             self.letter = match.group("nie_temporal_form1_number").upper()
@@ -82,7 +82,7 @@ class DNI:
             and match.group("nie_temporal_form2_letter_control")
             and match.group("nie_temporal_form2_number")
         ):
-            self.dni_type = DNIType.PASSPORT
+            self.dni_type = NIFType.PASSPORT
             self.initial = match.group("nie_temporal_form2_letter").upper()
             self.number = match.group("nie_temporal_form2_letter_control")
             self.letter = match.group("nie_temporal_form2_number").upper()
@@ -90,14 +90,14 @@ class DNI:
             raise ValueError(f"DNI {raw_dni} could not be parsed")
 
     def __str__(self) -> str:
-        if self.dni_type == DNIType.DNI:
+        if self.dni_type == NIFType.DNI:
             return f"{self.number}-{self.letter}"
         return f"{self.initial}-{self.number}-{self.letter}"
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, DNI):
+        if not isinstance(other, NIF):
             return False
-        if self.dni_type == DNIType.DNI:
+        if self.dni_type == NIFType.DNI:
             return self.number == other.number and self.letter == other.letter
         return (
             self.initial == other.initial
@@ -109,16 +109,16 @@ class DNI:
         return hash(self.number)
 
     def no_dash_str(self) -> str:
-        if self.dni_type == DNIType.DNI:
+        if self.dni_type == NIFType.DNI:
             return f"{self.number}{self.letter}"
-        if self.dni_type in (DNIType.TEMPORAL_NIE, DNIType.PASSPORT):
+        if self.dni_type in (NIFType.TEMPORAL_NIE, NIFType.PASSPORT):
             return f"{self.initial}{self.letter}{self.number}"
         return f"{self.initial}{self.number}{self.letter}"
 
 
-def parse_dni(value: str) -> DNI:
+def parse_nif(value: str) -> NIF:
     try:
-        return DNI(value)
+        return NIF(value)
     except Exception as e:
         raise ArgumentNafInvalid(
             f"DNI {value} is not valid{e}"

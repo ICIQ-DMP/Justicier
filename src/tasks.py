@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -22,11 +21,15 @@ from typing import TypeVar
 
 import pypdf
 
-from DNI import DNI
+from NIF import NIF
 from NAF import NAF
 from Name import Name
 from arguments import parse_date
-from custom_except import UndefinedRegularSalaryType
+from custom_except import (
+    UndefinedRegularSalaryType,
+    BadSharepointListUpdateRequest,
+    PersonDoesNotExistInSharepoint,
+)
 from data import (
     parse_date_from_salary_filename,
     parse_salary_filename_from_salary_path,
@@ -361,7 +364,7 @@ def process_proofs(
     naf: NAF,
     begin: datetime,
     end: datetime,
-    naf_to_dni: dict[NAF, DNI],
+    naf_to_dni: dict[NAF, NIF],
 ) -> None:
     all_bankproof_folders = flatten_dirs(proofs_folder_path)
 
@@ -613,80 +616,96 @@ def reverse_dict(d: dict[_K, _V]) -> dict[_V, _K]:
     return r
 
 
-def complete_arguments(
-    args: argparse.Namespace,
-    NAME_TO_NAF: dict[Name, NAF],
-    NAF_TO_DNI: dict[NAF, DNI],
-    DNI_TO_NAF: dict[DNI, NAF],
-    NAF_TO_NAME: dict[NAF, Name],
-    EMAIL_TO_NAF: dict[str, NAF],
-    NAF_TO_EMAIL: dict[NAF, str],
-) -> None:
-    if args.naf:
-        if not args.dni:
-            args.dni = NAF_TO_DNI[args.naf]
-            if args.request:
-                update_list_item_field(args.request, {"DNI": str(args.dni)})
-        else:
-            log.warning("DNI is defined but NAF is also defined. DNI will be ignored")
-        if not args.name:
-            args.name = NAF_TO_NAME[args.naf]
-        else:
-            log.warning("Name is defined but NAF is also defined. Name will be ignored")
-        return
-    if args.dni:
-        if not args.naf:
-            args.naf = DNI_TO_NAF[args.dni]
-            if args.request:
-                update_list_item_field(args.request, {"NAF": str(args.naf)})
-        if not args.name:
-            args.name = NAF_TO_NAME[args.naf]
-            if args.request:
-                update_list_item_field(args.request, {"Nomdelapersona": str(args.name)})
-        else:
-            log.warning("Name is defined but DNI is also defined. Name will be ignored")
-        return
-    if args.target_email:
-        if not args.naf:
-            if args.target_email in EMAIL_TO_NAF:
-                args.naf = EMAIL_TO_NAF[args.target_email]
-                if args.request:
-                    update_list_item_field(args.request, {"NAF": str(args.naf)})
-            else:
-                raise ValueError(
-                    f"Only name was supplied, but the name {str(args.name)} can not be found in the "
-                    "database. The program "
-                    "can not continue and will abort. Remember that "
-                    "identifying employees using name is fragile and should be avoided. Using NAF for "
-                    "employee "
-                    "identification is the recommended configuration. Another option better than name but "
-                    "worse than NAF is DNI."
-                )
-        if not args.dni:
-            args.dni = NAF_TO_DNI[args.naf]
-        if not args.name:
-            args.name = NAF_TO_NAME[args.naf]
-        return
-    if args.name:
-        if not args.naf:
-            if args.name in NAME_TO_NAF:
-                args.naf = NAME_TO_NAF[args.name]
-                if args.request:
-                    update_list_item_field(args.request, {"NAF": str(args.naf)})
-            else:
-                raise ValueError(
-                    f"Only name was supplied, but the name {str(args.name)} can not be found in the "
-                    "database. The program "
-                    "can not continue and will abort. Remember that "
-                    "identifying employees using name is fragile and should be avoided. Using NAF for "
-                    "employee "
-                    "identification is the recommended configuration. Another option better than name but "
-                    "worse than NAF is DNI."
-                )
-        if not args.dni:
-            args.dni = NAF_TO_DNI[args.naf]
-        return
+def complete_ids_with_naf(
+    naf: NAF,
+    naf_to_dni: dict[NAF, NIF],
+    naf_to_name: dict[NAF, Name],
+    naf_to_email: dict[NAF, str],
+) -> tuple[NIF, Name, str]:
+    dni = naf_to_dni[naf]
+    name = naf_to_name[naf]
+    email = naf_to_email[naf]
+    return dni, name, email
 
-    raise ValueError(
-        "An employee identifier was not supplied (NAF, DNI or name). Aborting."
-    )
+
+def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) -> None:
+    """
+    Update the justification history list with all the id values. Name is skipped because the name from the NAF_DNI.xlsx
+    does not coincide with the name in Sharepoint
+    """
+    update_list_item_field(request, {"DNI": str(dni)})
+    update_list_item_field(request, {"NAF": str(naf)})
+    try:
+        update_list_item_field(request, {"PersonaEmail": email})
+    except BadSharepointListUpdateRequest as e:
+        raise PersonDoesNotExistInSharepoint from e
+    try:
+        update_list_item_field(request, {"Nomdelapersona": str(email)})
+    except BadSharepointListUpdateRequest as e:
+        raise PersonDoesNotExistInSharepoint from e
+
+
+def complete_ids(
+    naf: NAF,
+    nif: NIF,
+    email: str,
+    name: Name,
+    name_to_naf: dict[Name, NAF],
+    naf_to_nif: dict[NAF, NIF],
+    nif_to_naf: dict[NIF, NAF],
+    naf_to_name: dict[NAF, Name],
+    email_to_naf: dict[str, NAF],
+    naf_to_email: dict[NAF, str],
+) -> tuple[NAF, NIF, Name, str]:
+    if naf:
+        if nif:
+            log.warning(
+                "DNI is defined but NAF is also defined. Provided NIF will be ignored."
+            )
+        if name:
+            log.warning(
+                "Name is defined but NAF is also defined. Provided name will be ignored."
+            )
+        if email:
+            log.warning(
+                "Email is defined but NAF is also defined. Provided email will be ignored."
+            )
+
+    elif email:
+        if nif:
+            log.warning(
+                "DNI is defined but email is also defined. Provided NIF will be ignored."
+            )
+        if name:
+            log.warning(
+                "Name is defined but email is also defined. Provided name will be ignored."
+            )
+        naf = email_to_naf[email]
+
+    elif nif:
+        if name:
+            log.warning(
+                "Name is defined but NIF is also defined. Provided name will be ignored."
+            )
+        log.warning(
+            "Remember that "
+            "identifying employees using NIF is fragile and should be avoided. Using NAF or email for "
+            "employee "
+            "identification is the recommended configuration."
+        )
+        naf = nif_to_naf[nif]
+
+    elif name:
+        log.warning(
+            "Remember that "
+            "identifying employees using name is fragile and should be avoided. Using NAF or email for "
+            "employee "
+            "identification is the recommended configuration."
+        )
+        naf = name_to_naf[name]
+
+    else:
+        raise ValueError(
+            "An employee identifier was not supplied (NAF, DNI or name). Aborting."
+        )
+    return (naf, *complete_ids_with_naf(naf, naf_to_nif, naf_to_name, naf_to_email))

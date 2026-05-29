@@ -24,6 +24,7 @@ from NAF import build_naf_to_dni, build_naf_to_name, build_naf_to_email
 from TokenManager import get_token_manager
 from arguments import process_parse_arguments
 from chrono import elapsed_time
+from custom_except import PersonDoesNotExistInSharepoint
 from defines import (
     SALARIES_OUTPUT_NAME,
     PROOFS_OUTPUT_NAME,
@@ -59,12 +60,13 @@ from sharepoint import (
 from TokenManager import TokenManager
 from tasks import (
     reverse_dict,
-    complete_arguments,
+    complete_ids,
     process_salaries_with_rlc,
     process_proofs,
     process_contracts,
     process_RNTs,
     merge_rnts_rlcs,
+    update_list_with_person_ids,
 )
 
 log = get_logger(__name__)
@@ -106,8 +108,11 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     NAF_TO_EMAIL = build_naf_to_email(NAF_DATA_PATH)
     EMAIL_TO_NAF = reverse_dict(NAF_TO_EMAIL)
 
-    complete_arguments(
-        args,
+    complete_ids(
+        args.naf,
+        args.nif,
+        args.email,
+        args.name,
         NAME_TO_NAF,
         NAF_TO_DNI,
         DNI_TO_NAF,
@@ -115,6 +120,16 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         EMAIL_TO_NAF,
         NAF_TO_EMAIL,
     )
+
+    if args.request:
+        try:
+            update_list_with_person_ids(args.request, args.naf, args.nif, args.email)
+        except PersonDoesNotExistInSharepoint:
+            log.warning(
+                "The person to be justified does not exist in the Sharepoint database. This means that the person"
+                "probably has left ICIQ and IT has already removed its user account. The justification will "
+                'continue normally but the "Nom de la persona" and "PersonaEmail" field will be unfilled.'
+            )
 
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
 
@@ -137,8 +152,6 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         admin_log_file=admin_log_path,
         supervisor_log_file=supervisor_log_path,
     )
-
-    log = get_logger(__name__)
 
     log.info(get_initial_user_report(args))
 
@@ -287,7 +300,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         log.debug("Updating list element error message to no error message")
         update_list_item_field(args.request, {"Missatge_x0020_error": "-"})
         log.debug("Updating list element link to result")
-        update_list_item_field(args.request, {"Resultat": link})
+        update_list_item_field(args.request, {"Resultat": str(link)})
 
     return link, log_link
 
@@ -314,7 +327,8 @@ def main() -> None:
     log.info("Justification process is finished.")
     log.info("Sending notification email")
 
-    mail_process(result_link, log_link, args)
+    if args.request:
+        mail_process(result_link, log_link, args)
 
 
 if __name__ == "__main__":

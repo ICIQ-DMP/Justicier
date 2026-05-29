@@ -20,7 +20,7 @@ from typing import Callable, Iterable, TypeVar
 
 import pandas as pd
 
-from DNI import DNI, parse_dni
+from NIF import NIF, parse_nif
 
 
 from Name import Name, parse_name_a3, parse_email_a3
@@ -118,10 +118,10 @@ def read_dataframe(path: Path, skiprows: int, header: int | None) -> pd.DataFram
     )
 
 
-def build_naf_to_dni(path: Path) -> dict[NAF, DNI]:
+def build_naf_to_dni(path: Path) -> dict[NAF, NIF]:
     df = read_dataframe(path, 0, 0)
     return parse_two_columns(
-        df, NAFFileColumn.NASS, NAFFileColumn.NIF, parse_naf, parse_dni
+        df, NAFFileColumn.NASS, NAFFileColumn.NIF, parse_naf, parse_nif
     )
 
 

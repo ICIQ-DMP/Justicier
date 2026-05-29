@@ -85,13 +85,13 @@ def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> N
     log.trace(f'pass is: "{smtp_password}"')
     log.trace(f'server is: "{smtp_server}"')
     log.trace(f'port is: "{smtp_port}"')
-    log.trace(f'recipient is: "{args.author_email}"')
+    log.trace(f'recipient is: "{args.author}"')
 
     subject = f'Justicier - La petició "{args.title}" amb ID {args.request} ha estat completada amb èxit'
     body = build_mail_body(result_link, log_link, args)
 
     send_mail(
-        args.author_email,
+        args.author,
         subject,
         body,
         smtp_user,

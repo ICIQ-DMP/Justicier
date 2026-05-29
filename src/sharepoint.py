@@ -24,6 +24,7 @@ import requests
 from requests.exceptions import HTTPError
 
 from TokenManager import TokenManager, get_token_manager
+from custom_except import BadSharepointListUpdateRequest
 from defines import SharepointListFields
 from logger import get_logger
 from secret import read_secret
@@ -215,7 +216,7 @@ def upload_folder_recursive(
 
 
 def update_list_item_field(
-    item_id: str, updated_fields: dict[str, str]
+    item_id: int, updated_fields: dict[str, str]
 ) -> SharepointItem:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
@@ -227,7 +228,7 @@ def update_list_item_field(
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
 
     # Endpoint to patch the item's fields
-    patch_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{item_id}/fields"
+    patch_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{str(item_id)}/fields"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -237,8 +238,8 @@ def update_list_item_field(
     response = requests.patch(patch_url, headers=headers, json=updated_fields)
 
     if response.status_code != 200:
-        raise RuntimeError(
-            f"Failed to update item {item_id}: {response.status_code} - {response.text}"
+        raise BadSharepointListUpdateRequest(
+            f"Failed to update item {str(item_id)}: {response.status_code} - {response.text}"
         )
 
     return cast(SharepointItem, response.json())

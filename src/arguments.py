@@ -35,7 +35,7 @@ from custom_except import (
 from defines import DocType, SharepointListFields, from_string
 from secret import read_secret
 from sharepoint import get_parameters_from_list, SharepointItem
-from DNI import DNI, parse_dni
+from NIF import NIF, parse_nif
 from Name import Name, parse_name_sharepoint, parse_name_a3, parse_email_a3
 
 log = get_logger(__name__)
@@ -170,13 +170,13 @@ def parse_arguments_helper(arg_text: str) -> None:
 _ID_OVERRIDES: dict[
     str,
     Callable[
-        [argparse.Namespace], NAF | Name | DNI | datetime.datetime | bool | str | None
+        [argparse.Namespace], NAF | Name | NIF | datetime.datetime | bool | str | None
     ],
 ] = {
     "naf": lambda a: a.naf,
     "name": lambda a: a.name,
     "target_email": lambda a: a.target_email,
-    "dni": lambda a: a.dni,
+    "nif": lambda a: a.nif,
     "begin": lambda a: a.begin,
     "end": lambda a: a.end,
     "author": lambda a: a.author,
@@ -252,17 +252,17 @@ def parse_arguments() -> argparse.Namespace:
         help="Name of the employee to justify",
     )
     parser.add_argument(
-        "-t",
-        "--target-email",
+        "-E",
+        "--email",
         type=parse_email_a3,
         required=False,
         help="Email of the employee to justify",
     )
     parser.add_argument(
         "-d",
-        "--dni",
-        "--DNI",
-        type=parse_dni,
+        "--nif",
+        "--NIF",
+        type=parse_nif,
         required=False,
         help="Name of the employee to justify",
     )
@@ -362,7 +362,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
     if config[SharepointListFields.TARGET_EMAIL]:
         parsed["target_email"] = str(config[SharepointListFields.TARGET_EMAIL])
     if config[SharepointListFields.DNI]:
-        parsed["dni"] = parse_dni(str(config[SharepointListFields.DNI]))
+        parsed["dni"] = parse_nif(str(config[SharepointListFields.DNI]))
 
     # Required fields — guaranteed non-None after step 2
     parsed["begin"] = parse_date(
