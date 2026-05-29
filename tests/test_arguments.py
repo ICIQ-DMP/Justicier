@@ -66,7 +66,7 @@ class TestIDOverrides:
         "naf",
         "name",
         "target_email",
-        "dni",
+        "nif",
         "begin",
         "end",
         "author",
