@@ -82,9 +82,10 @@ dev: $(DEV_STAMP) hooks  ## Install dev dependencies and git hooks
 # whether the environment is fresh without walking the full dev alias tree.
 # The git hooks are intentionally excluded from this dependency chain.
 
-lint: $(DEV_STAMP)  ## Run static checks (ruff + mypy)
+lint: $(DEV_STAMP)  ## Run static checks (ruff + mypy + griffe)
 	@$(VENV_BIN)/ruff check .
 	@$(VENV_BIN)/mypy --strict src
+	@$(VENV_BIN)/griffe check $(PKG_NAME) -s src
 
 fmt: $(DEV_STAMP)  ## Auto-format (black + ruff --fix)
 	@$(VENV_BIN)/black src tests

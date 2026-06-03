@@ -36,7 +36,8 @@ dev = [
   "pytest",
   "mypy",
   "pre-commit",
-  "ruff"
+  "ruff",
+  "griffe"
 ]
 
 [tool.semantic_release]
