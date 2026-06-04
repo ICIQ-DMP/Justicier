@@ -29,8 +29,6 @@ from Name import Name
 from arguments import parse_date
 from custom_except import (
     UndefinedRegularSalaryTypeError,
-    BadSharepointListUpdateRequestError,
-    PersonDoesNotExistInSharepointError,
 )
 from data import (
     parse_date_from_salary_filename,
@@ -66,7 +64,7 @@ from pdf import (
     parse_regular_salary_type,
     get_matching_pages,
 )
-from sharepoint import update_list_item_field
+from sharepoint import update_list_item_field, resolve_user_to_sharepoint_id
 from logger import get_logger
 
 log = get_logger(__name__)
@@ -798,16 +796,10 @@ def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) ->
     update_list_item_field(request, {SharepointListFields.NIF.value: str(dni)})
     update_list_item_field(request, {SharepointListFields.NAF.value: str(naf)})
     update_list_item_field(request, {SharepointListFields.TARGET_EMAIL.value: email})
-    try:
-        print("trying to overwrite person field")
-        input()
-        update_list_item_field(
-            request, {SharepointListFields.TARGET_NAME.value: str(email)}
-        )
-        print("done")
-        input()
-    except BadSharepointListUpdateRequestError as e:
-        raise PersonDoesNotExistInSharepointError from e
+    sp_user_id = resolve_user_to_sharepoint_id(email)
+    update_list_item_field(
+        request, {SharepointListFields.TARGET_NAME.value + "LookupId": str(sp_user_id)}
+    )
 
 
 def complete_ids(

@@ -79,7 +79,7 @@ class TestIDOverrides:
     EXPECTED_KEYS = {
         "naf",
         "name",
-        "target_email",
+        "email",
         "nif",
         "begin",
         "end",

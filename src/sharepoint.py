@@ -358,6 +358,48 @@ def update_list_item_field(
     return cast(SharepointItem, response.json())
 
 
+def resolve_user_to_sharepoint_id(email: str) -> int:
+    """Resolve an email address to its SharePoint integer user ID via ensureUser.
+
+    Args:
+        email: Microsoft 365 email address of the user to resolve.
+
+    Returns:
+        The SharePoint internal integer user ID.
+
+    Raises:
+        PersonDoesNotExistInSharepointError: If the user does not exist in Microsoft 365
+            or cannot be added to the SharePoint site.
+    """
+    from custom_except import PersonDoesNotExistInSharepointError
+
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+
+    token_manager = get_token_manager()
+    access_token = token_manager.get_token()
+
+    url = f"https://{sharepoint_domain}/sites/{site_name}/_api/web/ensureuser"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json;odata=verbose",
+        "Content-Type": "application/json;odata=verbose",
+    }
+    body = {"logonName": f"i:0#.f|membership|{email}"}
+
+    response = requests.post(url, headers=headers, json=body)
+
+    if response.status_code != 200:
+        raise PersonDoesNotExistInSharepointError(
+            f"User '{email}' not found in Microsoft 365 or could not be added to the site: "
+            f"{response.status_code} - {response.text}"
+        )
+
+    sp_user_id: int = response.json()["d"]["Id"]
+    log.trace(f"Resolved '{email}' to SharePoint user ID {sp_user_id}")
+    return sp_user_id
+
+
 def get_parameters_from_list(
     sharepoint_domain: str, site_name: str, list_name: str, job_id: int
 ) -> SharepointItem:

@@ -29,7 +29,7 @@ def empty_args():
         request=None,
         naf=None,
         name=None,
-        target_email=None,
+        email=None,
         nif=None,
         begin=None,
         end=None,
