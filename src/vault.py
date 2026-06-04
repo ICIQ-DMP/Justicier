@@ -48,6 +48,8 @@ _SECRET_MAP = {
     "SMTP_PORT": ("smtp", "port"),
     "SMTP_SERVER": ("smtp", "server"),
     "SMTP_USERNAME": ("smtp", "username"),
+    "SMTP_ADMIN_EMAIL": ("smtp", "admin_email"),
+    "SMTP_OWNER_EMAIL": ("smtp", "owner_email"),
 }
 
 

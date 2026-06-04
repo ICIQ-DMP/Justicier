@@ -54,6 +54,17 @@ class NAFFileColumn(str, Enum):
     EMAIL = "E-mail profesional"
 
 
+class SharepointListFieldWorkflowState(Enum):
+    """Maps semantic Python names to the SharePoint field values SharepointListFields.WORKFLOW_STATE.
+
+    Only values used in the algorithm are included, even though there are more.
+    """
+
+    IN_EXECUTION = "En execució"
+    COMPLETED = "Completat"
+    ERROR = "Error"
+
+
 class SharepointListFields(Enum):
     """Maps semantic Python names to the internal SharePoint field names used by the Graph API."""
 
@@ -70,6 +81,9 @@ class SharepointListFields(Enum):
     MERGE_SALARY_BANKPROOF = "Fusi_x00f3_NominaiJustificantBan"
     MERGE_RESULTS = "juntarpdfs"
     MERGE_RLC_RNT = "Fusi_x00f3_RLCRNT"
+    WORKFLOW_STATE = "Estatworkflow"
+    RESULT = "Resultat"
+    ERROR_MESSAGE = "Missatge_x0020_error"
 
 
 class DocType(Enum):

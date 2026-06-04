@@ -263,3 +263,15 @@ def ensure_file_structure(
     (current_justification_folder / SALARIES_AND_PROOFS_OUTPUT_NAME).mkdir(
         parents=True, exist_ok=True
     )
+
+
+def get_first_log_path(log_dir: Path) -> Path:
+    """Return the path to the first regular file inside the directory."""
+    if not log_dir.is_dir():
+        raise ValueError(f"'{log_dir}' is not a valid directory")
+
+    for entry in log_dir.iterdir():
+        if entry.is_file():
+            return entry
+
+    raise FileNotFoundError(f"No files found in directory: {log_dir}")

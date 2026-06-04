@@ -16,8 +16,8 @@
 
 """Email delivery utilities for notifying users about completed justifications."""
 
-import argparse
 import smtplib
+from datetime import datetime
 from email.mime.text import MIMEText
 
 from data import unparse_date
@@ -36,7 +36,7 @@ def send_mail(
     password: str,
     server: str,
     port: int,
-) -> None:
+) -> dict[str, tuple[int, bytes]]:
     """Send a plain-text email via SMTP with STARTTLS.
 
     Args:
@@ -60,16 +60,25 @@ def send_mail(
         socket.ehlo()
         socket.starttls()  # Upgrade connection to TLS
         socket.login(username, password)
-        socket.sendmail(from_email, [to_email], msg.as_string())
+        return socket.sendmail(from_email, [to_email], msg.as_string())
 
 
-def build_mail_body(result_link: str, log_link: str, args: argparse.Namespace) -> str:
+def build_result_mail_body(
+    result_link: str,
+    log_link: str,
+    title: str,
+    request: str,
+    name: str,
+    begin: datetime,
+    end: datetime,
+    owner_email: str,
+) -> str:
     """Builds the body of the email to send to the user."""
     return (
         f"Hola!\n"
         f"\n"
-        f'T\'informo que la petició que vas fer al Justicier amb títol "{args.title}" i ID {args.request} per'
-        f' a l\'empleat amb nom "{args.name}" des del {unparse_date(args.begin)} fins al {unparse_date(args.end)} '
+        f'T\'informo que la petició que vas fer al Justicier amb títol "{title}" i ID {request} per'
+        f' a l\'empleat amb nom "{name}" des del {unparse_date(begin)} fins al {unparse_date(end)} '
         f"ja ha sigut resolta.\n"
         f"\n"
         f"Et deixo aquí els resultats:\n"
@@ -77,8 +86,8 @@ def build_mail_body(result_link: str, log_link: str, args: argparse.Namespace) -
         f"* Carpeta Sharepoint amb els documents (inclou resum a l'arrel de la carpeta): {result_link}.\n"
         f"* Fitxer de logs (només administradors): {log_link}.\n"
         f"\n"
-        f"Per a qualsevol dubte o problema contacteu al Product Owner del Justicier, el Carles de la Cuadra"
-        f" (cdelacuadra@iciq.es).\n"
+        f"Per a qualsevol dubte o problema contacteu al Product Owner del Justicier, a"
+        f" {owner_email}.\n"
         f"\n"
         f"Seguim,\n"
         f"\n"
@@ -89,37 +98,92 @@ def build_mail_body(result_link: str, log_link: str, args: argparse.Namespace) -
     )
 
 
-def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> None:
-    """Read SMTP credentials and send the completion notification email.
+def build_admin_error_mail_body(
+    request: str,
+) -> str:
+    """Builds the body of the email to send to the user."""
+    return (
+        f"Hola!\n"
+        f"\n"
+        f"T'informo que la petició que vas fer al Justicier amb ID {request} ha fallat estrepitosament a nivell de "
+        f"workflow (Jenkins). Probablement l'error està a la infrastructura i no al codi. Revisa el servidor, els "
+        f"Dockers i el Jenkinsfile ja que és a on probablement estarà l'error."
+        f"\n"
+        f"Seguim,\n"
+        f"\n"
+        f"\n"
+        f"Aleix (Avatar Digital)\n"
+        f"\n"
+        f"Aquest missatge ha estat auto-generat."
+    )
 
-    Args:
-        result_link: SharePoint URL to the result folder.
-        log_link: SharePoint URL to the log file.
-        args: Parsed CLI arguments containing recipient and request metadata.
-    """
-    smtp_password = read_secret("SMTP_PASSWORD")
+
+def send_mail_authenticated(
+    to_email: str,
+    subject: str,
+    body: str,
+) -> dict[str, tuple[int, bytes]]:
+    """Send a plain-text email via SMTP with STARTTLS with authentication handled."""
     smtp_user = read_secret("SMTP_USERNAME")
+    smtp_password = read_secret("SMTP_PASSWORD")
     smtp_server = read_secret("SMTP_SERVER")
-    smtp_port = read_secret("SMTP_PORT")
+    smtp_port = int(read_secret("SMTP_PORT"))
 
     log.trace(f'user is: "{smtp_user}"')
     log.trace(f'pass is: "{smtp_password}"')
     log.trace(f'server is: "{smtp_server}"')
     log.trace(f'port is: "{smtp_port}"')
-    log.trace(f'recipient is: "{args.author}"')
 
-    subject = f'Justicier - La petició "{args.title}" amb ID {args.request} ha estat completada amb èxit'
-    body = build_mail_body(result_link, log_link, args)
+    log.trace(f'recipient is: "{to_email}"')
 
-    send_mail(
-        args.author,
-        subject,
-        body,
-        smtp_user,
-        smtp_user,
-        smtp_password,
-        smtp_server,
-        int(smtp_port),
+    return send_mail(
+        to_email=to_email,
+        subject=subject,
+        body=body,
+        from_email=smtp_user,
+        username=smtp_user,
+        password=smtp_password,
+        server=smtp_server,
+        port=smtp_port,
     )
+
+
+def mail_process(
+    result_link: str,
+    log_link: str,
+    title: str,
+    request: str,
+    name: str,
+    author: str,
+    begin: datetime,
+    end: datetime,
+    owner_email: str,
+) -> None:
+    """Read SMTP credentials and send the completion notification email.
+
+    Args:
+        result_link: SharePoint URL to the result folder.
+        log_link: SharePoint URL to the log file.
+        title: Title of the request.
+        request: ID of the request from Sharepoint List.
+        name: Name of the person that is being justified.
+        author: Author of the justification request.
+        begin: Date of the beginning of the justification request.
+        end: Date of the end of the justification request.
+        owner_email: Email of the person who owns Justicier.
+    """
+    subject = f'Justicier - La petició "{title}" amb ID {request} ha estat completada amb èxit'
+    body = build_result_mail_body(
+        result_link=result_link,
+        log_link=log_link,
+        title=title,
+        request=request,
+        name=name,
+        begin=begin,
+        end=end,
+        owner_email=owner_email,
+    )
+
+    send_mail_authenticated(author, subject, body)
 
     log.info("Email sent. Process complete.")

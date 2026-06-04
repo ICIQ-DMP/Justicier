@@ -37,6 +37,9 @@ from defines import (
     RNTS_OUTPUT_NAME,
     RNTS_AND_RLCS_OUTPUT_NAME,
     ROOT_FOLDER,
+    SharepointListFields,
+    SharepointListFieldWorkflowState,
+    ADMIN_LOG_FOLDER,
 )
 from filesystem import (
     remove_folder,
@@ -44,6 +47,7 @@ from filesystem import (
     compute_impersonal_id,
     compute_paths,
     ensure_file_structure,
+    get_first_log_path,
 )
 from logger import get_logger, setup_logging
 from mail import mail_process
@@ -102,7 +106,12 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         Tuple of ``(result_sharepoint_url, log_sharepoint_url)``.
     """
     if args.request:
-        update_list_item_field(args.request, {"Estatworkflow": "En execució"})
+        update_list_item_field(
+            args.request,
+            {
+                SharepointListFields.WORKFLOW_STATE.value: SharepointListFieldWorkflowState.IN_EXECUTION.value
+            },
+        )
 
     salaries_folder: Path = input_folder / "_salaries"
     proofs_folder: Path = input_folder / "_proofs"
@@ -316,11 +325,20 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     if args.request:
         log.debug("Updating list element state to Completed")
-        update_list_item_field(args.request, {"Estatworkflow": "Completat"})
+        update_list_item_field(
+            args.request,
+            {
+                SharepointListFields.WORKFLOW_STATE.value: SharepointListFieldWorkflowState.COMPLETED.value
+            },
+        )
         log.debug("Updating list element error message to no error message")
-        update_list_item_field(args.request, {"Missatge_x0020_error": "-"})
+        update_list_item_field(
+            args.request, {SharepointListFields.ERROR_MESSAGE.value: "-"}
+        )
         log.debug("Updating list element link to result")
-        update_list_item_field(args.request, {"Resultat": str(link)})
+        update_list_item_field(
+            args.request, {SharepointListFields.RESULT.value: str(link)}
+        )
 
     return link, log_link
 
@@ -341,7 +359,28 @@ def main() -> None:
     except ValueError as e:
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         if args.request:
-            update_list_item_field(args.request, {"Missatge_x0020_error": err})
+            update_list_item_field(
+                args.request, {SharepointListFields.ERROR_MESSAGE.value: err}
+            )
+
+            update_list_item_field(args.request, {"Estatworkflow": "Error"})
+
+            if ADMIN_LOG_FOLDER.is_dir():  # Only upload when the folder is detected
+                supervisor_log_path = get_first_log_path(ADMIN_LOG_FOLDER)
+                token_manager = get_token_manager()
+                sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+                site_name = read_secret("SITE_NAME")
+                site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+                drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
+
+                upload_file(
+                    token_manager,
+                    drive_id,
+                    read_secret("SHAREPOINT_FOLDER_OUTPUT")
+                    + "/_admin_logs/"
+                    + supervisor_log_path.name,
+                    supervisor_log_path,
+                )
         log.error(err)
         exit(1)
 
@@ -349,7 +388,17 @@ def main() -> None:
     log.info("Sending notification email")
 
     if args.request:
-        mail_process(result_link, log_link, args)
+        mail_process(
+            result_link=result_link,
+            log_link=log_link,
+            title=args.title,
+            request=args.request,
+            name=args.name,
+            author=args.author,
+            begin=args.begin,
+            end=args.end,
+            owner_email=read_secret("SMTP_OWNER_EMAIL"),
+        )
 
 
 if __name__ == "__main__":
