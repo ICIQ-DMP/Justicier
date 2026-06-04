@@ -52,6 +52,7 @@ from defines import (
     RLCType,
     CONTRACTS_OUTPUT_NAME,
     RNTS_OUTPUT_NAME,
+    SharepointListFields,
 )
 
 from filesystem import flatten_dirs, list_dir
@@ -794,11 +795,17 @@ def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) ->
     Raises:
         PersonDoesNotExistInSharepointError: If the employee no longer exists in SharePoint.
     """
-    update_list_item_field(request, {"DNI": str(dni)})
-    update_list_item_field(request, {"NAF": str(naf)})
-    update_list_item_field(request, {"PersonaEmail": email})
+    update_list_item_field(request, {SharepointListFields.NIF.value: str(dni)})
+    update_list_item_field(request, {SharepointListFields.NAF.value: str(naf)})
+    update_list_item_field(request, {SharepointListFields.TARGET_EMAIL.value: email})
     try:
-        update_list_item_field(request, {"Nomdelapersona": str(email)})
+        print("trying to overwrite person field")
+        input()
+        update_list_item_field(
+            request, {SharepointListFields.TARGET_NAME.value: str(email)}
+        )
+        print("done")
+        input()
     except BadSharepointListUpdateRequestError as e:
         raise PersonDoesNotExistInSharepointError from e
 
