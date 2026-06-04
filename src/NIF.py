@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""NIF (Spanish tax identification number) parsing and representation."""
+
 import re
 from enum import Enum
 
@@ -21,6 +23,8 @@ from custom_except import ArgumentNafInvalid
 
 
 class NIFType(Enum):
+    """Enumeration of the supported Spanish personal identifier types."""
+
     DNI = "DNI"
     NIE = "NIE"
     TEMPORAL_NIE = "temporal NIE"
@@ -28,7 +32,17 @@ class NIFType(Enum):
 
 
 class NIF:
-    def __init__(self, raw_dni: str):
+    """Parsed Spanish personal identifier (DNI, NIE, or passport)."""
+
+    def __init__(self, raw_dni: str) -> None:
+        """Parse and validate a raw NIF/DNI string.
+
+        Args:
+            raw_dni: Raw identifier string in any supported format.
+
+        Raises:
+            ValueError: If *raw_dni* does not match any known identifier format.
+        """
         pattern = r"""
             ^(
                 (?P<nie_initial>[XYZARxyzar])[-/]?
@@ -90,11 +104,13 @@ class NIF:
             raise ValueError(f"DNI {raw_dni} could not be parsed")
 
     def __str__(self) -> str:
+        """Return the canonical dash-separated identifier string."""
         if self.dni_type == NIFType.DNI:
             return f"{self.number}-{self.letter}"
         return f"{self.initial}-{self.number}-{self.letter}"
 
     def __eq__(self, other: object) -> bool:
+        """Check equality against another NIF by comparing its numeric components."""
         if not isinstance(other, NIF):
             return False
         if self.dni_type == NIFType.DNI:
@@ -106,9 +122,11 @@ class NIF:
         )
 
     def __hash__(self) -> int:
+        """Return a hash derived from the identifier number."""
         return hash(self.number)
 
     def no_dash_str(self) -> str:
+        """Return the identifier as a single string with no dashes or separators."""
         if self.dni_type == NIFType.DNI:
             return f"{self.number}{self.letter}"
         if self.dni_type in (NIFType.TEMPORAL_NIE, NIFType.PASSPORT):
@@ -117,6 +135,17 @@ class NIF:
 
 
 def parse_nif(value: str) -> NIF:
+    """Parse a raw string into a NIF, raising a domain exception on failure.
+
+    Args:
+        value: Raw identifier string to parse.
+
+    Returns:
+        Parsed NIF instance.
+
+    Raises:
+        ArgumentNafInvalid: If *value* is not a valid NIF/DNI.
+    """
     try:
         return NIF(value)
     except Exception as e:

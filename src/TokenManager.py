@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Microsoft identity token management for Graph API access."""
+
 import time
 from typing import Optional
 
@@ -23,6 +25,8 @@ from secret import read_secret
 
 
 class TokenManager:
+    """Manages OAuth 2.0 client-credentials tokens with automatic refresh."""
+
     def __init__(
         self,
         tenant_id: str,
@@ -30,6 +34,14 @@ class TokenManager:
         client_secret: str,
         scope: str = "https://graph.microsoft.com/.default",
     ) -> None:
+        """Initialise the token manager with Azure AD application credentials.
+
+        Args:
+            tenant_id: Azure Active Directory tenant identifier.
+            client_id: Application (client) identifier.
+            client_secret: Application client secret.
+            scope: OAuth 2.0 scope string. Defaults to the Graph API default scope.
+        """
         self.token_url = (
             f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
         )
@@ -40,6 +52,11 @@ class TokenManager:
         self.expires_at = 0  # Unix timestamp
 
     def get_token(self) -> str:
+        """Return a valid access token, refreshing it if it expires within 5 minutes.
+
+        Returns:
+            A valid Bearer token string.
+        """
         if (
             self.access_token is None or time.time() >= self.expires_at - 300
         ):  # Refresh if <5min left
@@ -48,6 +65,7 @@ class TokenManager:
         return self.access_token
 
     def _refresh_token(self) -> None:
+        """Fetch a new access token from the Microsoft identity endpoint."""
         token_data = {
             "grant_type": "client_credentials",
             "client_id": self.client_id,
@@ -62,6 +80,7 @@ class TokenManager:
 
 
 def _create_token_manager() -> TokenManager:
+    """Create a TokenManager by reading credentials from the secret store."""
     tenant_id = read_secret("TENANT_ID")
     client_id = read_secret("CLIENT_ID")
     client_secret = read_secret("CLIENT_SECRET")
@@ -74,6 +93,11 @@ _token_manager_instance: Optional[TokenManager] = None
 
 
 def get_token_manager() -> TokenManager:
+    """Return the shared TokenManager singleton, creating it on first call.
+
+    Returns:
+        The application-wide TokenManager instance.
+    """
     global _token_manager_instance
     if _token_manager_instance is None:
         _token_manager_instance = _create_token_manager()

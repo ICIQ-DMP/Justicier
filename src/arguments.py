@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Argument parsing, SharePoint field extraction, and business-rule validation."""
+
 import argparse
 import datetime
 import sys
@@ -42,6 +44,11 @@ log = get_logger(__name__)
 
 
 def get_compact_init() -> dict[DocType, bool]:
+    """Return a dict mapping every DocType to False (no merging requested).
+
+    Returns:
+        Dict with all DocType keys set to False.
+    """
     return {
         DocType.SALARY: False,
         DocType.PROOFS: False,
@@ -54,6 +61,7 @@ def get_compact_init() -> dict[DocType, bool]:
 
 # Parser functions that validate the format and type of the data
 def parse_id(value: str) -> str:
+    """Return *value* unchanged; used as an argparse type for request IDs."""
     return value
 
 
@@ -64,8 +72,7 @@ def parse_date(
     assume_tz: str = "UTC",
     return_naive: bool = True,
 ) -> datetime.datetime:
-    """
-    Parse a date/datetime string and convert to Europe/Madrid with DST awareness.
+    """Parse a date/datetime string and convert to Europe/Madrid with DST awareness.
 
     - value: e.g. "2024-08-31T22:00:00Z" or "2024-08-31"
     - tz_name: target timezone (default Europe/Madrid)
@@ -104,10 +111,19 @@ def parse_date(
 
 
 def parse_author(author: str) -> str:
+    """Return *author* unchanged; used as an argparse type for the author field."""
     return author
 
 
 def parse_compact_options(value: str) -> dict[DocType, bool]:
+    """Parse a comma-separated list of document type names into a merge-options dict.
+
+    Args:
+        value: Comma-separated string of DocType names, e.g. ``"salary,RLC"``.
+
+    Returns:
+        Dict with requested DocTypes set to True and all others False.
+    """
     to_compact = get_compact_init()
     try:
         if "," in value:
@@ -124,6 +140,17 @@ def parse_compact_options(value: str) -> dict[DocType, bool]:
 
 
 def parse_boolean(value: bool | int | str | None) -> bool:
+    """Parse a boolean-like value to a Python bool.
+
+    Args:
+        value: Accepts ``bool``, ``int``, ``"True"``, ``"False"``, or ``None``.
+
+    Returns:
+        The parsed boolean value.
+
+    Raises:
+        ValueError: If *value* is a string other than ``"True"`` or ``"False"``.
+    """
     if value is None:
         return False
 
@@ -139,6 +166,17 @@ def parse_boolean(value: bool | int | str | None) -> bool:
 
 
 def parse_input_type(value: str) -> str:
+    """Validate and return the input location type string.
+
+    Args:
+        value: Input type string; must be ``"sharepoint"`` or ``"local"``.
+
+    Returns:
+        The validated type string.
+
+    Raises:
+        UndefinedInputType: If *value* is not a recognised input type.
+    """
     if value == "sharepoint":
         return value
     elif value == "local":
@@ -150,6 +188,14 @@ def parse_input_type(value: str) -> str:
 
 
 def expand_job_id(job_id: int) -> SharepointItem:
+    """Fetch all SharePoint list fields for the given job identifier.
+
+    Args:
+        job_id: Numeric identifier of the justification request.
+
+    Returns:
+        SharepointItem containing all field values for the request.
+    """
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -158,6 +204,11 @@ def expand_job_id(job_id: int) -> SharepointItem:
 
 
 def parse_arguments_helper(arg_text: str) -> None:
+    """Log a warning that a locally supplied argument will be overwritten by SharePoint data.
+
+    Args:
+        arg_text: Name of the argument that will be ignored.
+    """
     log.debug(
         f"The {arg_text} has been provided via argument but it is used in conjunction with argument to "
         f"select request ID. The provided {arg_text} via argument will be ignored and the {arg_text} from "
@@ -194,6 +245,17 @@ def _warn_ignored_local_args(args: argparse.Namespace) -> None:
 
 
 def parse_input_location(value: str) -> Path:
+    """Validate and convert a path string to a Path pointing to an existing directory.
+
+    Args:
+        value: File-system path string.
+
+    Returns:
+        Validated Path object.
+
+    Raises:
+        ValueError: If the path does not exist or is not a directory.
+    """
     path = Path(value)
     if not path.exists():
         raise ValueError(f"Path {value} does not exist")
@@ -203,7 +265,7 @@ def parse_input_location(value: str) -> Path:
 
 
 def parse_arguments() -> argparse.Namespace:
-    """Parse and validate command-line arguments"""
+    """Parse and validate command-line arguments."""
     parser = argparse.ArgumentParser(description="Justicier")
 
     parser.add_argument(
@@ -314,8 +376,7 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def _validate_required_sharepoint_fields(config: SharepointItem) -> None:
-    """
-    Step 2 – Required-field validation.
+    """Step 2 – Required-field validation.
 
     Receives the raw SharepointItem returned by extraction (step 1) and checks
     that every field that is mandatory for the process to proceed is present
@@ -335,8 +396,7 @@ def _validate_required_sharepoint_fields(config: SharepointItem) -> None:
 
 
 def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
-    """
-    Step 3 – Format parsing.
+    """Step 3 – Format parsing.
 
     Receives a raw SharepointItem whose required fields have already been
     validated (step 2) and converts each raw string value into its typed domain
@@ -391,9 +451,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
 
 
 def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
-    """
-    Orchestrates the SharePoint population pipeline (steps 1–3) and writes the
-    resulting typed values into the argparse Namespace.
+    """Orchestrate the SharePoint population pipeline and write values into *args*.
 
     Steps performed in order:
       1. Extraction            – fetch the raw SharepointItem via expand_job_id().
@@ -405,6 +463,21 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
     by steps 2–3, prints a user-friendly message, and exits with the appropriate
     error code.  Only fields that were present in SharePoint are written to args;
     optional absent fields keep whatever default was set by parse_arguments().
+
+    Steps performed in order:
+      1. Extraction            – fetch the raw SharepointItem via expand_job_id().
+      2. Required-field check  – delegate to _validate_required_sharepoint_fields().
+      3. Format parsing        – delegate to _parse_sharepoint_fields().
+
+    Responsibility: coordination and error handling only — the individual steps
+    carry no knowledge of each other.  Catches domain and format exceptions raised
+    by steps 2–3, prints a user-friendly message, and exits with the appropriate
+    error code.  Only fields that were present in SharePoint are written to args;
+    optional absent fields keep whatever default was set by parse_arguments().
+
+    Args:
+        args: argparse Namespace to populate in-place.
+        common: Fallback error context string logged alongside specific errors.
     """
     config = expand_job_id(args.request)
     log.trace(f"configuration from sharepoint: {config}")
@@ -429,6 +502,11 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
 
 
 def process_parse_arguments() -> argparse.Namespace:
+    """Parse, enrich from SharePoint, and fully validate all CLI arguments.
+
+    Returns:
+        Fully validated argparse Namespace ready for use by the pipeline.
+    """
     common = (
         f"Error parsing arguments. Program aborting. The arguments are: {sys.argv}"
         "The program is in a uninitialized state and cannot proceed. This error will be "
@@ -473,8 +551,7 @@ def process_parse_arguments() -> argparse.Namespace:
 
 
 def validate_naf(naf: NAF, valid_nafs: Iterable[NAF]) -> None:
-    """
-    Step 4 – Business-rule validation for NAF.
+    """Step 4 – Business-rule validation for NAF.
 
     Checks whether the already-parsed NAF value is allowed by the business rules
     (i.e. it exists in the known-employee list).
@@ -493,8 +570,7 @@ def is_author_present(author: str, valid_authors: Iterable[str]) -> bool:
 
 
 def validate_author(author: str, valid_authors: Iterable[str]) -> None:
-    """
-    Step 4 – Business-rule validation for author.
+    """Step 4 – Business-rule validation for author.
 
     Checks whether the already-parsed author value is allowed by the business
     rules (i.e. it belongs to the list of authorised requesters).
@@ -512,8 +588,7 @@ def validate_author(author: str, valid_authors: Iterable[str]) -> None:
 def validate_arguments(
     args: argparse.Namespace, valid_nafs: Iterable[NAF], valid_authors: Iterable[str]
 ) -> None:
-    """
-    Step 4 – Business-rule validation for all arguments.
+    """Step 4 – Business-rule validation for all arguments.
 
     Delegates to the individual field validators (validate_author, validate_naf)
     after all format parsing (step 3) has been completed.  Raises the first
@@ -526,6 +601,13 @@ def validate_arguments(
 def process_validate_arguments(
     args: argparse.Namespace, naf_data_path: Path, user_list_data_path: Path
 ) -> None:
+    """Validate NAF and author against the authorised employee and user lists.
+
+    Args:
+        args: Parsed CLI arguments containing NAF and author to validate.
+        naf_data_path: Path to the NAF/DNI Excel file.
+        user_list_data_path: Path to the plain-text authorised-users file.
+    """
     common = (
         f"Error validating arguments. Program aborting. The arguments are: {sys.argv}"
         "The program is in a uninitialized state and cannot proceed. This error will be "
@@ -545,7 +627,8 @@ def process_validate_arguments(
 
     except ArgumentNafNotPresent as e:
         log.error(
-            f"The NAF provided is valid but is not present in {naf_data_path}. Internal error is {e}. Common error is: {common}"
+            f"The NAF provided is valid but is not present in {naf_data_path}. "
+            f"Internal error is {e}. Common error is: {common}"
         )
         exit(1)
     except ArgumentAuthorError as e:

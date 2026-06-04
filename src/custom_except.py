@@ -15,33 +15,36 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""Domain-specific exception hierarchy for Justicier."""
+
+
 class ArgumentDateError(Exception):
-    pass
+    """Raised when a date argument is missing or cannot be parsed."""
 
 
 class ArgumentNafNotPresent(Exception):
-    pass
+    """Raised when the provided NAF is not found in the authorised employee list."""
 
 
 class ArgumentAuthorError(Exception):
-    pass
+    """Raised when the request author is not in the authorised user list."""
 
 
 class ArgumentNafInvalid(Exception):
-    pass
+    """Raised when a NAF or NIF string does not conform to the expected format."""
 
 
 class UndefinedRegularSalaryType(Exception):
-    pass
+    """Raised when a salary page cannot be classified as monthly or settlement."""
 
 
 class UndefinedInputType(Exception):
-    pass
+    """Raised when an unsupported input location type is supplied."""
 
 
 class BadSharepointListUpdateRequest(Exception):
-    pass
+    """Raised when a SharePoint list item update returns a non-200 status."""
 
 
 class PersonDoesNotExistInSharepoint(Exception):
-    pass
+    """Raised when an employee cannot be found in the SharePoint list."""

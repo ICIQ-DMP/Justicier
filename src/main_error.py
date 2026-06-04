@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Error handler entry point: marks the request as failed and uploads the admin log."""
+
 import argparse
 from pathlib import Path
 
@@ -42,6 +44,7 @@ def get_first_log_path(log_dir: Path) -> Path:
 
 
 def main() -> None:
+    """Mark a request as failed in SharePoint and upload the admin log."""
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "-r",

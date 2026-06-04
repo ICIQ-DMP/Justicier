@@ -14,12 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Timing utilities for human-readable elapsed-time formatting."""
+
 import time
 from datetime import timedelta
 
 
 def elapsed_time(start_time: float) -> str:
+    """Return a human-readable string describing time elapsed since *start_time*.
 
+    Args:
+        start_time: Unix timestamp captured at the start of the operation
+            (typically from ``time.time()``).
+
+    Returns:
+        Formatted string such as ``"1 day, 2 hours, 3 minutes, 4 seconds"``.
+    """
     elapsed = time.time() - start_time
     delta = timedelta(seconds=int(elapsed))
     days = delta.days

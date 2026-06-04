@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Document processing tasks: salary/RLC extraction, proofs, contracts, and RNTs."""
+
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -76,6 +78,21 @@ def process_rlc_aux(
     rlc_subtype: str,
     rlc_type: str,
 ) -> Path:
+    """Locate one RLC sub-document (N or P) and mark it as found in *months_found*.
+
+    Args:
+        salary_date: Date of the corresponding salary.
+        rlc_folder_path: Root folder containing RLC files.
+        months_found: Per-month result structure to update in-place.
+        rlc_subtype: Sub-document type, either ``"N"`` or ``"P"``.
+        rlc_type: RLC type code, e.g. ``"00"``, ``"03"``, ``"13"``.
+
+    Returns:
+        Path to the found RLC file.
+
+    Raises:
+        ValueError: If the expected RLC file does not exist.
+    """
     month = unparse_month(salary_date)
     year = str(salary_date.year)
     n_name = month + "_L" + rlc_type + rlc_subtype + "01.pdf"
@@ -89,7 +106,9 @@ def process_rlc_aux(
         return rlc_n_path
     else:
         log.error(
-            f"Monthly salary was found, but the expected L{rlc_type} RLC of type {rlc_subtype} was not found in the expected location {rlc_n_path}. Skipping merge of this salary file."
+            f"Monthly salary was found, but the expected L{rlc_type} RLC of type "
+            f"{rlc_subtype} was not found in the expected location {rlc_n_path}. "
+            f"Skipping merge of this salary file."
         )
         raise ValueError("File was not detected")  # TODO custom except
 
@@ -103,6 +122,17 @@ def process_generic_rlc(
     salary_output_path: Path,
     salaries_found: dict[datetime, list[bool]],
 ) -> None:
+    """Locate and merge both RLC sub-documents (N and P) for a regular or settlement salary.
+
+    Args:
+        rlc_type: RLC type code (``"00"`` for regular, ``"13"`` for settlement).
+        salary_date: Date of the corresponding salary.
+        salary_file_path: Path to the salary PDF (for logging only).
+        rlc_folder_path: Root folder containing RLC files.
+        naf_dir: Output directory for the employee.
+        salary_output_path: Output path for the salary file (for logging only).
+        salaries_found: Per-month result structure updated in-place.
+    """
     salaries_found[salary_date][0] = True
     try:
         rlc_n_path = process_rlc_aux(
@@ -115,7 +145,8 @@ def process_generic_rlc(
         log.debug(f"Expected RLC P path is: {rlc_p_path}")
     except ValueError:
         log.error(
-            f"Some of the RLC documents (N or P) has not been found. The salary file {salary_file_path} will be skipped."
+            f"Some of the RLC documents (N or P) has not been found. "
+            f"The salary file {salary_file_path} will be skipped."
         )
         return
 
@@ -139,8 +170,21 @@ def process_rlc_l03(
     salary_output_path: Path,
     months_found: dict[datetime, list[bool]],
 ) -> None:
+    """Locate and merge the L03 RLC documents matching a delay (atrasos) salary page.
+
+    Args:
+        salary_file_path: Path to the salary PDF.
+        salary_page_number: Zero-based page index of the delay salary.
+        salary_page: The delay salary page object (used to extract its date range).
+        salary_date: Date of the salary file.
+        naf_dir: Output directory for the employee.
+        rlc_folder_path: Root folder containing RLC files.
+        salary_output_path: Output path for the salary file (unused, kept for API parity).
+        months_found: Per-month result structure updated in-place.
+    """
     log.info(
-        f"Salary file {salary_file_path} page {salary_page_number + 1} has been selected as delay salary for date {unparse_date(salary_date)}"
+        f"Salary file {salary_file_path} page {salary_page_number + 1} has been "
+        f"selected as delay salary for date {unparse_date(salary_date)}"
     )
     try:
         delay_initial_date, delay_end_date = parse_dates_from_delayed_salary(
@@ -148,7 +192,8 @@ def process_rlc_l03(
         )
     except ValueError as exc:
         log.error(
-            f"The delay date could not be parsed from the delay salary page. This document will be skipped from search. The internal error is {exc}"
+            f"The delay date could not be parsed from the delay salary page. "
+            f"This document will be skipped from search. The internal error is {exc}"
         )
         return
     log.debug(
@@ -191,6 +236,19 @@ def process_salaries_with_rlc(
     begin: datetime,
     end: datetime,
 ) -> dict[RLCType, dict[datetime, list[bool]]]:
+    """Extract salary pages for *naf* and locate their matching RLC documents.
+
+    Args:
+        salaries_folder_path: Root folder containing salary PDFs.
+        rlc_folder_path: Root folder containing RLC PDFs.
+        naf_dir: Output directory for the employee.
+        naf: NAF identifier of the employee.
+        begin: Start of the justification period.
+        end: End of the justification period.
+
+    Returns:
+        Nested dict mapping each RLCType to a per-month found/not-found structure.
+    """
     regular_monthly_salaries_rlcs_found = get_rlc_monthly_result_structure(begin, end)
     regular_settlement_salaries_rlcs_found = get_rlc_monthly_result_structure(
         begin, end
@@ -347,6 +405,16 @@ def process_salaries_with_rlc(
 
 
 def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
+    """Return a unique output path by appending *suffix* and a numeric disambiguator.
+
+    Args:
+        partial_path: Base path without suffix or extension.
+        suffix: Label appended before the extension (e.g. ``"Nomines"``).
+        extension: File extension including the dot (e.g. ``".pdf"``).
+
+    Returns:
+        A path that does not yet exist on disk.
+    """
     num_suffix = 1
     output_path = partial_path.parent / (partial_path.name + "_" + suffix + extension)
     while output_path.exists():
@@ -366,6 +434,16 @@ def process_proofs(
     end: datetime,
     naf_to_dni: dict[NAF, NIF],
 ) -> None:
+    """Extract bank-proof pages matching *naf*'s DNI from the proofs folder.
+
+    Args:
+        proofs_folder_path: Root folder containing bank-proof PDFs.
+        proofs_output_path: Directory where extracted proof pages are written.
+        naf: NAF identifier of the employee.
+        begin: Start of the justification period.
+        end: End of the justification period.
+        naf_to_dni: Mapping from NAF to NIF for DNI lookup.
+    """
     all_bankproof_folders = flatten_dirs(proofs_folder_path)
 
     bankproof_folders_selected = []
@@ -391,7 +469,8 @@ def process_proofs(
                     )
                 except ValueError as e:
                     log.trace(
-                        f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}"
+                        f"DNI {naf_to_dni[naf]} not detected in "
+                        f"{proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}"
                     )
                     continue
                 if bank == "BBVA_endarreriments":
@@ -405,7 +484,9 @@ def process_proofs(
                 output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
-                    f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / bankproof_file}. Writing page to {output_path}."
+                    f"DNI {naf_to_dni[naf]} was detected in "
+                    f"{proofs_folder_path / bankproof_folder / bankproof_file}. "
+                    f"Writing page to {output_path}."
                 )
                 write_page(page, output_path)
 
@@ -424,7 +505,8 @@ def process_proofs(
                     )
                 except ValueError as e:
                     log.debug(
-                        f"DNI {naf_to_dni[naf]} not detected in {proofs_folder_path / bankproof_folder / file_name}. Error: {e}"
+                        f"DNI {naf_to_dni[naf]} not detected in "
+                        f"{proofs_folder_path / bankproof_folder / file_name}. Error: {e}"
                     )
                     continue
                 if bank == "LA_CAIXA_endarreriments":
@@ -438,7 +520,9 @@ def process_proofs(
                 output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
-                    f"DNI {naf_to_dni[naf]} was detected in {proofs_folder_path / bankproof_folder / file_name}. Writing page to {output_path}."
+                    f"DNI {naf_to_dni[naf]} was detected in "
+                    f"{proofs_folder_path / bankproof_folder / file_name}. "
+                    f"Writing page to {output_path}."
                 )
                 write_page(page, output_path)
         else:
@@ -449,6 +533,18 @@ def process_proofs(
 def process_contracts(
     contracts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
 ) -> bool:
+    """Copy contract files for *naf* that overlap the requested period.
+
+    Args:
+        contracts_folder_path: Folder containing contract PDFs.
+        naf_dir: Output directory for the employee.
+        naf: NAF identifier of the employee.
+        begin: Start of the justification period.
+        end: End of the justification period.
+
+    Returns:
+        True if at least one matching contract was found and copied.
+    """
     found = False
     contracts_files = list_dir(contracts_folder_path)
     contracts_files.sort()
@@ -466,7 +562,8 @@ def process_contracts(
             end_date = datetime.max
         else:
             log.error(
-                f"expected 3 fields in the name of the file {contracts_file} but {len(dates)} have been found. The file will be ignored until it has proper format."
+                f"expected 3 fields in the name of the file {contracts_file} but "
+                f"{len(dates)} have been found. The file will be ignored until it has proper format."
             )
             continue
 
@@ -476,7 +573,9 @@ def process_contracts(
             )
             if begin <= end_date and begin_date <= end:
                 log.info(
-                    f"{contracts_file} with date {unparse_date(begin_date, '-')}, {unparse_date(end_date, '-')} is in range of {unparse_date(begin, '-')}, {unparse_date(end, '-')}. Copying it to {naf_dir}"
+                    f"{contracts_file} with date {unparse_date(begin_date, '-')}, "
+                    f"{unparse_date(end_date, '-')} is in range of "
+                    f"{unparse_date(begin, '-')}, {unparse_date(end, '-')}. Copying it to {naf_dir}"
                 )
                 try:
                     shutil.copy(
@@ -502,6 +601,18 @@ def process_contracts(
 def process_RNTs(
     rnts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
 ) -> dict[datetime, bool]:
+    """Extract RNT pages for *naf* and track which months have a matching RNT.
+
+    Args:
+        rnts_folder_path: Root folder containing RNT PDFs.
+        naf_dir: Output directory for the employee.
+        naf: NAF identifier of the employee.
+        begin: Start of the justification period.
+        end: End of the justification period.
+
+    Returns:
+        Per-month dict indicating whether an RNT was found for each month.
+    """
     rnts_found = get_rnt_monthly_result_structure(begin, end)
 
     rnt_files = flatten_dirs(rnts_folder_path)
@@ -527,7 +638,8 @@ def process_RNTs(
                     / f"{rnt_file_name_without_extension}_{page_num}.pdf"
                 )
                 log.info(
-                    f"NAF {naf} was detected in {rnt_path} in page {page_num + 1}. Writing page to {rnt_path_destination}."
+                    f"NAF {naf} was detected in {rnt_path} in page {page_num + 1}. "
+                    f"Writing page to {rnt_path_destination}."
                 )
                 write_page(page, rnt_path_destination)
                 log.debug(f"rnt found with date: {file_date}")
@@ -541,6 +653,15 @@ def process_RNTs(
 
 
 def datetime_range(begin: datetime, end: datetime) -> list[datetime]:
+    """Return a list of first-of-month datetimes covering the ``[begin, end]`` period.
+
+    Args:
+        begin: Start of the period.
+        end: End of the period.
+
+    Returns:
+        Ordered list of ``datetime`` values, one per calendar month.
+    """
     current = datetime(begin.year, begin.month, 1)
 
     result = []
@@ -565,6 +686,17 @@ def merge_rnts_rlcs(
     begin: datetime,
     end: datetime,
 ) -> None:
+    """Merge per-month RNT and RLC output files into combined PDFs.
+
+    Args:
+        rnts_folder: Source folder listing available RNT filenames.
+        rlcs_folder: Source folder listing available RLC filenames.
+        rnts_folder_output: Folder containing the extracted RNT pages to merge.
+        rlcs_folder_output: Folder containing the extracted RLC pages to merge.
+        merged_rnts_rlcs_folder_output: Destination folder for the merged PDFs.
+        begin: Start of the justification period.
+        end: End of the justification period.
+    """
     months_list = datetime_range(begin, end)
     log.info(f"Generated months list from {begin} to {end} is: {months_list}")
     rnts_filenames = list_dir(rnts_folder)
@@ -600,7 +732,8 @@ def merge_rnts_rlcs(
             merge_pdfs(paths_to_merge, output_path, True)
         else:
             log.warning(
-                f"During date {unparse_year_month(current_date)} there were less than one RNTs or RLCs to merge (at least one is missing). Skipping"
+                f"During date {unparse_year_month(current_date)} there were less than "
+                f"one RNTs or RLCs to merge (at least one is missing). Skipping"
             )
         log.trace(f"Merged PDFs: {paths_to_merge} -> {output_path}")
 
@@ -610,6 +743,14 @@ _V = TypeVar("_V")
 
 
 def reverse_dict(d: dict[_K, _V]) -> dict[_V, _K]:
+    """Return a new dict with keys and values swapped.
+
+    Args:
+        d: Source dictionary to invert.
+
+    Returns:
+        Inverted dictionary mapping original values to original keys.
+    """
     r = {}
     for key, value in d.items():
         r[value] = key
@@ -622,6 +763,17 @@ def complete_ids_with_naf(
     naf_to_name: dict[NAF, Name],
     naf_to_email: dict[NAF, str],
 ) -> tuple[NIF, Name, str]:
+    """Resolve NIF, Name, and email for the given NAF using the lookup tables.
+
+    Args:
+        naf: NAF identifier of the employee.
+        naf_to_dni: Mapping from NAF to NIF.
+        naf_to_name: Mapping from NAF to Name.
+        naf_to_email: Mapping from NAF to email address.
+
+    Returns:
+        Tuple of ``(nif, name, email)`` for the employee.
+    """
     dni = naf_to_dni[naf]
     name = naf_to_name[naf]
     email = naf_to_email[naf]
@@ -629,9 +781,18 @@ def complete_ids_with_naf(
 
 
 def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) -> None:
-    """
-    Update the justification history list with all the id values. Name is skipped because the name from the NAF_DNI.xlsx
-    does not coincide with the name in Sharepoint
+    """Update the justification history list with NAF, DNI, and email identifiers.
+
+    Name is intentionally skipped because the A3 name format does not match SharePoint.
+
+    Args:
+        request: Numeric list item identifier for the justification request.
+        naf: Employee NAF to write.
+        dni: Employee NIF/DNI to write.
+        email: Employee email address to write.
+
+    Raises:
+        PersonDoesNotExistInSharepoint: If the employee no longer exists in SharePoint.
     """
     update_list_item_field(request, {"DNI": str(dni)})
     update_list_item_field(request, {"NAF": str(naf)})
@@ -657,6 +818,29 @@ def complete_ids(
     email_to_naf: dict[str, NAF],
     naf_to_email: dict[NAF, str],
 ) -> tuple[NAF, NIF, Name, str]:
+    """Resolve all employee identifiers from whichever primary key is provided.
+
+    Precedence: NAF > email > NIF > name. Warns when a redundant identifier is
+    supplied alongside the primary key.
+
+    Args:
+        naf: NAF identifier (highest priority).
+        nif: NIF/DNI identifier.
+        email: Email address.
+        name: Employee name.
+        name_to_naf: Lookup table from Name to NAF.
+        naf_to_nif: Lookup table from NAF to NIF.
+        nif_to_naf: Lookup table from NIF to NAF.
+        naf_to_name: Lookup table from NAF to Name.
+        email_to_naf: Lookup table from email to NAF.
+        naf_to_email: Lookup table from NAF to email.
+
+    Returns:
+        Tuple of ``(naf, nif, name, email)`` with all fields resolved.
+
+    Raises:
+        ValueError: If none of the identifier arguments are provided.
+    """
     if naf:
         if nif:
             log.warning(

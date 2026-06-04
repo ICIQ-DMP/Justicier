@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Main entry point: orchestrates the full justification pipeline."""
+
 import argparse
 import datetime
 import logging
@@ -73,6 +75,11 @@ log = get_logger(__name__)
 
 
 def _connect_sharepoint() -> tuple[TokenManager, str, str]:
+    """Authenticate with SharePoint and return the connection handles.
+
+    Returns:
+        Tuple of ``(token_manager, site_id, drive_id)``.
+    """
     token_manager = get_token_manager()
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
@@ -82,6 +89,18 @@ def _connect_sharepoint() -> tuple[TokenManager, str, str]:
 
 
 def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
+    """Run the full justification pipeline for one employee request.
+
+    Downloads input data, extracts matching documents, uploads results to
+    SharePoint, and sends the completion email.
+
+    Args:
+        args: Validated CLI arguments containing NAF, dates, and options.
+        input_folder: Local directory where input files are stored or downloaded.
+
+    Returns:
+        Tuple of ``(result_sharepoint_url, log_sharepoint_url)``.
+    """
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
@@ -128,7 +147,8 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
             log.warning(
                 "The person to be justified does not exist in the Sharepoint database. This means that the person"
                 "probably has left ICIQ and IT has already removed its user account. The justification will "
-                'continue normally but the "Nom de la persona" and "PersonaEmail" field will be unfilled.'
+                'continue normally but the "Nom de la persona" and "PersonaEmail" field will be left unfilled in the '
+                "corresponding row of the requests list."
             )
 
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
@@ -306,6 +326,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
 
 def main() -> None:
+    """Parse arguments, run the justification pipeline, and handle top-level errors."""
     setup_logging()
     args = process_parse_arguments()
 

@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Project-wide constants, enumerations, and path helpers."""
+
 import logging
 import datetime
 from enum import Enum
@@ -44,6 +46,8 @@ DATE_FORMAT = "%d/%m/%Y"
 
 
 class NAFFileColumn(str, Enum):
+    """Column header names in the NAF/DNI Excel file."""
+
     NAME = "Nombre Completo"
     NASS = "NASS"
     NIF = "NIF"
@@ -69,6 +73,8 @@ class SharepointListFields(Enum):
 
 
 class DocType(Enum):
+    """Document categories produced by the justification process."""
+
     SALARY = "salary"
     CONTRACT = "contract"
     RLC = "RLC"
@@ -78,6 +84,17 @@ class DocType(Enum):
 
 
 def from_string(value: str) -> "DocType":
+    """Return the DocType matching *value*, accepting common aliases.
+
+    Args:
+        value: Human-readable document type string (e.g. ``"salary"``, ``"RLC"``).
+
+    Returns:
+        The matching DocType member.
+
+    Raises:
+        ValueError: If *value* does not match any known type or alias.
+    """
     _aliases = {
         DocType.SALARY: {"salary", "salaries", "SALARY", "Salary", "payslip"},
         DocType.CONTRACT: {"contract", "CONTRACT", "Contract", "agreement"},
@@ -92,25 +109,30 @@ def from_string(value: str) -> "DocType":
 
 
 class RLCType(Enum):
+    """Sub-types of RLC (payroll tax settlement) documents."""
+
     REGULAR = "regular"
     DELAY = "delay"
     SETTLEMENT = "settlement"
 
 
 class SalaryType(Enum):
+    """Salary file types as encoded in their filenames."""
+
     REGULAR = "Nomines"
     DELAY = "Atrasos"
     EXTRA = "Extres"
 
 
 class RegularSalaryType(Enum):
+    """Sub-types of regular salary slips."""
+
     SETTLEMENT = "Settlement"
     MONTHLY = "Monthly"
 
 
 class LogLevel(str, Enum):
-    """
-    Logical log levels for the CLI.
+    """Logical log levels for the CLI.
 
     Includes a custom TRACE (more verbose than DEBUG) and QUIET
     (suppresses all output beyond CRITICAL).
@@ -137,9 +159,11 @@ class LogLevel(str, Enum):
 
     @classmethod
     def get_default_log_level(cls) -> "LogLevel":
+        """Return the default LogLevel used when no level is explicitly configured."""
         return LogLevel.TRACE
 
     def to_logging_level(self) -> int:
+        """Convert this LogLevel to the corresponding ``logging`` module integer."""
         if self is LogLevel.TRACE:
             return 0
         if self is LogLevel.DEBUG:
@@ -156,12 +180,15 @@ class LogLevel(str, Enum):
 
 
 def get_default_log_path() -> Path:
+    """Return the default admin log file path for the current run."""
     return ADMIN_LOG_FOLDER / (NOW + ".log")
 
 
 def get_supervisor_log_path() -> Path:
+    """Return the supervisor log file path for the current run."""
     return get_default_log_path()
 
 
 def get_user_log_path() -> Path:
+    """Return the user-facing log file path for the current run."""
     return get_default_log_path()

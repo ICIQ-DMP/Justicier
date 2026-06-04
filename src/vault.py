@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""HashiCorp Vault client for fetching runtime secrets via AppRole authentication."""
+
 import os
 from typing import cast
 
@@ -55,10 +57,21 @@ log = get_logger(__name__)
 
 
 def _read_credential(name: str) -> str:
-    """Read a credential from (in order):
-    1. /run/secrets/<name>
-    2. <project_root>/secrets/<name>
-    3. environment variable
+    """Read a credential value, trying sources in priority order.
+
+    Sources tried in order:
+      1. ``/run/secrets/<name>``
+      2. ``<project_root>/secrets/<name>``
+      3. Environment variable named *name*
+
+    Args:
+        name: Credential name to look up.
+
+    Returns:
+        The credential value as a stripped string.
+
+    Raises:
+        KeyError: If the credential is not found in any source.
     """
     for path in (Path("/run/secrets") / name, _PROJECT_ROOT / "secrets" / name):
         if path.is_file():
@@ -74,7 +87,10 @@ def _read_credential(name: str) -> str:
 
 
 class _VaultClient:
+    """Internal Vault client with token caching and AppRole authentication."""
+
     def __init__(self) -> None:
+        """Initialise the client and configure TLS from available credentials."""
         self._token: str | None = None
         self._cache: dict[str, dict[str, str]] = {}  # subpath -> {field: value}
 
@@ -88,6 +104,7 @@ class _VaultClient:
         # If neither is set, requests will use its default CA bundle.
 
     def _authenticate(self) -> None:
+        """Authenticate against Vault using a token or AppRole credentials."""
         # 1. Try a pre-issued Vault token.
         try:
             self._token = _read_credential("VAULT_TOKEN")
@@ -108,6 +125,14 @@ class _VaultClient:
         self._token = cast(str, resp.json()["auth"]["client_token"])
 
     def _fetch_subpath(self, subpath: str) -> dict[str, str]:
+        """Fetch and cache all fields from a Vault KV sub-path.
+
+        Args:
+            subpath: The sub-path under ``_VAULT_BASE_PATH`` to fetch.
+
+        Returns:
+            Dictionary of field names to their string values.
+        """
         if subpath in self._cache:
             return self._cache[subpath]
 
@@ -128,6 +153,18 @@ class _VaultClient:
         return data
 
     def read_secret(self, secret_name: str) -> str:
+        """Return the value of a named secret from Vault.
+
+        Args:
+            secret_name: Application-level secret name defined in ``_SECRET_MAP``.
+
+        Returns:
+            The secret value as a string.
+
+        Raises:
+            KeyError: If *secret_name* has no mapping or the field is absent.
+            ValueError: If the field exists but is empty.
+        """
         if secret_name not in _SECRET_MAP:
             raise KeyError(f"No vault mapping defined for secret '{secret_name}'")
         subpath, field = _SECRET_MAP[secret_name]

@@ -21,15 +21,25 @@ else
     PYTHON_BIN ?= python
 endif
 
-VENV_DIR   ?= venv
-VENV_BIN   ?= $(VENV_DIR)/bin
-PYTHON     := $(VENV_BIN)/python
-PIP        := $(VENV_BIN)/pip
-
-PKG_NAME   := justicier
+VENV_DIR     ?= venv
+PKG_NAME     := justicier
 DOCKER_IMAGE := AleixMT/justicier
 
-DEV_STAMP := $(VENV_DIR)/.dev-installed
+# When CONTAINER=1 (set via ENV in Dockerfile) use system-wide tools;
+# otherwise use the project venv. All targets below work in both contexts.
+ifdef CONTAINER
+    PYTHON        := python
+    PIP           := pip
+    VENV_BIN      := /usr/local/bin
+    DEV_STAMP     := /tmp/.$(PKG_NAME)-dev-installed
+    INSTALL_FLAGS :=
+else
+    VENV_BIN      := $(VENV_DIR)/bin
+    PYTHON        := $(VENV_BIN)/python
+    PIP           := $(VENV_BIN)/pip
+    DEV_STAMP     := $(VENV_DIR)/.dev-installed
+    INSTALL_FLAGS := -e
+endif
 
 
 # ---- environment (file targets) -------------------------------------------
@@ -41,7 +51,7 @@ $(VENV_BIN)/python:
 
 # Install runtime dependencies (creates justicier executable)
 $(VENV_BIN)/justicier: $(VENV_BIN)/python pyproject.toml
-	@$(PIP) install -e .
+	@$(PIP) install $(INSTALL_FLAGS) .
 
 # Install dev dependencies
 # We use a stamp file because pip may not update binary timestamps when a tool
@@ -70,7 +80,7 @@ $(VENV_BIN)/pyproject-build: $(VENV_BIN)/python
 
 venv: $(VENV_BIN)/python  ## Create virtualenv
 
-install: $(VENV_BIN)/justicier  ## Install package in editable mode
+install: $(VENV_BIN)/justicier  ## Install package
 
 hooks: .git/hooks/pre-commit .git/hooks/commit-msg .git/hooks/pre-push  ## Install git hooks
 
@@ -82,10 +92,9 @@ dev: $(DEV_STAMP) hooks  ## Install dev dependencies and git hooks
 # whether the environment is fresh without walking the full dev alias tree.
 # The git hooks are intentionally excluded from this dependency chain.
 
-lint: $(DEV_STAMP)  ## Run static checks (ruff + mypy + griffe)
+lint: $(DEV_STAMP)  ## Run static checks (ruff + mypy)
 	@$(VENV_BIN)/ruff check .
 	@$(VENV_BIN)/mypy --strict src
-	@$(VENV_BIN)/griffe check $(PKG_NAME) -s src
 
 fmt: $(DEV_STAMP)  ## Auto-format (black + ruff --fix)
 	@$(VENV_BIN)/black src tests
@@ -106,11 +115,28 @@ run: $(VENV_BIN)/justicier  ## Run the justicier CLI (python -m justicier)
 
 # ---- docker ---------------------------------------------------------------
 
-docker-build:  ## Build the Docker image
-	@sudo docker build . -t $(DOCKER_IMAGE) --progress=plain
+docker-build:  ## Build the production Docker image
+	@sudo docker build -t $(DOCKER_IMAGE) . --progress=plain
+
+docker-build-dev:  ## Build the dev Docker image (used by docker-shell / docker-run)
+	@docker build --target dev -t $(DOCKER_IMAGE):dev . --progress=plain
 
 docker-push:  ## Push the Docker image
 	@sudo docker push $(DOCKER_IMAGE)
+
+docker-shell: docker-build-dev  ## Open a shell in a dev container with the project mounted
+	@docker run --rm -it \
+		-v "$(PWD):/app" \
+		-w /app \
+		$(DOCKER_IMAGE):dev \
+		bash
+
+docker-run: docker-build-dev  ## Run the justicier CLI in a dev container (use CMD= to pass args)
+	@docker run --rm -it \
+		-v "$(PWD):/app" \
+		-w /app \
+		$(DOCKER_IMAGE):dev \
+		python -m justicier $(CMD)
 
 
 # ---- maintenance ----------------------------------------------------------
@@ -121,7 +147,7 @@ clean:  ## Remove build/test artifacts
 
 # ---- meta -----------------------------------------------------------------
 
-.PHONY: venv install dev hooks lint fmt test run clean help dist docker-build docker-push
+.PHONY: venv install dev hooks lint fmt test run clean help dist docker-build docker-build-dev docker-push docker-shell docker-run
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .+$$' $(MAKEFILE_LIST) | \

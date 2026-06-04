@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""File-system helpers: directory creation, path computation, and output structure."""
+
 import argparse
 import os
 import shutil
@@ -39,8 +41,7 @@ log = get_logger(__name__)
 
 
 def read_env_var(var_name: str) -> str:
-    """
-    Reads an environment variable.
+    """Reads an environment variable.
 
     Args:
         var_name (str): Name of the environment variable.
@@ -64,6 +65,19 @@ def read_env_var(var_name: str) -> str:
 
 
 def read_file_content(file_path: Path) -> str:
+    """Read a file and return its non-empty content.
+
+    Args:
+        file_path: Path to the file.
+
+    Returns:
+        The file content as a string.
+
+    Raises:
+        ValueError: If the file exists but is empty.
+        FileNotFoundError: If the file does not exist.
+        PermissionError: If the file cannot be read.
+    """
     content = read_file(file_path)
     if not content:
         raise ValueError(f"The file '{file_path}' is empty.")
@@ -71,8 +85,7 @@ def read_file_content(file_path: Path) -> str:
 
 
 def read_file(file_path: Path) -> str:
-    """
-    Reads a file and returns its content.
+    """Reads a file and returns its content.
 
     Args:
         file_path (Path): Path to the file.
@@ -99,6 +112,7 @@ def read_file(file_path: Path) -> str:
 
 
 def ensure_output_gitignore() -> None:
+    """Write a ``.gitignore`` to the output folder that excludes everything but itself."""
     gitignore_path = GENERAL_OUTPUT_FOLDER / ".gitignore"
     gitignore_content = "*\n!.gitignore\n"
     with open(gitignore_path, "w+") as f:
@@ -127,6 +141,16 @@ def flatten_dirs(folder_to_flat: Path) -> list[Path]:
 
 
 def compute_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]) -> str:
+    """Compute the full run identifier, including the requesting author.
+
+    Args:
+        now: Timestamp string for the current run.
+        args: Parsed CLI arguments.
+        naf_to_name: Mapping from NAF to employee Name.
+
+    Returns:
+        Unique identifier string for this run including the author email.
+    """
     id_str = compute_impersonal_id(now, args, naf_to_name)
     return f"{id_str}_{args.author}"
 
@@ -134,6 +158,19 @@ def compute_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name])
 def compute_impersonal_id(
     now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]
 ) -> str:
+    """Compute the run identifier without the requesting author.
+
+    Args:
+        now: Timestamp string for the current run.
+        args: Parsed CLI arguments.
+        naf_to_name: Mapping from NAF to employee Name.
+
+    Returns:
+        Unique identifier string for this run excluding the author email.
+
+    Raises:
+        KeyError: If the NAF is not found in *naf_to_name*.
+    """
     id_str = ""
     if args.request:
         id_str = f"_{args.request}"
@@ -144,13 +181,27 @@ def compute_impersonal_id(
             f"NAF provided was not possible to be translated into name, NAF is: {args.naf}"
         )
         raise KeyError
-    r = f"{now}_{args.naf}_{name.replace(' ', '_')}_{args.begin.strftime('%Y-%m-%d')}_{args.end.strftime('%Y-%m-%d')}{id_str}"
+    r = (
+        f"{now}_{args.naf}_{name.replace(' ', '_')}"
+        f"_{args.begin.strftime('%Y-%m-%d')}_{args.end.strftime('%Y-%m-%d')}{id_str}"
+    )
     return r
 
 
 def compute_paths(
     args: argparse.Namespace, id_str: str, impersonal_id_str: str
 ) -> tuple[Path, Path, Path, Path, Path]:
+    """Compute all output and log paths for a justification run.
+
+    Args:
+        args: Parsed CLI arguments (uses ``args.author``).
+        id_str: Full run identifier (including author).
+        impersonal_id_str: Run identifier without author.
+
+    Returns:
+        Tuple of ``(user_folder, justification_folder, user_report_file,
+        admin_log_path, supervisor_log_path)``.
+    """
     log_filename = id_str + ".log.txt"
     log_filename_impersonal = impersonal_id_str + ".log.txt"
 
@@ -184,6 +235,12 @@ def remove_folder(folder_path: Path) -> None:
 def ensure_file_structure(
     current_user_folder: Path, current_justification_folder: Path
 ) -> None:
+    """Create the full output directory tree for a justification run.
+
+    Args:
+        current_user_folder: Root folder for the requesting user's output.
+        current_justification_folder: Sub-folder for this specific justification run.
+    """
     GENERAL_OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
     ensure_output_gitignore()
 

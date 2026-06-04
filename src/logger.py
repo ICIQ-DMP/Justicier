@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Logging setup, secret-redacting filter, and helper utilities."""
+
 import logging
 from pathlib import Path
 from typing import Optional, Any, cast
@@ -28,7 +30,16 @@ MESSAGE_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
 
 class ExtendedLogger(logging.Logger):
+    """Logger subclass that adds a ``trace`` method below DEBUG level."""
+
     def trace(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
+        """Log *message* at the custom TRACE level (below DEBUG).
+
+        Args:
+            message: The message to log.
+            *args: Positional arguments forwarded to ``_log``.
+            **kwargs: Keyword arguments forwarded to ``_log``.
+        """
         self._log(TRACE_LEVEL_NUM, message, args, **kwargs)
 
 
@@ -37,11 +48,27 @@ logging.setLoggerClass(ExtendedLogger)
 
 
 class SecretsFilter(logging.Filter):
-    def __init__(self, secrets: list[str] | None):
+    """Logging filter that redacts known secret strings from log records."""
+
+    def __init__(self, secrets: list[str] | None) -> None:
+        """Initialise the filter with a list of secret strings to redact.
+
+        Args:
+            secrets: Strings to replace with ``*****`` in log messages. Pass ``None`` or
+                an empty list to disable redaction.
+        """
         super().__init__()
         self.secrets: list[str] = secrets or []
 
     def filter(self, record: logging.LogRecord) -> bool:
+        """Redact secrets from *record* and always allow the record through.
+
+        Args:
+            record: The log record to inspect and potentially modify.
+
+        Returns:
+            Always ``True`` — every record is allowed, but its message may be modified.
+        """
         if not self.secrets:
             return True
 
@@ -60,6 +87,15 @@ def setup_logging(
     supervisor_log_file: Optional[str | Path] = None,
     secrets: list[str] | None = None,
 ) -> None:
+    """Configure the root logger with a Rich console handler and optional file handlers.
+
+    Args:
+        level: Logging level integer. Defaults to the configured default log level.
+        user_report_file: Path for the user-facing log file (uses *level*).
+        admin_log_file: Path for the admin log file (ERROR and above).
+        supervisor_log_file: Path for the supervisor log file (WARNING and above).
+        secrets: Secret strings to redact from all log output.
+    """
     # Default level is DEBUG
     if level is None:
         level = LogLevel.get_default_log_level().to_logging_level()
@@ -106,6 +142,14 @@ def setup_logging(
 
 
 def obfuscate_text(text: str | None) -> str:
+    """Return ``*****`` for any non-None value, or the string ``"None"`` for None.
+
+    Args:
+        text: The value to obfuscate.
+
+    Returns:
+        ``"*****"`` when *text* is not ``None``, otherwise ``"None"``.
+    """
     if text is None:
         return str(text)
     else:
@@ -120,6 +164,19 @@ def get_logger(name: str) -> ExtendedLogger:
 def process_log_flags(
     very_verbose: bool, verbose: bool, quiet: bool, very_quiet: bool
 ) -> tuple[LogLevel | None, bool]:
+    """Translate CLI verbosity flags to a LogLevel and a conflict indicator.
+
+    Args:
+        very_verbose: If True, select TRACE level.
+        verbose: If True, select DEBUG level.
+        quiet: If True, select WARNING level.
+        very_quiet: If True, select QUIET level.
+
+    Returns:
+        A tuple of ``(LogLevel | None, bool)`` where the first element is the
+        selected level (or ``None`` if no flag was set) and the second is ``True``
+        when more than one flag was supplied simultaneously.
+    """
     more_than_one_flag = False
     flag_counter = 0
     for flag in (very_verbose, verbose, quiet, very_quiet):
@@ -147,7 +204,18 @@ def configure_logging_from_settings(
     supervisor_log_file: Optional[str | Path] = None,
     secrets: Optional[list[str]] = None,
 ) -> None:
+    """Configure logging using domain-level LogLevel values and default paths.
 
+    Resolves ``None`` arguments to their configured defaults before delegating
+    to :func:`setup_logging`.
+
+    Args:
+        level: Desired log level. Defaults to the configured default.
+        user_report_file: Path for the user-facing log. Defaults to the admin log path.
+        admin_log_file: Path for the admin log. Defaults to the admin log path.
+        supervisor_log_file: Path for the supervisor log. Defaults to the admin log path.
+        secrets: Secret strings to redact from all log output.
+    """
     if user_report_file is None:
         user_report_file = get_default_log_path()
     if admin_log_file is None:

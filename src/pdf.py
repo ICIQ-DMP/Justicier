@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""PDF page extraction, matching, merging, and salary-type classification."""
+
 import locale
 import re
 import shutil
@@ -34,6 +36,17 @@ log = get_logger(__name__)
 
 
 def get_dni(pdf_path: Path) -> str:
+    """Extract the first DNI/NIE string found in any page of the PDF.
+
+    Args:
+        pdf_path: Path to the PDF file.
+
+    Returns:
+        The matched identifier string.
+
+    Raises:
+        ValueError: If no DNI/NIE pattern is found in the document.
+    """
     reader = PdfReader(pdf_path)
 
     pattern = re.compile("[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]")
@@ -54,6 +67,12 @@ def get_dni(pdf_path: Path) -> str:
 
 
 def write_page(page: pypdf.PageObject, path: Path) -> None:
+    """Write a single PDF page to a new file at *path*.
+
+    Args:
+        page: The PDF page object to write.
+        path: Destination file path (created or overwritten).
+    """
     writer = PdfWriter()
     writer.add_page(page)
 
@@ -64,6 +83,16 @@ def write_page(page: pypdf.PageObject, path: Path) -> None:
 def get_matching_pages(
     pdf_path: Path, query_string: str, pattern_str: str = r"\d{2}/\d{8}-\d{2}"
 ) -> List[Tuple[pypdf.PageObject, int]]:
+    """Return all pages whose extracted text contains *query_string* matched by *pattern_str*.
+
+    Args:
+        pdf_path: Path to the PDF file.
+        query_string: Exact string to look for among pattern matches.
+        pattern_str: Regex pattern used to find candidates on each page.
+
+    Returns:
+        List of ``(page, page_number)`` tuples for all matching pages.
+    """
     reader = PdfReader(pdf_path)
 
     pattern = re.compile(pattern_str)
@@ -92,6 +121,19 @@ def get_matching_pages(
 def get_matching_page(
     pdf_path: Path, query_string: str, pattern_str: str = r"\d{2}/\d{8}-\d{2}"
 ) -> pypdf.PageObject:
+    """Return the last page whose extracted text contains *query_string*.
+
+    Args:
+        pdf_path: Path to the PDF file.
+        query_string: Exact string to look for among pattern matches.
+        pattern_str: Regex pattern used to find candidates on each page.
+
+    Returns:
+        The matching page object.
+
+    Raises:
+        ValueError: If *query_string* is not found in any page of the document.
+    """
     reader = PdfReader(pdf_path)
 
     pattern = re.compile(pattern_str)
@@ -119,7 +161,25 @@ def get_matching_page(
 def parse_dates_from_delayed_salary(
     page: pypdf.PageObject,
 ) -> tuple[datetime, datetime]:
-    query_str = r"\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}\s+a\s+\d{1,2}\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+20\d{2}"
+    """Extract the start and end dates from a delayed-salary (atrasos) page.
+
+    Args:
+        page: The PDF page object to parse.
+
+    Returns:
+        Tuple of ``(start_date, end_date)`` parsed from the Spanish date range text.
+
+    Raises:
+        ValueError: If the page text is empty or the date range pattern is not found.
+    """
+    _months = (
+        r"Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto"
+        r"|Septiembre|Octubre|Noviembre|Diciembre"
+    )
+    query_str = (
+        rf"\d{{1,2}}\s+({_months})\s+20\d{{2}}"
+        rf"\s+a\s+\d{{1,2}}\s+({_months})\s+20\d{{2}}"
+    )
     pattern = re.compile(query_str, re.MULTILINE)
 
     text = page.extract_text()
@@ -143,6 +203,14 @@ def parse_dates_from_delayed_salary(
 
 
 def is_monthly_salary(salary_page: pypdf.PageObject) -> bool:
+    """Return True if the page contains the monthly salary marker text.
+
+    Args:
+        salary_page: PDF page to inspect.
+
+    Returns:
+        True if a ``"Mensual -"`` pattern is found in the extracted text.
+    """
     text = salary_page.extract_text()
 
     if not text:
@@ -163,6 +231,14 @@ def is_monthly_salary(salary_page: pypdf.PageObject) -> bool:
 
 
 def is_settlement_salary(salary_page: pypdf.PageObject) -> bool:
+    """Return True if the page contains the settlement (finiquito) marker text.
+
+    Args:
+        salary_page: PDF page to inspect.
+
+    Returns:
+        True if ``"Vacaciones Finiquito"`` is found in the extracted text.
+    """
     text = salary_page.extract_text()
     if not text:
         return False
@@ -177,6 +253,17 @@ def is_settlement_salary(salary_page: pypdf.PageObject) -> bool:
 
 
 def parse_regular_salary_type(salary_page: pypdf.PageObject) -> RegularSalaryType:
+    """Classify a regular salary page as monthly or settlement.
+
+    Args:
+        salary_page: PDF page to classify.
+
+    Returns:
+        The detected RegularSalaryType.
+
+    Raises:
+        UndefinedRegularSalaryType: If the page does not match either known subtype.
+    """
     if is_monthly_salary(salary_page):
         return RegularSalaryType.MONTHLY
     elif is_settlement_salary(salary_page):
@@ -188,11 +275,13 @@ def parse_regular_salary_type(salary_page: pypdf.PageObject) -> RegularSalaryTyp
 def merge_pdfs(
     pdf_paths: List[Path], output_path: Path, all_pages: bool = False
 ) -> None:
-    """
-    Merge multiple PDF files into a single PDF.
+    """Merge multiple PDF files into a single output PDF.
 
-    :param pdf_paths: List of paths to PDF files to merge.
-    :param output_path: Path to save the merged PDF.
+    Args:
+        pdf_paths: List of paths to PDF files to merge.
+        output_path: Destination path for the merged PDF.
+        all_pages: If True, include all pages from each source file;
+            otherwise only the first page of each file is included.
     """
     pdfWriter = pypdf.PdfWriter()
     for filename in pdf_paths:
@@ -210,6 +299,16 @@ def merge_pdfs(
 def is_date_present_in_rlc_delay(
     delay_begin: datetime, delay_end: datetime, document_path: Path
 ) -> bool:
+    """Return True if the RLC delay document covers the given date range.
+
+    Args:
+        delay_begin: Start date of the delay period.
+        delay_end: End date of the delay period.
+        document_path: Path to the RLC PDF to inspect.
+
+    Returns:
+        True if the formatted date range string is found in any page.
+    """
     reader = PdfReader(document_path)
     query_string = f"{unparse_month(delay_begin)}/{delay_begin.year} - {unparse_month(delay_end)}/{delay_end.year}"
     pattern = re.compile(query_string)
@@ -232,9 +331,10 @@ def is_date_present_in_rlc_delay(
 
 
 def compact_folder(path_folder: Path) -> None:
-    """
-    Gets a path to a folder with only PDF files in it.
-    Merges all PDFs into a single file at path_folder.pdf, then removes the folder.
+    """Merge all PDFs in a folder into a single file, then remove the folder.
+
+    Expects *path_folder* to contain only PDF files. The merged output is written
+    to ``path_folder.pdf`` alongside the original folder.
     """
     names = list_dir(path_folder)
     if len(names) == 0:
@@ -252,6 +352,13 @@ def compact_folder(path_folder: Path) -> None:
 def merge_equal_files_from_two_folders(
     folder1: Path, folder2: Path, folder_out: Path
 ) -> None:
+    """Merge PDF files with matching names from two folders into a third folder.
+
+    Args:
+        folder1: First source folder.
+        folder2: Second source folder.
+        folder_out: Destination folder for merged files.
+    """
     log.info(
         f"Merging files with same name in folders {folder1} and {folder2} and outputting them in "
         f"{folder_out}."

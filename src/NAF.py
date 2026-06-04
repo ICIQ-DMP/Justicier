@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""NAF (Social Security number) parsing, validation and lookup utilities."""
+
 import re
 from pathlib import Path
 from typing import Callable, Iterable, TypeVar
@@ -32,7 +34,17 @@ log = get_logger(__name__)
 
 
 class NAF:
+    """Represents a parsed Spanish Social Security number (NAF/NASS)."""
+
     def __init__(self, raw_naf: str) -> None:
+        """Parse and validate a raw NAF string.
+
+        Args:
+            raw_naf: Raw NAF string in any supported format (e.g. ``43/12345678-20``).
+
+        Raises:
+            ValueError: If *raw_naf* does not match the expected NAF pattern.
+        """
         # For some random reason, a whitespace appear between province code and middle number...
         pattern = r"(\d{2})([/\-]?)(\d{8})([/\-]?)(\d{2})"
         match = re.fullmatch(pattern, str(raw_naf))
@@ -49,9 +61,11 @@ class NAF:
         self.last_number = match.group(5)
 
     def __str__(self) -> str:
+        """Return the compact NAF string with no separators."""
         return f"{self.province_code}{self.middle_number}{self.last_number}"
 
     def __eq__(self, other: object) -> bool:
+        """Check equality by comparing province code, middle number and last number."""
         if not isinstance(other, NAF):
             return False
         return (
@@ -61,14 +75,16 @@ class NAF:
         )
 
     def __hash__(self) -> int:
+        """Return a hash based on the canonical NAF digits."""
         return hash(self.province_code + self.middle_number + self.last_number)
 
     def slash_dash_str(self) -> str:
+        """Return the NAF formatted as ``PP/NNNNNNNN-LL``."""
         return f"{self.province_code}/{self.middle_number}-{self.last_number}"
 
 
 def is_naf_format_correct(naf: str) -> bool:
-    """Validate that NAF has NAF format"""
+    """Return True if *naf* can be parsed as a valid NAF string."""
     try:
         NAF(naf)  # Parse using constructor
     except ValueError:
@@ -77,11 +93,12 @@ def is_naf_format_correct(naf: str) -> bool:
 
 
 def is_naf_present(value: NAF, valid_nafs: Iterable[NAF]) -> bool:
+    """Return True if *value* is contained in *valid_nafs*."""
     return value in valid_nafs
 
 
 def clean_naf(naf: str) -> str:
-    """Removes symbols that are not numbers in a SS number"""
+    """Return *naf* with all ``/`` and ``-`` separators removed."""
     return naf.replace("/", "").replace("-", "")
 
 
@@ -96,6 +113,21 @@ def parse_two_columns(
     func_apply_key: Callable[[str], _K],
     func_apply_value: Callable[[str], _V],
 ) -> dict[_K, _V]:
+    """Build a typed dictionary by applying transform functions to two DataFrame columns.
+
+    Args:
+        df: Source DataFrame.
+        key: Column name whose values become dictionary keys.
+        value: Column name whose values become dictionary values.
+        func_apply_key: Callable that converts each raw key string to type ``_K``.
+        func_apply_value: Callable that converts each raw value string to type ``_V``.
+
+    Returns:
+        A dict mapping transformed keys to transformed values.
+
+    Raises:
+        Exception: Re-raises any exception from the transform callables after logging it.
+    """
     try:
         keys: list[_K] = [func_apply_key(k) for k in df[key]]
     except Exception as e:
@@ -110,6 +142,16 @@ def parse_two_columns(
 
 
 def read_dataframe(path: Path, skiprows: int, header: int | None) -> pd.DataFrame:
+    """Read an Excel file into a DataFrame, forcing the NASS column to string type.
+
+    Args:
+        path: Path to the Excel file.
+        skiprows: Number of leading rows to skip.
+        header: Row index to use as column names, or ``None`` for no header.
+
+    Returns:
+        The parsed DataFrame with the NASS column read as strings.
+    """
     # Read the Excel file, skipping the first 3 rows.
     # Column C (index 2) contains NAF/NASS ids which may start with 0 — force str
     # to prevent pandas from parsing them as int and dropping the leading zero.
@@ -119,6 +161,14 @@ def read_dataframe(path: Path, skiprows: int, header: int | None) -> pd.DataFram
 
 
 def build_naf_to_dni(path: Path) -> dict[NAF, NIF]:
+    """Build a NAF → NIF mapping from the employee Excel file.
+
+    Args:
+        path: Path to the NAF/DNI Excel file.
+
+    Returns:
+        Dictionary mapping each NAF to its corresponding NIF.
+    """
     df = read_dataframe(path, 0, 0)
     return parse_two_columns(
         df, NAFFileColumn.NASS, NAFFileColumn.NIF, parse_naf, parse_nif
@@ -126,6 +176,14 @@ def build_naf_to_dni(path: Path) -> dict[NAF, NIF]:
 
 
 def build_naf_to_name(path: Path) -> dict[NAF, Name]:
+    """Build a NAF → Name mapping from the employee Excel file.
+
+    Args:
+        path: Path to the NAF/name Excel file.
+
+    Returns:
+        Dictionary mapping each NAF to its corresponding Name.
+    """
     df = read_dataframe(path, 0, 0)
     return parse_two_columns(
         df, NAFFileColumn.NASS, NAFFileColumn.NAME, parse_naf, parse_name_a3
@@ -133,6 +191,14 @@ def build_naf_to_name(path: Path) -> dict[NAF, Name]:
 
 
 def build_naf_to_email(path: Path) -> dict[NAF, str]:
+    """Build a NAF → email mapping from the employee Excel file.
+
+    Args:
+        path: Path to the NAF/email Excel file.
+
+    Returns:
+        Dictionary mapping each NAF to its corresponding email address.
+    """
     df = read_dataframe(path, 0, 0)
     return parse_two_columns(
         df, NAFFileColumn.NASS, NAFFileColumn.EMAIL, parse_naf, parse_email_a3
@@ -140,6 +206,17 @@ def build_naf_to_email(path: Path) -> dict[NAF, str]:
 
 
 def parse_naf(value: str) -> NAF:
+    """Parse a raw string into a NAF, raising a domain exception on failure.
+
+    Args:
+        value: Raw NAF string to parse.
+
+    Returns:
+        Parsed NAF instance.
+
+    Raises:
+        ArgumentNafInvalid: If *value* is not a valid NAF.
+    """
     try:
         log.trace(f"Parsing NAF: {value}")
         return NAF(value)

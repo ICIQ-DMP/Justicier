@@ -1,0 +1,14 @@
+{
+  "name": "Justicier",
+  "build": {
+    "context": "..",
+    "dockerfile": "Dockerfile",
+    "target": "dev"
+  },
+  "postCreateCommand": "make dev",
+  "customizations": {
+    "jetbrains": {
+      "backend": "PyCharm"
+    }
+  }
+}

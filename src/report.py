@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""User-facing report builders for justification results."""
+
 import argparse
 from dataclasses import dataclass
 from datetime import datetime
@@ -35,6 +37,14 @@ def format_line(content: str, width: int = 119) -> str:
 
 
 def get_initial_user_report(args: argparse.Namespace) -> str:
+    """Build the ASCII-banner header section of the user report.
+
+    Args:
+        args: Parsed CLI arguments containing request metadata.
+
+    Returns:
+        Formatted multi-line string with the logo, version, and request parameters.
+    """
     figlet = Figlet(font="slant")
     ascii_logo_normal = figlet.renderText("Justicier").strip("\n").rstrip(" ")
     ascii_logo = ""
@@ -57,30 +67,32 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     except PackageNotFoundError:
         pkg_version = "unknown"
 
+    SEP = "=" * 119 + "\n"  # noqa: E501
+    BORDER = "*" * 119 + "\n"  # noqa: E501
     user_report = "\n"
-    user_report += "=======================================================================================================================\n"
+    user_report += SEP
     user_report += ascii_logo
-    user_report += "=======================================================================================================================\n"
+    user_report += SEP
     user_report += f"                                        :: Justicier ::   Version: {pkg_version}\n"
-    user_report += "                          Copyright © 2025-2025 Institut Català d'Investigació Química (ICIQ)\n"
+    user_report += "                          Copyright © 2025-2025 Institut Català d'Investigació Química (ICIQ)\n"  # noqa: E501
     user_report += (
         "                                            This program is free software\n"
     )
-    user_report += "                                  Proudly distributed with ♥ under the GPLv3 license\n"
-    user_report += "***********************************************************************************************************************\n"
-    user_report += "* Solution Arquitect and Maintainer: Aleix Mariné Tena (AleixMT), ICIQ, Data Steward                                  *\n"
-    user_report += "* Product Owner: Carles de la Cuadra, ICIQ, Assistant Financial Manager                                               *\n"
-    user_report += "***********************************************************************************************************************\n"
+    user_report += "                                  Proudly distributed with ♥ under the GPLv3 license\n"  # noqa: E501
+    user_report += BORDER
+    user_report += "* Solution Arquitect and Maintainer: Aleix Mariné Tena (AleixMT), ICIQ, Data Steward                                  *\n"  # noqa: E501
+    user_report += "* Product Owner: Carles de la Cuadra, ICIQ, Assistant Financial Manager                                               *\n"  # noqa: E501
+    user_report += BORDER
     user_report += "\n"
     user_report += "\n"
-    user_report += "***********************************************************************************************************************\n"
-    user_report += "*                                                USER REQUEST DETAILS                                                 *\n"
-    user_report += "***********************************************************************************************************************\n"
-    user_report += "* PARAMETERS:                                                                                                         *\n"
+    user_report += BORDER
+    user_report += "*                                                USER REQUEST DETAILS                                                 *\n"  # noqa: E501
+    user_report += BORDER
+    user_report += "* PARAMETERS:                                                                                                         *\n"  # noqa: E501
     user_report += format_line(f"- NAF requested: {args.naf}")
     user_report += format_line(f"- Initial date: {unparse_full_date(args.begin)}")
     user_report += format_line(f"- End date: {unparse_full_date(args.end)}")
-    user_report += "* OPTIONS:                                                                                                            *\n"
+    user_report += "* OPTIONS:                                                                                                            *\n"  # noqa: E501
     user_report += format_line(
         f"- Merge salaries with corresponding bankproof: {args.merge_salary}"
     )
@@ -88,10 +100,10 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
         f"- Merge RNTs and RLCs of each month: {args.merge_rnt_rlc}"
     )
     user_report += format_line("- Document categories to merge: " + compact_text)
-    user_report += "* IDENTIFICATION:                                                                                                     *\n"
+    user_report += "* IDENTIFICATION:                                                                                                     *\n"  # noqa: E501
     user_report += format_line("- Email of the user doing the request: " + args.author)
     user_report += format_line(f"- Request id: {args.request}")
-    user_report += "***********************************************************************************************************************\n"
+    user_report += BORDER
     user_report += "\n"
 
     return user_report
@@ -99,6 +111,8 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
 
 @dataclass(frozen=True)
 class SalaryRLCConfig:
+    """Configuration controlling how a particular RLC type is reported."""
+
     rlc_code: str  # e.g. "L00", "L03", "L13"
     salary_label: str  # singular label used in per-month messages
     count_label: str  # plural label used in summary and success messages
@@ -140,6 +154,16 @@ def _unparse_salary_rlc_for_type(
     config: SalaryRLCConfig,
     args: argparse.Namespace,
 ) -> str:
+    """Build the report section for one RLC type using its configuration.
+
+    Args:
+        content: Per-month result structure for this RLC type.
+        config: Display and tracking configuration for this RLC type.
+        args: Parsed CLI arguments containing NAF and date range.
+
+    Returns:
+        Formatted report string for this RLC type.
+    """
     msg = ""
     something_wrong = False
     salaries_found = 0
@@ -150,29 +174,59 @@ def _unparse_salary_rlc_for_type(
                 msg += f"A {config.salary_label} for NAF {args.naf} was found for month {unparse_date(key, '-')}\n"
             if not values[1]:
                 something_wrong = True
-                msg += f"The corresponding RLC {config.rlc_code} N for the {config.salary_label} for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
+                msg += (
+                    f"The corresponding RLC {config.rlc_code} N for the "
+                    f"{config.salary_label} for NAF {args.naf} was not found "
+                    f"during month {unparse_date(key, '-')}\n"
+                )
             if not values[2]:
                 something_wrong = True
-                msg += f"The corresponding RLC {config.rlc_code} P for the {config.salary_label} for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
+                msg += (
+                    f"The corresponding RLC {config.rlc_code} P for the "
+                    f"{config.salary_label} for NAF {args.naf} was not found "
+                    f"during month {unparse_date(key, '-')}\n"
+                )
         elif config.report_missing:
             something_wrong = True
-            msg += f"{config.salary_label.capitalize()} for NAF {args.naf} was not found during month {unparse_date(key, '-')}\n"
+            msg += (
+                f"{config.salary_label.capitalize()} for NAF {args.naf} "
+                f"was not found during month {unparse_date(key, '-')}\n"
+            )
 
     total = len(content)
     if config.track_quality:
         if salaries_found != total:
             something_wrong = True
-            msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {total} months, but only {salaries_found} {config.count_label} were found.\n"
+            msg += (
+                f"In the period from {unparse_date(args.begin, '-')} to "
+                f"{unparse_date(args.end, '-')} there are {total} months, "
+                f"but only {salaries_found} {config.count_label} were found.\n"
+            )
         if not something_wrong:
-            msg += f"All {config.count_label} and their requested RLC {config.rlc_code} N and RLC {config.rlc_code} P have been found :D\n"
+            msg += (
+                f"All {config.count_label} and their requested "
+                f"RLC {config.rlc_code} N and RLC {config.rlc_code} P have been found :D\n"
+            )
     else:
-        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} there are {salaries_found} {config.count_label}.\n"
+        msg += (
+            f"In the period from {unparse_date(args.begin, '-')} to "
+            f"{unparse_date(args.end, '-')} there are {salaries_found} {config.count_label}.\n"
+        )
     return msg
 
 
 def unparse_salary_rlc_result(
     content: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace
 ) -> str:
+    """Build the combined salary + RLC report section for all RLC types.
+
+    Args:
+        content: Mapping from RLCType to its per-month result structure.
+        args: Parsed CLI arguments containing NAF and date range.
+
+    Returns:
+        Formatted report string covering all RLC types.
+    """
     msg = ""
     for rlc_type, type_content in content.items():
         config = _RLC_TYPE_CONFIG[rlc_type]
@@ -186,6 +240,16 @@ def unparse_salary_rnt_result(
     salary: dict[RLCType, dict[datetime, list[bool]]],
     args: argparse.Namespace,
 ) -> str:
+    """Build the RNT cross-check report section.
+
+    Args:
+        rnt: Per-month bool indicating whether each RNT was found.
+        salary: Full salary+RLC result structure (only the REGULAR type is used).
+        args: Parsed CLI arguments.
+
+    Returns:
+        Formatted report string noting any months with a salary but no RNT.
+    """
     something_wrong = False
     rnt_results = rnt
     salaries_result = salary[RLCType.REGULAR]
@@ -207,15 +271,34 @@ def unparse_salary_rnt_result(
 
 
 def unparse_contract_result(content: bool, args: argparse.Namespace) -> str:
+    """Build the contract-found/not-found report line.
+
+    Args:
+        content: True if a contract was found for the requested NAF and period.
+        args: Parsed CLI arguments containing NAF and date range.
+
+    Returns:
+        Single-line report string.
+    """
+    period = f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')}"
     msg = ""
     if content:
-        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} a contract has been found for naf {args.naf} :D\n"
+        msg += f"{period} a contract has been found for naf {args.naf} :D\n"
     else:
-        msg += f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')} a contract has not been found for naf {args.naf}\n"
+        msg += f"{period} a contract has not been found for naf {args.naf}\n"
     return msg
 
 
 def unparse_proofs_result(report_content: None, args: argparse.Namespace) -> str:
+    """Return a placeholder message for the bank-proof section of the report.
+
+    Args:
+        report_content: Unused; reserved for future proof-result data.
+        args: Parsed CLI arguments (unused; reserved for future use).
+
+    Returns:
+        Fixed placeholder string noting that proof checks are not yet implemented.
+    """
     msg = "At the time, there are no implemented check for the bankproofs in the user report.\n"
     return msg
 
@@ -226,6 +309,17 @@ def get_end_user_report(
     rnts_result: dict[datetime, bool],
     args: argparse.Namespace,
 ) -> str:
+    """Build the complete end-of-run summary section of the user report.
+
+    Args:
+        salaries_with_rlcs_result: Full salary+RLC result structure.
+        contracts_result: True if a contract was found.
+        rnts_result: Per-month RNT found/not-found results.
+        args: Parsed CLI arguments.
+
+    Returns:
+        Formatted multi-line report string covering salaries, proofs, RNTs, and contracts.
+    """
     msg = ""
     msg += "****** Salaries and RLC ****** \n" + unparse_salary_rlc_result(
         salaries_with_rlcs_result, args

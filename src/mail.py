@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Email delivery utilities for notifying users about completed justifications."""
+
 import argparse
 import smtplib
 from email.mime.text import MIMEText
@@ -35,6 +37,18 @@ def send_mail(
     server: str,
     port: int,
 ) -> None:
+    """Send a plain-text email via SMTP with STARTTLS.
+
+    Args:
+        to_email: Recipient email address.
+        subject: Email subject line.
+        body: Plain-text email body.
+        from_email: Sender address shown in the ``From`` header.
+        username: SMTP authentication username.
+        password: SMTP authentication password.
+        server: SMTP server hostname.
+        port: SMTP server port (typically 587 for STARTTLS).
+    """
     # Create message
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -76,6 +90,13 @@ def build_mail_body(result_link: str, log_link: str, args: argparse.Namespace) -
 
 
 def mail_process(result_link: str, log_link: str, args: argparse.Namespace) -> None:
+    """Read SMTP credentials and send the completion notification email.
+
+    Args:
+        result_link: SharePoint URL to the result folder.
+        log_link: SharePoint URL to the log file.
+        args: Parsed CLI arguments containing recipient and request metadata.
+    """
     smtp_password = read_secret("SMTP_PASSWORD")
     smtp_user = read_secret("SMTP_USERNAME")
     smtp_server = read_secret("SMTP_SERVER")

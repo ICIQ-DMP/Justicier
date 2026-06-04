@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""SharePoint / Microsoft Graph API helpers for file and list operations."""
+
 import os
 import time
 from pathlib import Path
@@ -37,6 +39,16 @@ log = get_logger(__name__)
 
 
 def get_list_id(token_manager: TokenManager, site_id: str, list_name: str) -> str:
+    """Return the GUID of the named SharePoint list.
+
+    Args:
+        token_manager: Authenticated token manager.
+        site_id: SharePoint site identifier.
+        list_name: Display name of the target list.
+
+    Returns:
+        The list's Graph API GUID string.
+    """
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
@@ -45,6 +57,16 @@ def get_list_id(token_manager: TokenManager, site_id: str, list_name: str) -> st
 
 
 def get_site_id(token_manager: TokenManager, domain: str, site_name: str) -> str:
+    """Return the compound site identifier for a SharePoint site.
+
+    Args:
+        token_manager: Authenticated token manager.
+        domain: SharePoint tenant domain, e.g. ``"contoso.sharepoint.com"``.
+        site_name: Name of the SharePoint site.
+
+    Returns:
+        The site's compound identifier string.
+    """
     url = f"https://graph.microsoft.com/v1.0/sites/{domain}:/sites/{site_name}"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
@@ -56,6 +78,19 @@ def get_site_id(token_manager: TokenManager, domain: str, site_name: str) -> str
 def get_drive_id(
     token_manager: TokenManager, site_id: str, drive_name: str = "Documents"
 ) -> str:
+    """Return the drive ID of the named document library.
+
+    Args:
+        token_manager: Authenticated token manager.
+        site_id: SharePoint site identifier.
+        drive_name: Display name of the drive/library. Defaults to ``"Documents"``.
+
+    Returns:
+        The drive's Graph API identifier string.
+
+    Raises:
+        Exception: If no drive with the given name is found.
+    """
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
@@ -70,6 +105,16 @@ def get_drive_id(
 def list_folder_contents(
     token_manager: TokenManager, drive_id: str, path: str
 ) -> list[dict[str, str]]:
+    """Return the children items of a remote drive folder.
+
+    Args:
+        token_manager: Authenticated token manager.
+        drive_id: Graph API drive identifier.
+        path: Remote folder path relative to the drive root.
+
+    Returns:
+        List of Graph API item dictionaries for each child.
+    """
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{path}:/children"
     headers = {"Authorization": f"Bearer {token_manager.get_token()}"}
     response = requests.get(url, headers=headers)
@@ -84,6 +129,19 @@ def download_file(
     local_path: Path,
     max_retries: int = 5,
 ) -> None:
+    """Download a single file from the drive, retrying on HTTP 503.
+
+    Args:
+        token_mananger: Authenticated token manager.
+        drive_id: Graph API drive identifier.
+        item_path: Remote file path relative to the drive root.
+        local_path: Local destination path (parent dirs are created as needed).
+        max_retries: Maximum number of retry attempts on 503 responses.
+
+    Raises:
+        RuntimeError: If the file cannot be downloaded after *max_retries* attempts.
+        HTTPError: For non-503 HTTP errors.
+    """
     url = (
         f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/content"
     )
@@ -127,6 +185,14 @@ def download_file(
 def download_folder_recursive(
     token_manager: TokenManager, drive_id: str, remote_path: str, local_root: Path
 ) -> None:
+    """Recursively download all files under *remote_path* to *local_root*.
+
+    Args:
+        token_manager: Authenticated token manager.
+        drive_id: Graph API drive identifier.
+        remote_path: Remote folder path to download from.
+        local_root: Local root path where files are mirrored.
+    """
     items = list_folder_contents(token_manager, drive_id, remote_path)
     for item in items:
         name = Path(item["name"])
@@ -142,6 +208,14 @@ def download_folder_recursive(
 def download_input_folder(
     token_manager: TokenManager, drive_id: str, remote_path: str, input_path: Path
 ) -> None:
+    """Download the entire input folder from SharePoint to a local path.
+
+    Args:
+        token_manager: Authenticated token manager.
+        drive_id: Graph API drive identifier.
+        remote_path: Remote folder path to download.
+        input_path: Local destination directory.
+    """
     log.info("Starting recusive download from SharePoint...")
     download_folder_recursive(token_manager, drive_id, remote_path, input_path)
     log.info("Download completed.")
@@ -151,7 +225,14 @@ def download_input_folder(
 def upload_file(
     token_manager: TokenManager, drive_id: str, remote_path: str, local_file_path: Path
 ) -> None:
+    """Upload a local file to the given remote path in the drive.
 
+    Args:
+        token_manager: Authenticated token manager.
+        drive_id: Graph API drive identifier.
+        remote_path: Destination path in the drive (including filename).
+        local_file_path: Local file to upload.
+    """
     log.info(f"Uploading from local path {local_file_path} to {remote_path}")
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{remote_path}:/content"
     headers = {
@@ -170,6 +251,17 @@ def upload_file(
 def ensure_remote_folder(
     token_manager: TokenManager, drive_id: str, parent_path: str, folder_name: str
 ) -> str:
+    """Create a folder in the drive (or replace if it exists) and return its path.
+
+    Args:
+        token_manager: Authenticated token manager.
+        drive_id: Graph API drive identifier.
+        parent_path: Remote path of the parent folder.
+        folder_name: Name of the folder to create.
+
+    Returns:
+        Full remote path of the created folder.
+    """
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{parent_path}:/children"
     headers = {
         "Authorization": f"Bearer {token_manager.get_token()}",
@@ -194,7 +286,14 @@ def upload_folder_recursive(
     local_folder_path: Path,
     remote_folder_path: str,
 ) -> None:
+    """Recursively upload all files under *local_folder_path* to *remote_folder_path*.
 
+    Args:
+        token_manager: Authenticated token manager.
+        drive_id: Graph API drive identifier.
+        local_folder_path: Root of the local directory tree to upload.
+        remote_folder_path: Remote destination path in the drive.
+    """
     for root, dirs, files in os.walk(local_folder_path):
         if (
             len(files) == 0 and len(dirs) == 0
@@ -218,6 +317,18 @@ def upload_folder_recursive(
 def update_list_item_field(
     item_id: int, updated_fields: dict[str, str]
 ) -> SharepointItem:
+    """Patch one or more fields of a SharePoint list item.
+
+    Args:
+        item_id: Numeric identifier of the list item to update.
+        updated_fields: Dict mapping internal field names to new values.
+
+    Returns:
+        The updated item as a SharepointItem dict.
+
+    Raises:
+        BadSharepointListUpdateRequest: If the PATCH request returns a non-200 status.
+    """
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
     list_name = read_secret("SHAREPOINT_LIST_NAME")
@@ -248,6 +359,17 @@ def update_list_item_field(
 def get_parameters_from_list(
     sharepoint_domain: str, site_name: str, list_name: str, job_id: int
 ) -> SharepointItem:
+    """Fetch all known fields of a single list item by job ID.
+
+    Args:
+        sharepoint_domain: SharePoint tenant domain.
+        site_name: Name of the SharePoint site.
+        list_name: Name of the target list.
+        job_id: Numeric item identifier.
+
+    Returns:
+        SharepointItem containing all SharepointListFields values for the item.
+    """
     token_manager = get_token_manager()
     access_token = token_manager.get_token()
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
@@ -279,9 +401,17 @@ def get_parameters_from_list(
 def get_sharepoint_web_url(
     token_manager: TokenManager, site_id: str, drive_id: str, folder_path: str
 ) -> str:
-    """
-    Given a folder path inside the drive, returns its webUrl for user access.
-    Example path: Shared Documents/_output/amarine@iciq.es
+    """Return the browser-accessible webUrl for a folder inside the drive.
+
+    Args:
+        token_manager: Authenticated token manager.
+        site_id: SharePoint site identifier.
+        drive_id: Graph API drive identifier.
+        folder_path: Folder path relative to the drive root,
+            e.g. ``"Shared Documents/_output/user@example.com"``.
+
+    Returns:
+        The ``webUrl`` string that can be opened in a browser.
     """
     url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives/{drive_id}/root:/{folder_path}"
     headers = {

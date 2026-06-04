@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Secret resolution from Docker secrets, local files, environment, and Vault."""
+
 import sys
 from pathlib import Path
 from typing import Callable
