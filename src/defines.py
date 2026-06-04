@@ -45,6 +45,17 @@ NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 DATE_FORMAT = "%d/%m/%Y"
 
 
+class InputElementsNames(str, Enum):
+    """Input folder names."""
+
+    SALARIES = "_salaries"
+    BANKPROOFS = "_proofs"
+    CONTRACTS = "_contracts"
+    RNTS = "_RNT"
+    RLCS = "_RLC"
+    NAF_DNI = "NAF_DNI.xlsx"
+
+
 class NAFFileColumn(str, Enum):
     """Column header names in the NAF/DNI Excel file."""
 
@@ -73,7 +84,7 @@ class SharepointListFields(Enum):
     NAF = "NAF"
     TARGET_NAME = "Nomdelapersona"
     TARGET_EMAIL = "PersonaEmail"
-    DNI = "DNI"
+    NIF = "DNI"
     BEGIN = "DataInici"
     END = "Datafinal"
     AUTHOR_NAME = "Sol_x00b7_licitant"

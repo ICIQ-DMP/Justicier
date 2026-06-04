@@ -226,7 +226,7 @@ _ID_OVERRIDES: dict[
 ] = {
     "naf": lambda a: a.naf,
     "name": lambda a: a.name,
-    "target_email": lambda a: a.target_email,
+    "email": lambda a: a.email,
     "nif": lambda a: a.nif,
     "begin": lambda a: a.begin,
     "end": lambda a: a.end,
@@ -421,8 +421,8 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
         )
     if config[SharepointListFields.TARGET_EMAIL]:
         parsed["target_email"] = str(config[SharepointListFields.TARGET_EMAIL])
-    if config[SharepointListFields.DNI]:
-        parsed["dni"] = parse_nif(str(config[SharepointListFields.DNI]))
+    if config[SharepointListFields.NIF]:
+        parsed["dni"] = parse_nif(str(config[SharepointListFields.NIF]))
 
     # Required fields — guaranteed non-None after step 2
     parsed["begin"] = parse_date(

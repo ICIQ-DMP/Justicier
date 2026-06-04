@@ -66,7 +66,7 @@ class NIF:
 
         if not match:
             raise ValueError(
-                f"Invalid DNI format: {raw_dni}. Must be DNI or NIE (e.g., 12345678-K or X-1234567-T)"
+                f"Invalid NIF format: {raw_dni}. Must be DNI or NIE (e.g., 12345678-K or X-1234567-T)"
             )
 
         if match.group("dni_number") and match.group("dni_letter"):
@@ -101,7 +101,7 @@ class NIF:
             self.number = match.group("nie_temporal_form2_letter_control")
             self.letter = match.group("nie_temporal_form2_number").upper()
         else:
-            raise ValueError(f"DNI {raw_dni} could not be parsed")
+            raise ValueError(f"NIF {raw_dni} could not be parsed")
 
     def __str__(self) -> str:
         """Return the canonical dash-separated identifier string."""
@@ -150,5 +150,5 @@ def parse_nif(value: str) -> NIF:
         return NIF(value)
     except Exception as e:
         raise ArgumentNafInvalidError(
-            f"DNI {value} is not valid{e}"
+            f"NIF {value} is not valid{e}"
         )  # TODO change exception

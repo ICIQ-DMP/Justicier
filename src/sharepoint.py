@@ -352,6 +352,8 @@ def update_list_item_field(
         raise BadSharepointListUpdateRequestError(
             f"Failed to update item {str(item_id)}: {response.status_code} - {response.text}"
         )
+    else:
+        log.trace(f"Patched item {str(item_id)} with 200 OK: {response.text}")
 
     return cast(SharepointItem, response.json())
 
@@ -422,3 +424,17 @@ def get_sharepoint_web_url(
     response.raise_for_status()
     item = response.json()
     return cast(str, item.get("webUrl"))
+
+
+def _connect_sharepoint() -> tuple[TokenManager, str, str]:
+    """Authenticate with SharePoint and return the connection handles.
+
+    Returns:
+        Tuple of ``(token_manager, site_id, drive_id)``.
+    """
+    token_manager = get_token_manager()
+    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
+    site_name = read_secret("SITE_NAME")
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
+    drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
+    return token_manager, site_id, drive_id

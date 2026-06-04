@@ -40,6 +40,7 @@ from defines import (
     SharepointListFields,
     SharepointListFieldWorkflowState,
     ADMIN_LOG_FOLDER,
+    InputElementsNames,
 )
 from filesystem import (
     remove_folder,
@@ -62,8 +63,8 @@ from sharepoint import (
     get_drive_id,
     update_list_item_field,
     get_sharepoint_web_url,
+    _connect_sharepoint,
 )
-from TokenManager import TokenManager
 from tasks import (
     reverse_dict,
     complete_ids,
@@ -76,20 +77,6 @@ from tasks import (
 )
 
 log = get_logger(__name__)
-
-
-def _connect_sharepoint() -> tuple[TokenManager, str, str]:
-    """Authenticate with SharePoint and return the connection handles.
-
-    Returns:
-        Tuple of ``(token_manager, site_id, drive_id)``.
-    """
-    token_manager = get_token_manager()
-    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
-    site_name = read_secret("SITE_NAME")
-    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
-    drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
-    return token_manager, site_id, drive_id
 
 
 def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
@@ -113,13 +100,13 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
             },
         )
 
-    salaries_folder: Path = input_folder / "_salaries"
-    proofs_folder: Path = input_folder / "_proofs"
-    contracts_folder: Path = input_folder / "_contracts"
-    rnts_folder: Path = input_folder / "_RNT"
-    rlcs_folder: Path = input_folder / "_RLC"
+    salaries_folder: Path = input_folder / InputElementsNames.SALARIES.value
+    proofs_folder: Path = input_folder / InputElementsNames.BANKPROOFS.value
+    contracts_folder: Path = input_folder / InputElementsNames.CONTRACTS.value
+    rnts_folder: Path = input_folder / InputElementsNames.RNTS.value
+    rlcs_folder: Path = input_folder / InputElementsNames.RLCS.value
 
-    naf_data_path: Path = input_folder / "NAF_DNI.xlsx"
+    naf_data_path: Path = input_folder / InputElementsNames.NAF_DNI.value
 
     start_time = time.time()
 
@@ -136,7 +123,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     naf_to_email = build_naf_to_email(naf_data_path)
     email_to_naf = reverse_dict(naf_to_email)
 
-    complete_ids(
+    args.naf, args.nif, args.name, args.email = complete_ids(
         args.naf,
         args.nif,
         args.email,
@@ -394,7 +381,7 @@ def main() -> None:
             title=args.title,
             request=args.request,
             name=args.name,
-            author=args.author,
+            author=args.author_email,
             begin=args.begin,
             end=args.end,
             owner_email=read_secret("SMTP_OWNER_EMAIL"),

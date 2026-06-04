@@ -796,10 +796,7 @@ def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) ->
     """
     update_list_item_field(request, {"DNI": str(dni)})
     update_list_item_field(request, {"NAF": str(naf)})
-    try:
-        update_list_item_field(request, {"PersonaEmail": email})
-    except BadSharepointListUpdateRequestError as e:
-        raise PersonDoesNotExistInSharepointError from e
+    update_list_item_field(request, {"PersonaEmail": email})
     try:
         update_list_item_field(request, {"Nomdelapersona": str(email)})
     except BadSharepointListUpdateRequestError as e:
@@ -892,4 +889,5 @@ def complete_ids(
         raise ValueError(
             "An employee identifier was not supplied (NAF, DNI or name). Aborting."
         )
-    return (naf, *complete_ids_with_naf(naf, naf_to_nif, naf_to_name, naf_to_email))
+    nif, name, email = complete_ids_with_naf(naf, naf_to_nif, naf_to_name, naf_to_email)
+    return naf, nif, name, email
