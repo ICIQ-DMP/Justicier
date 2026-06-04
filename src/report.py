@@ -67,27 +67,27 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     except PackageNotFoundError:
         pkg_version = "unknown"
 
-    SEP = "=" * 119 + "\n"  # noqa: E501
-    BORDER = "*" * 119 + "\n"  # noqa: E501
+    sep = "=" * 119 + "\n"
+    border = "*" * 119 + "\n"
     user_report = "\n"
-    user_report += SEP
+    user_report += sep
     user_report += ascii_logo
-    user_report += SEP
+    user_report += sep
     user_report += f"                                        :: Justicier ::   Version: {pkg_version}\n"
     user_report += "                          Copyright © 2025-2025 Institut Català d'Investigació Química (ICIQ)\n"  # noqa: E501
     user_report += (
         "                                            This program is free software\n"
     )
     user_report += "                                  Proudly distributed with ♥ under the GPLv3 license\n"  # noqa: E501
-    user_report += BORDER
+    user_report += border
     user_report += "* Solution Arquitect and Maintainer: Aleix Mariné Tena (AleixMT), ICIQ, Data Steward                                  *\n"  # noqa: E501
     user_report += "* Product Owner: Carles de la Cuadra, ICIQ, Assistant Financial Manager                                               *\n"  # noqa: E501
-    user_report += BORDER
+    user_report += border
     user_report += "\n"
     user_report += "\n"
-    user_report += BORDER
+    user_report += border
     user_report += "*                                                USER REQUEST DETAILS                                                 *\n"  # noqa: E501
-    user_report += BORDER
+    user_report += border
     user_report += "* PARAMETERS:                                                                                                         *\n"  # noqa: E501
     user_report += format_line(f"- NAF requested: {args.naf}")
     user_report += format_line(f"- Initial date: {unparse_full_date(args.begin)}")
@@ -103,7 +103,7 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     user_report += "* IDENTIFICATION:                                                                                                     *\n"  # noqa: E501
     user_report += format_line("- Email of the user doing the request: " + args.author)
     user_report += format_line(f"- Request id: {args.request}")
-    user_report += BORDER
+    user_report += border
     user_report += "\n"
 
     return user_report

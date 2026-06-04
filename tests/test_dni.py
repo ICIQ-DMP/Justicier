@@ -19,7 +19,7 @@
 import pytest
 
 from NIF import NIF, parse_nif, NIFType
-from custom_except import ArgumentNafInvalid
+from custom_except import ArgumentNafInvalidError
 
 
 class TestDNIParsing:
@@ -103,6 +103,6 @@ class TestParseDni:
         assert isinstance(result, NIF)
 
     def test_invalid_raises_argument_naf_invalid(self):
-        """An invalid string should raise ArgumentNafInvalid."""
-        with pytest.raises(ArgumentNafInvalid):
+        """An invalid string should raise ArgumentNafInvalidError."""
+        with pytest.raises(ArgumentNafInvalidError):
             parse_nif("bad")

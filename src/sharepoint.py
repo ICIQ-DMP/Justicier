@@ -26,7 +26,7 @@ import requests
 from requests.exceptions import HTTPError
 
 from TokenManager import TokenManager, get_token_manager
-from custom_except import BadSharepointListUpdateRequest
+from custom_except import BadSharepointListUpdateRequestError
 from defines import SharepointListFields
 from logger import get_logger
 from secret import read_secret
@@ -327,7 +327,7 @@ def update_list_item_field(
         The updated item as a SharepointItem dict.
 
     Raises:
-        BadSharepointListUpdateRequest: If the PATCH request returns a non-200 status.
+        BadSharepointListUpdateRequestError: If the PATCH request returns a non-200 status.
     """
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
@@ -349,7 +349,7 @@ def update_list_item_field(
     response = requests.patch(patch_url, headers=headers, json=updated_fields)
 
     if response.status_code != 200:
-        raise BadSharepointListUpdateRequest(
+        raise BadSharepointListUpdateRequestError(
             f"Failed to update item {str(item_id)}: {response.status_code} - {response.text}"
         )
 

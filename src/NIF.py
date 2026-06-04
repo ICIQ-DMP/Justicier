@@ -19,7 +19,7 @@
 import re
 from enum import Enum
 
-from custom_except import ArgumentNafInvalid
+from custom_except import ArgumentNafInvalidError
 
 
 class NIFType(Enum):
@@ -144,11 +144,11 @@ def parse_nif(value: str) -> NIF:
         Parsed NIF instance.
 
     Raises:
-        ArgumentNafInvalid: If *value* is not a valid NIF/DNI.
+        ArgumentNafInvalidError: If *value* is not a valid NIF/DNI.
     """
     try:
         return NIF(value)
     except Exception as e:
-        raise ArgumentNafInvalid(
+        raise ArgumentNafInvalidError(
             f"DNI {value} is not valid{e}"
         )  # TODO change exception

@@ -205,20 +205,20 @@ def compute_paths(
     log_filename = id_str + ".log.txt"
     log_filename_impersonal = impersonal_id_str + ".log.txt"
 
-    ADMIN_LOG_PATH: Path = ADMIN_LOG_FOLDER / log_filename
-    SUPERVISOR_LOG_PATH: Path = SUPERVISOR_LOG_FOLDER / log_filename
+    admin_log_path: Path = ADMIN_LOG_FOLDER / log_filename
+    supervisor_log_path: Path = SUPERVISOR_LOG_FOLDER / log_filename
 
-    CURRENT_USER_FOLDER: Path = GENERAL_OUTPUT_FOLDER / args.author
+    current_user_folder: Path = GENERAL_OUTPUT_FOLDER / args.author
     justification_name = impersonal_id_str
-    CURRENT_JUSTIFICATION_FOLDER: Path = CURRENT_USER_FOLDER / justification_name
-    USER_REPORT_FILE: Path = CURRENT_JUSTIFICATION_FOLDER / log_filename_impersonal
+    current_justification_folder: Path = current_user_folder / justification_name
+    user_report_file: Path = current_justification_folder / log_filename_impersonal
 
     return (
-        CURRENT_USER_FOLDER,
-        CURRENT_JUSTIFICATION_FOLDER,
-        USER_REPORT_FILE,
-        ADMIN_LOG_PATH,
-        SUPERVISOR_LOG_PATH,
+        current_user_folder,
+        current_justification_folder,
+        user_report_file,
+        admin_log_path,
+        supervisor_log_path,
     )
 
 

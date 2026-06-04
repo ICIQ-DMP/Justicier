@@ -22,7 +22,7 @@ class ArgumentDateError(Exception):
     """Raised when a date argument is missing or cannot be parsed."""
 
 
-class ArgumentNafNotPresent(Exception):
+class ArgumentNafNotPresentError(Exception):
     """Raised when the provided NAF is not found in the authorised employee list."""
 
 
@@ -30,21 +30,21 @@ class ArgumentAuthorError(Exception):
     """Raised when the request author is not in the authorised user list."""
 
 
-class ArgumentNafInvalid(Exception):
+class ArgumentNafInvalidError(Exception):
     """Raised when a NAF or NIF string does not conform to the expected format."""
 
 
-class UndefinedRegularSalaryType(Exception):
+class UndefinedRegularSalaryTypeError(Exception):
     """Raised when a salary page cannot be classified as monthly or settlement."""
 
 
-class UndefinedInputType(Exception):
+class UndefinedInputTypeError(Exception):
     """Raised when an unsupported input location type is supplied."""
 
 
-class BadSharepointListUpdateRequest(Exception):
+class BadSharepointListUpdateRequestError(Exception):
     """Raised when a SharePoint list item update returns a non-200 status."""
 
 
-class PersonDoesNotExistInSharepoint(Exception):
+class PersonDoesNotExistInSharepointError(Exception):
     """Raised when an employee cannot be found in the SharePoint list."""

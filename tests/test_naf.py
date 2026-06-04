@@ -19,7 +19,7 @@
 import pytest
 
 from NAF import NAF, is_naf_format_correct, parse_naf
-from custom_except import ArgumentNafInvalid
+from custom_except import ArgumentNafInvalidError
 
 
 class TestNAFParsing:
@@ -90,6 +90,6 @@ class TestNAFHelpers:
         assert is_naf_format_correct("bad") is False
 
     def test_parse_naf_raises_argument_naf_invalid(self):
-        """An invalid string should raise ArgumentNafInvalid."""
-        with pytest.raises(ArgumentNafInvalid):
+        """An invalid string should raise ArgumentNafInvalidError."""
+        with pytest.raises(ArgumentNafInvalidError):
             parse_naf("not-a-naf")

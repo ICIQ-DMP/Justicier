@@ -26,7 +26,7 @@ from NIF import NIF, parse_nif
 
 
 from Name import Name, parse_name_a3, parse_email_a3
-from custom_except import ArgumentNafInvalid
+from custom_except import ArgumentNafInvalidError
 from defines import NAFFileColumn
 from logger import get_logger
 
@@ -215,10 +215,10 @@ def parse_naf(value: str) -> NAF:
         Parsed NAF instance.
 
     Raises:
-        ArgumentNafInvalid: If *value* is not a valid NAF.
+        ArgumentNafInvalidError: If *value* is not a valid NAF.
     """
     try:
         log.trace(f"Parsing NAF: {value}")
         return NAF(value)
     except Exception as e:
-        raise ArgumentNafInvalid(f"NAF is not valid{e}")
+        raise ArgumentNafInvalidError(f"NAF is not valid{e}")

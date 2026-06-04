@@ -28,9 +28,9 @@ from NAF import NAF
 from Name import Name
 from arguments import parse_date
 from custom_except import (
-    UndefinedRegularSalaryType,
-    BadSharepointListUpdateRequest,
-    PersonDoesNotExistInSharepoint,
+    UndefinedRegularSalaryTypeError,
+    BadSharepointListUpdateRequestError,
+    PersonDoesNotExistInSharepointError,
 )
 from data import (
     parse_date_from_salary_filename,
@@ -342,7 +342,7 @@ def process_salaries_with_rlc(
                 )
                 try:
                     regular_salary_type = parse_regular_salary_type(salary_page)
-                except UndefinedRegularSalaryType as e:
+                except UndefinedRegularSalaryTypeError as e:
                     log.error(
                         f"Salary file {salary_file_path} page {salary_page_number + 1} is a type "
                         f"not supported or can not be recognized. Skipping to next page. Internal error "
@@ -598,7 +598,7 @@ def process_contracts(
     return found
 
 
-def process_RNTs(
+def process_rnts(
     rnts_folder_path: Path, naf_dir: Path, naf: NAF, begin: datetime, end: datetime
 ) -> dict[datetime, bool]:
     """Extract RNT pages for *naf* and track which months have a matching RNT.
@@ -792,18 +792,18 @@ def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) ->
         email: Employee email address to write.
 
     Raises:
-        PersonDoesNotExistInSharepoint: If the employee no longer exists in SharePoint.
+        PersonDoesNotExistInSharepointError: If the employee no longer exists in SharePoint.
     """
     update_list_item_field(request, {"DNI": str(dni)})
     update_list_item_field(request, {"NAF": str(naf)})
     try:
         update_list_item_field(request, {"PersonaEmail": email})
-    except BadSharepointListUpdateRequest as e:
-        raise PersonDoesNotExistInSharepoint from e
+    except BadSharepointListUpdateRequestError as e:
+        raise PersonDoesNotExistInSharepointError from e
     try:
         update_list_item_field(request, {"Nomdelapersona": str(email)})
-    except BadSharepointListUpdateRequest as e:
-        raise PersonDoesNotExistInSharepoint from e
+    except BadSharepointListUpdateRequestError as e:
+        raise PersonDoesNotExistInSharepointError from e
 
 
 def complete_ids(

@@ -26,7 +26,7 @@ from typing import List, Tuple
 import pypdf
 from pypdf import PdfReader, PdfWriter
 
-from custom_except import UndefinedRegularSalaryType
+from custom_except import UndefinedRegularSalaryTypeError
 from data import unparse_month
 from defines import RegularSalaryType
 from filesystem import list_dir
@@ -262,14 +262,14 @@ def parse_regular_salary_type(salary_page: pypdf.PageObject) -> RegularSalaryTyp
         The detected RegularSalaryType.
 
     Raises:
-        UndefinedRegularSalaryType: If the page does not match either known subtype.
+        UndefinedRegularSalaryTypeError: If the page does not match either known subtype.
     """
     if is_monthly_salary(salary_page):
         return RegularSalaryType.MONTHLY
     elif is_settlement_salary(salary_page):
         return RegularSalaryType.SETTLEMENT
     else:
-        raise UndefinedRegularSalaryType("The type was not recognized")
+        raise UndefinedRegularSalaryTypeError("The type was not recognized")
 
 
 def merge_pdfs(
@@ -283,17 +283,17 @@ def merge_pdfs(
         all_pages: If True, include all pages from each source file;
             otherwise only the first page of each file is included.
     """
-    pdfWriter = pypdf.PdfWriter()
+    pdf_writer = pypdf.PdfWriter()
     for filename in pdf_paths:
         pdf_file = open(filename, "rb")
         pdf_reader = pypdf.PdfReader(pdf_file)
         if all_pages:
             for i in range(len(pdf_reader.pages)):
-                pdfWriter.add_page(pdf_reader.pages[i])
+                pdf_writer.add_page(pdf_reader.pages[i])
         else:
-            pdfWriter.add_page(pdf_reader.pages[0])
+            pdf_writer.add_page(pdf_reader.pages[0])
     with open(output_path, "wb") as f:
-        pdfWriter.write(f)
+        pdf_writer.write(f)
 
 
 def is_date_present_in_rlc_delay(

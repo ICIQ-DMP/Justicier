@@ -29,9 +29,9 @@ from zoneinfo import ZoneInfo  # Python 3.9+
 from NAF import NAF, is_naf_present, build_naf_to_dni, parse_naf
 from custom_except import (
     ArgumentDateError,
-    UndefinedInputType,
-    ArgumentNafInvalid,
-    ArgumentNafNotPresent,
+    UndefinedInputTypeError,
+    ArgumentNafInvalidError,
+    ArgumentNafNotPresentError,
     ArgumentAuthorError,
 )
 from defines import DocType, SharepointListFields, from_string
@@ -175,14 +175,14 @@ def parse_input_type(value: str) -> str:
         The validated type string.
 
     Raises:
-        UndefinedInputType: If *value* is not a recognised input type.
+        UndefinedInputTypeError: If *value* is not a recognised input type.
     """
     if value == "sharepoint":
         return value
     elif value == "local":
         return value
     else:
-        raise UndefinedInputType(
+        raise UndefinedInputTypeError(
             'The type supplied for input type "' + value + '" is not defined.'
         )
 
@@ -408,7 +408,7 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
     is truthy, so the caller can detect which fields were actually populated and
     avoid overwriting argparse defaults with None.
 
-    Raises format exceptions (ArgumentDateError, ArgumentNafInvalid, …) when a
+    Raises format exceptions (ArgumentDateError, ArgumentNafInvalidError, …) when a
     field value cannot be converted into the expected type.
     """
     parsed: dict[str, Any] = {}
@@ -484,7 +484,7 @@ def _populate_from_sharepoint(args: argparse.Namespace, common: str) -> None:
     try:
         _validate_required_sharepoint_fields(config)
         parsed = _parse_sharepoint_fields(config)
-    except ArgumentNafInvalid as e:
+    except ArgumentNafInvalidError as e:
         log.error(f"The NAF provided is invalid. Internal error is {e}")
         log.error(common)
         exit(2)
@@ -516,7 +516,7 @@ def process_parse_arguments() -> argparse.Namespace:
     try:
         args = parse_arguments()
 
-    except ArgumentNafInvalid as e:
+    except ArgumentNafInvalidError as e:
         log.error(
             f"The NAF provided is invalid. Internal error is {e}. Common error {common}"
         )
@@ -557,11 +557,11 @@ def validate_naf(naf: NAF, valid_nafs: Iterable[NAF]) -> None:
     (i.e. it exists in the known-employee list).
 
     Responsibility: domain constraint checks only — the NAF has already been
-    converted to its typed form in step 3.  Raises ArgumentNafNotPresent when
+    converted to its typed form in step 3.  Raises ArgumentNafNotPresentError when
     the NAF is not found in the authorised set.
     """
     if not is_naf_present(naf, valid_nafs):
-        raise ArgumentNafNotPresent
+        raise ArgumentNafNotPresentError
 
 
 def is_author_present(author: str, valid_authors: Iterable[str]) -> bool:
@@ -625,7 +625,7 @@ def process_validate_arguments(
     try:
         validate_arguments(args, nafs, authors)
 
-    except ArgumentNafNotPresent as e:
+    except ArgumentNafNotPresentError as e:
         log.error(
             f"The NAF provided is valid but is not present in {naf_data_path}. "
             f"Internal error is {e}. Common error is: {common}"

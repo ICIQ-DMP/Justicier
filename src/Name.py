@@ -16,7 +16,7 @@
 
 """Employee name parsing and representation."""
 
-from custom_except import ArgumentNafInvalid
+from custom_except import ArgumentNafInvalidError
 
 
 class Name:
@@ -57,7 +57,7 @@ def parse_name_a3(value: str) -> Name:
         Parsed Name instance.
 
     Raises:
-        ArgumentNafInvalid: If *value* cannot be parsed into a Name.
+        ArgumentNafInvalidError: If *value* cannot be parsed into a Name.
     """
     # Coupled with NAF_DNI.xlsx format
     parts = value.split(",")
@@ -70,7 +70,9 @@ def parse_name_a3(value: str) -> Name:
     try:
         return Name(name, surname)
     except ValueError as e:
-        raise ArgumentNafInvalid(f"Name is not valid{e}")  # TODO: change exceptions
+        raise ArgumentNafInvalidError(
+            f"Name is not valid{e}"
+        )  # TODO: change exceptions
 
 
 def parse_email_a3(value: str) -> str:
@@ -88,7 +90,7 @@ def parse_name_sharepoint(value: str) -> Name:
         Parsed Name instance with ASCII-normalised, uppercased components.
 
     Raises:
-        ArgumentNafInvalid: If *value* cannot be parsed into a Name.
+        ArgumentNafInvalidError: If *value* cannot be parsed into a Name.
     """
     value = value.replace("à", "a")
     value = value.replace("â", "a")
@@ -113,4 +115,6 @@ def parse_name_sharepoint(value: str) -> Name:
     try:
         return Name(name, surname)
     except ValueError as e:
-        raise ArgumentNafInvalid(f"Name is not valid{e}")  # TODO: change exceptions
+        raise ArgumentNafInvalidError(
+            f"Name is not valid{e}"
+        )  # TODO: change exceptions

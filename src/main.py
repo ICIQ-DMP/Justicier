@@ -26,7 +26,7 @@ from NAF import build_naf_to_dni, build_naf_to_name, build_naf_to_email
 from TokenManager import get_token_manager
 from arguments import process_parse_arguments
 from chrono import elapsed_time
-from custom_except import PersonDoesNotExistInSharepoint
+from custom_except import PersonDoesNotExistInSharepointError
 from defines import (
     SALARIES_OUTPUT_NAME,
     PROOFS_OUTPUT_NAME,
@@ -66,7 +66,7 @@ from tasks import (
     process_salaries_with_rlc,
     process_proofs,
     process_contracts,
-    process_RNTs,
+    process_rnts,
     merge_rnts_rlcs,
     update_list_with_person_ids,
 )
@@ -104,13 +104,13 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     if args.request:
         update_list_item_field(args.request, {"Estatworkflow": "En execució"})
 
-    SALARIES_FOLDER: Path = input_folder / "_salaries"
-    PROOFS_FOLDER: Path = input_folder / "_proofs"
-    CONTRACTS_FOLDER: Path = input_folder / "_contracts"
-    RNTS_FOLDER: Path = input_folder / "_RNT"
-    RLCS_FOLDER: Path = input_folder / "_RLC"
+    salaries_folder: Path = input_folder / "_salaries"
+    proofs_folder: Path = input_folder / "_proofs"
+    contracts_folder: Path = input_folder / "_contracts"
+    rnts_folder: Path = input_folder / "_RNT"
+    rlcs_folder: Path = input_folder / "_RLC"
 
-    NAF_DATA_PATH: Path = input_folder / "NAF_DNI.xlsx"
+    naf_data_path: Path = input_folder / "NAF_DNI.xlsx"
 
     start_time = time.time()
 
@@ -120,30 +120,30 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         remove_folder(input_folder)
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, input_folder)
 
-    NAF_TO_DNI = build_naf_to_dni(NAF_DATA_PATH)
-    DNI_TO_NAF = reverse_dict(NAF_TO_DNI)
-    NAF_TO_NAME = build_naf_to_name(NAF_DATA_PATH)
-    NAME_TO_NAF = reverse_dict(NAF_TO_NAME)
-    NAF_TO_EMAIL = build_naf_to_email(NAF_DATA_PATH)
-    EMAIL_TO_NAF = reverse_dict(NAF_TO_EMAIL)
+    naf_to_dni = build_naf_to_dni(naf_data_path)
+    dni_to_naf = reverse_dict(naf_to_dni)
+    naf_to_name = build_naf_to_name(naf_data_path)
+    name_to_naf = reverse_dict(naf_to_name)
+    naf_to_email = build_naf_to_email(naf_data_path)
+    email_to_naf = reverse_dict(naf_to_email)
 
     complete_ids(
         args.naf,
         args.nif,
         args.email,
         args.name,
-        NAME_TO_NAF,
-        NAF_TO_DNI,
-        DNI_TO_NAF,
-        NAF_TO_NAME,
-        EMAIL_TO_NAF,
-        NAF_TO_EMAIL,
+        name_to_naf,
+        naf_to_dni,
+        dni_to_naf,
+        naf_to_name,
+        email_to_naf,
+        naf_to_email,
     )
 
     if args.request:
         try:
             update_list_with_person_ids(args.request, args.naf, args.nif, args.email)
-        except PersonDoesNotExistInSharepoint:
+        except PersonDoesNotExistInSharepointError:
             log.warning(
                 "The person to be justified does not exist in the Sharepoint database. This means that the person"
                 "probably has left ICIQ and IT has already removed its user account. The justification will "
@@ -153,8 +153,8 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
 
-    id_str = compute_id(now, args, NAF_TO_NAME)
-    impersonal_id_str = compute_impersonal_id(now, args, NAF_TO_NAME)
+    id_str = compute_id(now, args, naf_to_name)
+    impersonal_id_str = compute_impersonal_id(now, args, naf_to_name)
 
     (
         current_user_folder,
@@ -182,8 +182,8 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     # Salaries & RLC
     salary_output_path: Path = current_justification_folder / SALARIES_OUTPUT_NAME
     salaries_with_rlcs_result = process_salaries_with_rlc(
-        SALARIES_FOLDER,
-        RLCS_FOLDER,
+        salaries_folder,
+        rlcs_folder,
         current_justification_folder,
         args.naf,
         args.begin,
@@ -193,7 +193,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     # Bank proofs
     proof_output_path: Path = current_justification_folder / PROOFS_OUTPUT_NAME
     process_proofs(
-        PROOFS_FOLDER, proof_output_path, args.naf, args.begin, args.end, NAF_TO_DNI
+        proofs_folder, proof_output_path, args.naf, args.begin, args.end, naf_to_dni
     )
 
     rlc_output_path: Path = current_justification_folder / RLCS_OUTPUT_NAME
@@ -215,7 +215,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     # Contracts
     contracts_result = process_contracts(
-        CONTRACTS_FOLDER,
+        contracts_folder,
         current_justification_folder,
         args.naf,
         args.begin,
@@ -226,8 +226,8 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         compact_folder(contract_output_path)
 
     # RNTs
-    rnts_result = process_RNTs(
-        RNTS_FOLDER, current_justification_folder, args.naf, args.begin, args.end
+    rnts_result = process_rnts(
+        rnts_folder, current_justification_folder, args.naf, args.begin, args.end
     )
     rnt_output_path: Path = current_justification_folder / RNTS_OUTPUT_NAME
     if args.merge_result[DocType.RNT]:
@@ -284,12 +284,12 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         elapsed_time(start_time)
 
         token_manager, site_id, drive_id = _connect_sharepoint()
-        SHAREPOINT_FOLDER_OUTPUT = read_secret("SHAREPOINT_FOLDER_OUTPUT")
+        sharepoint_folder_output = read_secret("SHAREPOINT_FOLDER_OUTPUT")
         remote_output_path = (
-            f"{SHAREPOINT_FOLDER_OUTPUT}/{args.author}/{impersonal_id_str}"
+            f"{sharepoint_folder_output}/{args.author}/{impersonal_id_str}"
         )
         remote_log_path = (
-            f"{SHAREPOINT_FOLDER_OUTPUT}/_admin_logs/{admin_log_path.name}"
+            f"{sharepoint_folder_output}/_admin_logs/{admin_log_path.name}"
         )
 
         upload_folder_recursive(
@@ -330,14 +330,14 @@ def main() -> None:
     setup_logging()
     args = process_parse_arguments()
 
-    INPUT_FOLDER: Path = ROOT_FOLDER / "input"
+    input_folder: Path = ROOT_FOLDER / "input"
     if args.input_location:
-        INPUT_FOLDER = args.input_location
+        input_folder = args.input_location
 
     result_link = ""
     log_link = ""
     try:
-        result_link, log_link = process(args, INPUT_FOLDER)
+        result_link, log_link = process(args, input_folder)
     except ValueError as e:
         err = f"A not controlled error happen during execution of Justicier. Error is: {str(e)}"
         if args.request:
