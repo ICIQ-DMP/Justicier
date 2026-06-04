@@ -392,7 +392,7 @@ def resolve_user_to_sharepoint_id(email: str) -> int:
     if response.status_code != 200:
         raise PersonDoesNotExistInSharepointError(
             f"User '{email}' not found in Microsoft 365 or could not be added to the site: "
-            f"{response.status_code} - {response.text}"
+            f"Error code: {response.status_code} - {str(response)}"
         )
 
     sp_user_id: int = response.json()["d"]["Id"]

@@ -139,12 +139,12 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     if args.request:
         try:
             update_list_with_person_ids(args.request, args.naf, args.nif, args.email)
-        except PersonDoesNotExistInSharepointError:
+        except PersonDoesNotExistInSharepointError as e:
             log.warning(
                 "The person to be justified does not exist in the Sharepoint database. This means that the person"
                 "probably has left ICIQ and IT has already removed its user account. The justification will "
-                'continue normally but the "Nom de la persona" and "PersonaEmail" field will be left unfilled in the '
-                "corresponding row of the requests list."
+                'continue normally but the "Nom de la persona" field will be left unfilled in the '
+                f"corresponding row of the requests list. Internal error is: {str(e)}"
             )
 
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
