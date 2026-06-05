@@ -261,6 +261,7 @@ def parse_date_from_salary_filename(salary_path: str) -> datetime:
     Returns:
         datetime representing the salary's year and month.
     """
+    # todo Exception when can't parse
     return datetime.strptime(
         "20" + salary_path[::-1].split("/")[0][::-1].split(".")[0].split("_")[0], "%Y%m"
     )
@@ -275,6 +276,8 @@ def parse_salary_type_from_salary_filename(salary_file_name: str) -> str:
     Returns:
         Salary type string, e.g. ``"Nomines"``.
     """
+    # todo Exception when can't parse
+
     return salary_file_name.split("_")[1]
 
 

@@ -26,21 +26,32 @@ from NAF import build_naf_to_dni, build_naf_to_name, build_naf_to_email
 from TokenManager import get_token_manager
 from arguments import process_parse_arguments
 from chrono import elapsed_time
-from custom_except import PersonDoesNotExistInSharepointError
+from custom_except import (
+    PersonDoesNotExistInSharepointError,
+    SecretCouldNotBeReadFromAnySourceError,
+)
 from defines import (
-    SALARIES_OUTPUT_NAME,
-    PROOFS_OUTPUT_NAME,
-    RLCS_OUTPUT_NAME,
+    SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
     DocType,
-    SALARIES_AND_PROOFS_OUTPUT_NAME,
-    CONTRACTS_OUTPUT_NAME,
-    RNTS_OUTPUT_NAME,
-    RNTS_AND_RLCS_OUTPUT_NAME,
-    ROOT_FOLDER,
+    SHAREPOINT_SALARIES_AND_PROOFS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_RNTS_AND_RLCS_OUTPUT_FOLDER_NAME,
+    ROOT_FOLDER_PATH,
     SharepointListFields,
     SharepointListFieldWorkflowState,
-    ADMIN_LOG_FOLDER,
+    LOCAL_ADMIN_LOG_FOLDER_PATH,
     InputElementsNames,
+    InputLocation,
+    SecretNames,
+    DATETIME_FORMAT_COMMAS,
+    SHAREPOINT_ROOT_INPUT_FOLDER_NAME,
+    SHAREPOINT_DRIVE_NAME,
+    SHAREPOINT_ADMIN_LOGS_FOLDER_PATH,
+    SHAREPOINT_OUTPUT_FOLDER_PATH,
+    SHAREPOINT_INPUT_FOLDER_PATH,
 )
 from filesystem import (
     remove_folder,
@@ -48,7 +59,7 @@ from filesystem import (
     compute_impersonal_id,
     compute_paths,
     ensure_file_structure,
-    get_first_log_path,
+    get_first_file_path_in_folder,
 )
 from logger import get_logger, setup_logging
 from mail import mail_process
@@ -110,9 +121,9 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
 
     start_time = time.time()
 
-    if args.location == "sharepoint":
+    if args.location == InputLocation.SHAREPOINT.value:
         token_manager, site_id, drive_id = _connect_sharepoint()
-        carpeta_sharepoint = read_secret("SHAREPOINT_FOLDER_INPUT")
+        carpeta_sharepoint = SHAREPOINT_INPUT_FOLDER_PATH
         remove_folder(input_folder)
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, input_folder)
 
@@ -147,7 +158,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
                 f"corresponding row of the requests list. Internal error is: {str(e)}"
             )
 
-    now = datetime.datetime.now().strftime("%Y-%m-%d_%H,%M,%S")
+    now = datetime.datetime.now().strftime(DATETIME_FORMAT_COMMAS)
 
     id_str = compute_id(now, args, naf_to_name)
     impersonal_id_str = compute_impersonal_id(now, args, naf_to_name)
@@ -176,7 +187,9 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     start_time = time.time()
 
     # Salaries & RLC
-    salary_output_path: Path = current_justification_folder / SALARIES_OUTPUT_NAME
+    salary_output_path: Path = (
+        current_justification_folder / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
+    )
     salaries_with_rlcs_result = process_salaries_with_rlc(
         salaries_folder,
         rlcs_folder,
@@ -187,15 +200,20 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     )
 
     # Bank proofs
-    proof_output_path: Path = current_justification_folder / PROOFS_OUTPUT_NAME
+    proof_output_path: Path = (
+        current_justification_folder / SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME
+    )
     process_proofs(
         proofs_folder, proof_output_path, args.naf, args.begin, args.end, naf_to_dni
     )
 
-    rlc_output_path: Path = current_justification_folder / RLCS_OUTPUT_NAME
+    rlc_output_path: Path = (
+        current_justification_folder / SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME
+    )
     if args.merge_salary:
         salaries_and_bankproofs_output_path: Path = (
-            current_justification_folder / SALARIES_AND_PROOFS_OUTPUT_NAME
+            current_justification_folder
+            / SHAREPOINT_SALARIES_AND_PROOFS_OUTPUT_FOLDER_NAME
         )
         merge_equal_files_from_two_folders(
             salary_output_path, proof_output_path, salaries_and_bankproofs_output_path
@@ -217,7 +235,9 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         args.begin,
         args.end,
     )
-    contract_output_path: Path = current_justification_folder / CONTRACTS_OUTPUT_NAME
+    contract_output_path: Path = (
+        current_justification_folder / SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME
+    )
     if args.merge_result[DocType.CONTRACT]:
         compact_folder(contract_output_path)
 
@@ -225,7 +245,9 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     rnts_result = process_rnts(
         rnts_folder, current_justification_folder, args.naf, args.begin, args.end
     )
-    rnt_output_path: Path = current_justification_folder / RNTS_OUTPUT_NAME
+    rnt_output_path: Path = (
+        current_justification_folder / SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME
+    )
     if args.merge_result[DocType.RNT]:
         compact_folder(rnt_output_path)
 
@@ -233,11 +255,15 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     if args.merge_rnt_rlc:
         log.info("Starting the merge of RNT and RLC")
         if args.merge_result[DocType.RNT] or args.merge_result[DocType.RLC]:
-            rnts_merged_path: Path = current_justification_folder / "RNTs.pdf"
-            rlcs_merged_path: Path = current_justification_folder / "RLCs.pdf"
+            rnts_merged_path: Path = current_justification_folder / (
+                str(SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME) + ".pdf"
+            )
+            rlcs_merged_path: Path = current_justification_folder / (
+                str(SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME) + ".pdf"
+            )
             if rnts_merged_path.exists() and rlcs_merged_path.exists():
-                rnt_rlc_merged_output_path: Path = (
-                    current_justification_folder / "RNTs i RLCs.pdf"
+                rnt_rlc_merged_output_path: Path = current_justification_folder / (
+                    str(SHAREPOINT_RNTS_AND_RLCS_OUTPUT_FOLDER_NAME) + ".pdf"
                 )
                 merge_pdfs(
                     [rnts_merged_path, rlcs_merged_path],
@@ -252,15 +278,17 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
                     " the option to merge the documents, only mark RLC and RNT merging"
                 )
         else:
-            (current_justification_folder / RNTS_AND_RLCS_OUTPUT_NAME).mkdir(
-                parents=True, exist_ok=True
-            )
+            (
+                current_justification_folder
+                / SHAREPOINT_RNTS_AND_RLCS_OUTPUT_FOLDER_NAME
+            ).mkdir(parents=True, exist_ok=True)
             merge_rnts_rlcs(
-                current_justification_folder / RNTS_OUTPUT_NAME,
-                current_justification_folder / RLCS_OUTPUT_NAME,
-                current_justification_folder / RNTS_OUTPUT_NAME,
-                current_justification_folder / RLCS_OUTPUT_NAME,
-                current_justification_folder / RNTS_AND_RLCS_OUTPUT_NAME,
+                current_justification_folder / SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
+                current_justification_folder / SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
+                current_justification_folder / SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
+                current_justification_folder / SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
+                current_justification_folder
+                / SHAREPOINT_RNTS_AND_RLCS_OUTPUT_FOLDER_NAME,
                 args.begin,
                 args.end,
             )
@@ -280,13 +308,10 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         elapsed_time(start_time)
 
         token_manager, site_id, drive_id = _connect_sharepoint()
-        sharepoint_folder_output = read_secret("SHAREPOINT_FOLDER_OUTPUT")
         remote_output_path = (
-            f"{sharepoint_folder_output}/{args.author}/{impersonal_id_str}"
+            f"{SHAREPOINT_OUTPUT_FOLDER_PATH}/{args.author}/{impersonal_id_str}"
         )
-        remote_log_path = (
-            f"{sharepoint_folder_output}/_admin_logs/{admin_log_path.name}"
-        )
+        remote_log_path = f"{SHAREPOINT_OUTPUT_FOLDER_PATH}/{LOCAL_ADMIN_LOG_FOLDER_PATH}/{admin_log_path.name}"
 
         upload_folder_recursive(
             token_manager=token_manager,
@@ -310,7 +335,6 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         start_time = time.time()
         elapsed_time(start_time)
 
-    if args.request:
         log.debug("Updating list element state to Completed")
         update_list_item_field(
             args.request,
@@ -335,7 +359,7 @@ def main() -> None:
     setup_logging()
     args = process_parse_arguments()
 
-    input_folder: Path = ROOT_FOLDER / "input"
+    input_folder: Path = ROOT_FOLDER_PATH / SHAREPOINT_ROOT_INPUT_FOLDER_NAME
     if args.input_location:
         input_folder = args.input_location
 
@@ -350,22 +374,31 @@ def main() -> None:
                 args.request, {SharepointListFields.ERROR_MESSAGE.value: err}
             )
 
-            update_list_item_field(args.request, {"Estatworkflow": "Error"})
+            update_list_item_field(
+                args.request,
+                {
+                    SharepointListFields.WORKFLOW_STATE.value: SharepointListFieldWorkflowState.ERROR.value
+                },
+            )
 
-            if ADMIN_LOG_FOLDER.is_dir():  # Only upload when the folder is detected
-                supervisor_log_path = get_first_log_path(ADMIN_LOG_FOLDER)
+            if (
+                LOCAL_ADMIN_LOG_FOLDER_PATH.is_dir()
+            ):  # Only upload when the folder is detected
+                supervisor_log_path = get_first_file_path_in_folder(
+                    LOCAL_ADMIN_LOG_FOLDER_PATH
+                )
                 token_manager = get_token_manager()
-                sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
-                site_name = read_secret("SITE_NAME")
+                sharepoint_domain = read_secret(SecretNames.SHAREPOINT_DOMAIN.value)
+                site_name = read_secret(SecretNames.SITE_NAME.value)
                 site_id = get_site_id(token_manager, sharepoint_domain, site_name)
-                drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
+                drive_id = get_drive_id(
+                    token_manager, site_id, drive_name=SHAREPOINT_DRIVE_NAME
+                )
 
                 upload_file(
                     token_manager,
                     drive_id,
-                    read_secret("SHAREPOINT_FOLDER_OUTPUT")
-                    + "/_admin_logs/"
-                    + supervisor_log_path.name,
+                    str(SHAREPOINT_ADMIN_LOGS_FOLDER_PATH) + supervisor_log_path.name,
                     supervisor_log_path,
                 )
         log.error(err)
@@ -373,6 +406,11 @@ def main() -> None:
 
     log.info("Justification process is finished.")
     log.info("Sending notification email")
+
+    try:
+        owner_email = read_secret(SecretNames.SMTP_OWNER_EMAIL.value)
+    except SecretCouldNotBeReadFromAnySourceError:
+        owner_email = "justicier@org.org"
 
     if args.request:
         mail_process(
@@ -384,7 +422,7 @@ def main() -> None:
             author=args.author_email,
             begin=args.begin,
             end=args.end,
-            owner_email=read_secret("SMTP_OWNER_EMAIL"),
+            owner_email=owner_email,
         )
 
 

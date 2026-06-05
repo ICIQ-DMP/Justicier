@@ -34,7 +34,17 @@ from custom_except import (
     ArgumentNafNotPresentError,
     ArgumentAuthorError,
 )
-from defines import DocType, SharepointListFields, from_string
+from defines import (
+    DocType,
+    SharepointListFields,
+    from_string,
+    InputLocation,
+    SecretNames,
+    SHAREPOINT_LIST_NAME,
+    DATETIME_SHAREPOINT_FORMAT,
+    DATE_DEFAULT_FORMAT,
+    DEFAULT_TIMEZONE,
+)
 from secret import read_secret
 from sharepoint import get_parameters_from_list, SharepointItem
 from NIF import NIF, parse_nif
@@ -67,8 +77,8 @@ def parse_id(value: str) -> str:
 
 def parse_date(
     value: str,
-    formatting: str = "%Y-%m-%d",
-    tz_name: str = "Europe/Madrid",
+    formatting: str = DATE_DEFAULT_FORMAT,
+    tz_name: str = DEFAULT_TIMEZONE,
     assume_tz: str = "UTC",
     return_naive: bool = True,
 ) -> datetime.datetime:
@@ -177,9 +187,9 @@ def parse_input_type(value: str) -> str:
     Raises:
         UndefinedInputTypeError: If *value* is not a recognised input type.
     """
-    if value == "sharepoint":
+    if value == InputLocation.SHAREPOINT.value:
         return value
-    elif value == "local":
+    elif value == InputLocation.LOCAL.value:
         return value
     else:
         raise UndefinedInputTypeError(
@@ -196,9 +206,9 @@ def expand_job_id(job_id: int) -> SharepointItem:
     Returns:
         SharepointItem containing all field values for the request.
     """
-    sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
-    site_name = read_secret("SITE_NAME")
-    list_name = read_secret("SHAREPOINT_LIST_NAME")
+    sharepoint_domain = read_secret(SecretNames.SHAREPOINT_DOMAIN)
+    site_name = read_secret(SecretNames.SITE_NAME)
+    list_name = SHAREPOINT_LIST_NAME
 
     return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)
 
@@ -284,7 +294,7 @@ def parse_arguments() -> argparse.Namespace:
         "--location",
         type=parse_input_type,
         required=False,
-        default="sharepoint",
+        default=InputLocation.SHAREPOINT.value,
         help='Location of the input data. Possible values are: "sharepoint" to download from '
         'sharepoint location and "local" to use the local file system storage and read the input'
         " folder in the repository root folder.",
@@ -340,7 +350,7 @@ def parse_arguments() -> argparse.Namespace:
         "--author",
         type=parse_author,
         required=False,
-        help="author's email doing" " request",
+        help="author's email doing the justification request",
     )
 
     parser.add_argument(
@@ -427,11 +437,13 @@ def _parse_sharepoint_fields(config: SharepointItem) -> dict[str, Any]:
     # Required fields — guaranteed non-None after step 2
     parsed["begin"] = parse_date(
         str(config[SharepointListFields.BEGIN]),
-        "%Y-%m-%dT%H:%M:%SZ",
+        DATETIME_SHAREPOINT_FORMAT,
         return_naive=False,
     ).replace(tzinfo=None)
     parsed["end"] = parse_date(
-        str(config[SharepointListFields.END]), "%Y-%m-%dT%H:%M:%SZ", return_naive=False
+        str(config[SharepointListFields.END]),
+        DATETIME_SHAREPOINT_FORMAT,
+        return_naive=False,
     ).replace(tzinfo=None)
     parsed["title"] = config[SharepointListFields.REQUEST_TITLE]
     parsed["author"] = parse_author(str(config[SharepointListFields.AUTHOR_NAME]))
@@ -537,7 +549,7 @@ def process_parse_arguments() -> argparse.Namespace:
         _populate_from_sharepoint(args, common)
 
     if args.input_location:
-        args.location = "local"
+        args.location = InputLocation.LOCAL.value
 
     # Set time to first second of day, so we do select all documents produced the same day as the beginning
     args.begin = args.begin.replace(hour=0, minute=0, second=0, microsecond=0)

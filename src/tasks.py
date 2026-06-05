@@ -43,13 +43,13 @@ from data import (
     get_rnt_monthly_result_structure,
 )
 from defines import (
-    RLCS_OUTPUT_NAME,
-    SALARIES_OUTPUT_NAME,
+    SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
     SalaryType,
     RegularSalaryType,
     RLCType,
-    CONTRACTS_OUTPUT_NAME,
-    RNTS_OUTPUT_NAME,
+    SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
     SharepointListFields,
 )
 
@@ -156,7 +156,10 @@ def process_generic_rlc(
         + rlc_type
         + "Merge.pdf"
     )
-    merge_pdfs([rlc_n_path, rlc_p_path], naf_dir / RLCS_OUTPUT_NAME / pdf_merged_name)
+    merge_pdfs(
+        [rlc_n_path, rlc_p_path],
+        naf_dir / SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME / pdf_merged_name,
+    )
 
 
 def process_rlc_l03(
@@ -216,7 +219,9 @@ def process_rlc_l03(
             months_found[salary_date][1] = True
             rlc_path_p = rlc_dir / (rlc_stem + "P" + str_suffix + ".pdf")
             pdf_merged_name = f"{salary_date.year}{unparse_month(salary_date)}_L03Merge{str_suffix}.pdf"
-            pdf_output_path = naf_dir / RLCS_OUTPUT_NAME / pdf_merged_name
+            pdf_output_path = (
+                naf_dir / SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME / pdf_merged_name
+            )
             if not rlc_path_p.exists():
                 log.debug(
                     f"Breaking out of the bucle because {rlc_path_p} does not exist."
@@ -291,7 +296,9 @@ def process_salaries_with_rlc(
                 continue
             shutil.copy(
                 src=salary_file_path,
-                dst=naf_dir / SALARIES_OUTPUT_NAME / (salary_output_filename + ".pdf"),
+                dst=naf_dir
+                / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
+                / (salary_output_filename + ".pdf"),
             )
 
         salary_pages = get_matching_pages(salary_file_path, naf.slash_dash_str())
@@ -301,13 +308,17 @@ def process_salaries_with_rlc(
             )
             continue
         for salary_page, salary_page_number in salary_pages:
-            salary_output_path = naf_dir / SALARIES_OUTPUT_NAME / salary_output_filename
+            salary_output_path = (
+                naf_dir
+                / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
+                / salary_output_filename
+            )
 
             index = 1
             while salary_output_path.exists():
                 salary_output_path = (
                     naf_dir
-                    / SALARIES_OUTPUT_NAME
+                    / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
                     / f"{salary_date.year}{unparse_month(salary_date)}_"
                     f"{salary_file_name.split('_')[1].split('.')[0]}_{index}.pdf"
                 )
@@ -579,14 +590,14 @@ def process_contracts(
                 try:
                     shutil.copy(
                         src=contracts_folder_path / contracts_file,
-                        dst=naf_dir / CONTRACTS_OUTPUT_NAME,
+                        dst=naf_dir / SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME,
                     )
                     found = True
                 except Exception as e:
                     err_msg = (
                         f"An error happened while copying "
                         f"{contracts_folder_path / contracts_file} to "
-                        f"{naf_dir / CONTRACTS_OUTPUT_NAME}. The program will abort. "
+                        f"{naf_dir / SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME}. The program will abort. "
                         f"Error is: {str(e)}"
                     )
                     log.critical(err_msg)
@@ -633,7 +644,7 @@ def process_rnts(
             for page, page_num in pages:
                 rnt_path_destination = (
                     naf_dir
-                    / RNTS_OUTPUT_NAME
+                    / SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME
                     / f"{rnt_file_name_without_extension}_{page_num}.pdf"
                 )
                 log.info(

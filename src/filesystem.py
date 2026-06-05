@@ -25,15 +25,16 @@ from NAF import NAF
 from Name import Name
 
 from defines import (
-    GENERAL_OUTPUT_FOLDER,
-    ADMIN_LOG_FOLDER,
-    SUPERVISOR_LOG_FOLDER,
-    SALARIES_OUTPUT_NAME,
-    PROOFS_OUTPUT_NAME,
-    CONTRACTS_OUTPUT_NAME,
-    RNTS_OUTPUT_NAME,
-    RLCS_OUTPUT_NAME,
-    SALARIES_AND_PROOFS_OUTPUT_NAME,
+    LOCAL_GENERAL_OUTPUT_FOLDER_PATH,
+    LOCAL_ADMIN_LOG_FOLDER_PATH,
+    LOCAL_SUPERVISOR_LOG_FOLDER_PATH,
+    SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
+    SHAREPOINT_SALARIES_AND_PROOFS_OUTPUT_FOLDER_NAME,
+    DATE_DEFAULT_FORMAT,
 )
 from logger import get_logger
 
@@ -113,7 +114,7 @@ def read_file(file_path: Path) -> str:
 
 def ensure_output_gitignore() -> None:
     """Write a ``.gitignore`` to the output folder that excludes everything but itself."""
-    gitignore_path = GENERAL_OUTPUT_FOLDER / ".gitignore"
+    gitignore_path = LOCAL_GENERAL_OUTPUT_FOLDER_PATH / ".gitignore"
     gitignore_content = "*\n!.gitignore\n"
     with open(gitignore_path, "w+") as f:
         f.write(gitignore_content)
@@ -183,7 +184,7 @@ def compute_impersonal_id(
         raise KeyError
     r = (
         f"{now}_{args.naf}_{name.replace(' ', '_')}"
-        f"_{args.begin.strftime('%Y-%m-%d')}_{args.end.strftime('%Y-%m-%d')}{id_str}"
+        f"_{args.begin.strftime(DATE_DEFAULT_FORMAT)}_{args.end.strftime(DATE_DEFAULT_FORMAT)}{id_str}"
     )
     return r
 
@@ -205,10 +206,10 @@ def compute_paths(
     log_filename = id_str + ".log.txt"
     log_filename_impersonal = impersonal_id_str + ".log.txt"
 
-    admin_log_path: Path = ADMIN_LOG_FOLDER / log_filename
-    supervisor_log_path: Path = SUPERVISOR_LOG_FOLDER / log_filename
+    admin_log_path: Path = LOCAL_ADMIN_LOG_FOLDER_PATH / log_filename
+    supervisor_log_path: Path = LOCAL_SUPERVISOR_LOG_FOLDER_PATH / log_filename
 
-    current_user_folder: Path = GENERAL_OUTPUT_FOLDER / args.author
+    current_user_folder: Path = LOCAL_GENERAL_OUTPUT_FOLDER_PATH / args.author
     justification_name = impersonal_id_str
     current_justification_folder: Path = current_user_folder / justification_name
     user_report_file: Path = current_justification_folder / log_filename_impersonal
@@ -241,31 +242,35 @@ def ensure_file_structure(
         current_user_folder: Root folder for the requesting user's output.
         current_justification_folder: Sub-folder for this specific justification run.
     """
-    GENERAL_OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
+    LOCAL_GENERAL_OUTPUT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
     ensure_output_gitignore()
 
-    ADMIN_LOG_FOLDER.mkdir(parents=True, exist_ok=True)
-    SUPERVISOR_LOG_FOLDER.mkdir(parents=True, exist_ok=True)
+    LOCAL_ADMIN_LOG_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+    LOCAL_SUPERVISOR_LOG_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
     current_user_folder.mkdir(parents=True, exist_ok=True)
     current_justification_folder.mkdir(parents=True, exist_ok=True)
 
-    (current_justification_folder / SALARIES_OUTPUT_NAME).mkdir(
+    (current_justification_folder / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME).mkdir(
         parents=True, exist_ok=True
     )
-    (current_justification_folder / PROOFS_OUTPUT_NAME).mkdir(
+    (current_justification_folder / SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME).mkdir(
         parents=True, exist_ok=True
     )
-    (current_justification_folder / CONTRACTS_OUTPUT_NAME).mkdir(
+    (current_justification_folder / SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME).mkdir(
         parents=True, exist_ok=True
     )
-    (current_justification_folder / RNTS_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
-    (current_justification_folder / RLCS_OUTPUT_NAME).mkdir(parents=True, exist_ok=True)
-    (current_justification_folder / SALARIES_AND_PROOFS_OUTPUT_NAME).mkdir(
+    (current_justification_folder / SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME).mkdir(
         parents=True, exist_ok=True
     )
+    (current_justification_folder / SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME).mkdir(
+        parents=True, exist_ok=True
+    )
+    (
+        current_justification_folder / SHAREPOINT_SALARIES_AND_PROOFS_OUTPUT_FOLDER_NAME
+    ).mkdir(parents=True, exist_ok=True)
 
 
-def get_first_log_path(log_dir: Path) -> Path:
+def get_first_file_path_in_folder(log_dir: Path) -> Path:
     """Return the path to the first regular file inside the directory."""
     if not log_dir.is_dir():
         raise ValueError(f"'{log_dir}' is not a valid directory")

@@ -103,7 +103,7 @@ def get_drive_id(
 
 
 def list_folder_contents(
-    token_manager: TokenManager, drive_id: str, path: str
+    token_manager: TokenManager, drive_id: str, path: Path
 ) -> list[dict[str, str]]:
     """Return the children items of a remote drive folder.
 
@@ -125,7 +125,7 @@ def list_folder_contents(
 def download_file(
     token_mananger: TokenManager,
     drive_id: str,
-    item_path: str,
+    item_path: Path,
     local_path: Path,
     max_retries: int = 5,
 ) -> None:
@@ -183,7 +183,7 @@ def download_file(
 
 
 def download_folder_recursive(
-    token_manager: TokenManager, drive_id: str, remote_path: str, local_root: Path
+    token_manager: TokenManager, drive_id: str, remote_path: Path, local_root: Path
 ) -> None:
     """Recursively download all files under *remote_path* to *local_root*.
 
@@ -196,7 +196,7 @@ def download_folder_recursive(
     items = list_folder_contents(token_manager, drive_id, remote_path)
     for item in items:
         name = Path(item["name"])
-        item_path = f"{remote_path}/{name}"
+        item_path = remote_path / name
         local_path = local_root / name
 
         if "folder" in item:
@@ -206,7 +206,7 @@ def download_folder_recursive(
 
 
 def download_input_folder(
-    token_manager: TokenManager, drive_id: str, remote_path: str, input_path: Path
+    token_manager: TokenManager, drive_id: str, remote_path: Path, input_path: Path
 ) -> None:
     """Download the entire input folder from SharePoint to a local path.
 

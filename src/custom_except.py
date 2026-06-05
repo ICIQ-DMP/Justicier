@@ -48,3 +48,7 @@ class BadSharepointListUpdateRequestError(Exception):
 
 class PersonDoesNotExistInSharepointError(Exception):
     """Raised when an employee cannot be found in the SharePoint list."""
+
+
+class SecretCouldNotBeReadFromAnySourceError(Exception):
+    """Raised when a secret cannot be read from any source."""

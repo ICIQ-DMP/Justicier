@@ -16,33 +16,76 @@
 
 """Project-wide constants, enumerations, and path helpers."""
 
-import logging
 import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
-ROOT_FOLDER: Path = Path(__file__).resolve().parent.parent
-PROJECT_DIR: Path = ROOT_FOLDER  # alias kept for compatibility
+SHAREPOINT_ROOT_FOLDER_NAME = Path("Documentació Nomines, Seguretat Social")
+SHAREPOINT_ROOT_INPUT_FOLDER_NAME = Path("input")
+SHAREPOINT_ROOT_OUTPUT_FOLDER_NAME = Path("output")
 
-GENERAL_OUTPUT_FOLDER: Path = ROOT_FOLDER / "output"
+SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME = Path("Nòmines")
+SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME = Path("Justificants")
+SHAREPOINT_SALARIES_AND_PROOFS_OUTPUT_FOLDER_NAME = Path("Nòmines i Justificants")
+SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME = Path("Contractes")
+SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME = Path("RNTs")
+SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME = Path("RLCs")
+SHAREPOINT_RNTS_AND_RLCS_OUTPUT_FOLDER_NAME = Path("RNTs i RLCs")
+SHAREPOINT_ADMIN_LOGS_OUTPUT_FOLDER_NAME = Path("_admin_logs")
+SHAREPOINT_SUPERVISOR_LOGS_OUTPUT_FOLDER_NAME = Path("_supervisor_logs")
 
-ADMIN_LOG_FOLDER: Path = GENERAL_OUTPUT_FOLDER / "_admin_logs"
-SUPERVISOR_LOG_FOLDER: Path = GENERAL_OUTPUT_FOLDER / "_supervisor_logs"
-
-SALARIES_OUTPUT_NAME = "Nòmines"
-PROOFS_OUTPUT_NAME = "Justificants"
-SALARIES_AND_PROOFS_OUTPUT_NAME = "Nòmines i Justificants"
-CONTRACTS_OUTPUT_NAME = "Contractes"
-RNTS_OUTPUT_NAME = "RNTs"
-RLCS_OUTPUT_NAME = "RLCs"
-RNTS_AND_RLCS_OUTPUT_NAME = "RNTs i RLCs"
+SHAREPOINT_LIST_NAME = "Peticions_Justificacions"
 
 DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
+DATETIME_FORMAT_COMMAS = "%Y-%m-%d_%H,%M,%S"
+DATE_FORMAT = "%d/%m/%Y"
+DATETIME_SHAREPOINT_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+DATE_DEFAULT_FORMAT = "%Y-%m-%d"
+DEFAULT_TIMEZONE = "Europe/Madrid"
+
+SHAREPOINT_DRIVE_NAME = "Documents"
+
+ROOT_FOLDER_PATH: Path = Path(__file__).resolve().parent.parent
+
+LOCAL_GENERAL_OUTPUT_FOLDER_PATH: Path = (
+    ROOT_FOLDER_PATH / SHAREPOINT_ROOT_OUTPUT_FOLDER_NAME
+)
+
+LOCAL_ADMIN_LOG_FOLDER_PATH: Path = (
+    LOCAL_GENERAL_OUTPUT_FOLDER_PATH / SHAREPOINT_ADMIN_LOGS_OUTPUT_FOLDER_NAME
+)
+LOCAL_SUPERVISOR_LOG_FOLDER_PATH: Path = (
+    LOCAL_GENERAL_OUTPUT_FOLDER_PATH / SHAREPOINT_SUPERVISOR_LOGS_OUTPUT_FOLDER_NAME
+)
+
+SHAREPOINT_INPUT_FOLDER_PATH: Path = (
+    SHAREPOINT_ROOT_FOLDER_NAME / SHAREPOINT_ROOT_INPUT_FOLDER_NAME
+)
+SHAREPOINT_OUTPUT_FOLDER_PATH: Path = (
+    SHAREPOINT_ROOT_FOLDER_NAME / SHAREPOINT_ROOT_OUTPUT_FOLDER_NAME
+)
+
+SHAREPOINT_ADMIN_LOGS_FOLDER_PATH = (
+    SHAREPOINT_INPUT_FOLDER_PATH / SHAREPOINT_ADMIN_LOGS_OUTPUT_FOLDER_NAME
+)
+
 NOW_DATA = datetime.datetime.now()
 NOW = NOW_DATA.strftime(DATETIME_FORMAT)
 
-DATE_FORMAT = "%d/%m/%Y"
+
+class SecretNames(str, Enum):
+    """Available secret names."""
+
+    SHAREPOINT_DOMAIN = "SHAREPOINT_DOMAIN"
+    SITE_NAME = "SITE_NAME"
+    SMTP_OWNER_EMAIL = "SMTP_OWNER_EMAIL"
+
+
+class InputLocation(str, Enum):
+    """Input location argument possible values."""
+
+    SHAREPOINT = "sharepoint"
+    LOCAL = "local"
 
 
 class InputElementsNames(str, Enum):
@@ -154,66 +197,3 @@ class RegularSalaryType(Enum):
 
     SETTLEMENT = "Settlement"
     MONTHLY = "Monthly"
-
-
-class LogLevel(str, Enum):
-    """Logical log levels for the CLI.
-
-    Includes a custom TRACE (more verbose than DEBUG) and QUIET
-    (suppresses all output beyond CRITICAL).
-    """
-
-    TRACE = "trace"
-    DEBUG = "debug"
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-    QUIET = "quiet"
-
-    @classmethod
-    def parse(cls, value: Optional[str]) -> Optional["LogLevel"]:
-        """Parse case-insensitively; returns None if value is falsy."""
-        if not value:
-            return None
-        norm = value.strip().lower()
-        try:
-            return cls(norm)
-        except ValueError as exc:
-            valid = ", ".join(v.value for v in cls)
-            raise ValueError(f"Unknown log level '{value}'. Valid: {valid}") from exc
-
-    @classmethod
-    def get_default_log_level(cls) -> "LogLevel":
-        """Return the default LogLevel used when no level is explicitly configured."""
-        return LogLevel.TRACE
-
-    def to_logging_level(self) -> int:
-        """Convert this LogLevel to the corresponding ``logging`` module integer."""
-        if self is LogLevel.TRACE:
-            return 0
-        if self is LogLevel.DEBUG:
-            return logging.DEBUG
-        if self is LogLevel.INFO:
-            return logging.INFO
-        if self is LogLevel.WARNING:
-            return logging.WARNING
-        if self is LogLevel.ERROR:
-            return logging.ERROR
-        if self is LogLevel.QUIET:
-            return logging.CRITICAL + 10
-        return LogLevel.get_default_log_level().to_logging_level()
-
-
-def get_default_log_path() -> Path:
-    """Return the default admin log file path for the current run."""
-    return ADMIN_LOG_FOLDER / (NOW + ".log")
-
-
-def get_supervisor_log_path() -> Path:
-    """Return the supervisor log file path for the current run."""
-    return get_default_log_path()
-
-
-def get_user_log_path() -> Path:
-    """Return the user-facing log file path for the current run."""
-    return get_default_log_path()

@@ -17,16 +17,65 @@
 """Logging setup, secret-redacting filter, and helper utilities."""
 
 import logging
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Any, cast
 from rich.logging import RichHandler
 
-from defines import DATE_FORMAT, LogLevel, get_default_log_path
+from defines import DATE_FORMAT, LOCAL_ADMIN_LOG_FOLDER_PATH, NOW
 
 # ---- extend the logging module with TRACE
 TRACE_LEVEL_NUM = 1
 logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
 MESSAGE_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+
+
+class LogLevel(str, Enum):
+    """Logical log levels for the CLI.
+
+    Includes a custom TRACE (more verbose than DEBUG) and QUIET
+    (suppresses all output beyond CRITICAL).
+    """
+
+    TRACE = "trace"
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    QUIET = "quiet"
+
+    @classmethod
+    def parse(cls, value: Optional[str]) -> Optional["LogLevel"]:
+        """Parse case-insensitively; returns None if value is falsy."""
+        if not value:
+            return None
+        norm = value.strip().lower()
+        try:
+            return cls(norm)
+        except ValueError as exc:
+            valid = ", ".join(v.value for v in cls)
+            raise ValueError(f"Unknown log level '{value}'. Valid: {valid}") from exc
+
+    @classmethod
+    def get_default_log_level(cls) -> "LogLevel":
+        """Return the default LogLevel used when no level is explicitly configured."""
+        return LogLevel.TRACE
+
+    def to_logging_level(self) -> int:
+        """Convert this LogLevel to the corresponding ``logging`` module integer."""
+        if self is LogLevel.TRACE:
+            return 0
+        if self is LogLevel.DEBUG:
+            return logging.DEBUG
+        if self is LogLevel.INFO:
+            return logging.INFO
+        if self is LogLevel.WARNING:
+            return logging.WARNING
+        if self is LogLevel.ERROR:
+            return logging.ERROR
+        if self is LogLevel.QUIET:
+            return logging.CRITICAL + 10
+        return LogLevel.get_default_log_level().to_logging_level()
 
 
 class ExtendedLogger(logging.Logger):
@@ -233,3 +282,18 @@ def configure_logging_from_settings(
         supervisor_log_file=supervisor_log_file,
         secrets=secrets,
     )  # Preventive creation of log for logging the loading of settings
+
+
+def get_default_log_path() -> Path:
+    """Return the default admin log file path for the current run."""
+    return LOCAL_ADMIN_LOG_FOLDER_PATH / (NOW + ".log")
+
+
+def get_supervisor_log_path() -> Path:
+    """Return the supervisor log file path for the current run."""
+    return get_default_log_path()
+
+
+def get_user_log_path() -> Path:
+    """Return the user-facing log file path for the current run."""
+    return get_default_log_path()

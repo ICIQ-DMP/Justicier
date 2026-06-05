@@ -23,6 +23,7 @@ import requests
 import urllib3
 from pathlib import Path
 
+from defines import SecretNames
 from logger import get_logger
 
 _VAULT_BASE_PATH = "secret/data/justicier/runtime"
@@ -34,14 +35,11 @@ _SECRET_MAP = {
     "CLIENT_NAME": ("sharepoint", "client_name"),
     "CLIENT_SECRET": ("sharepoint", "client_secret"),
     "OBJECT_ID": ("sharepoint", "object_id"),
-    "SHAREPOINT_DOMAIN": ("sharepoint", "domain"),
+    SecretNames.SHAREPOINT_DOMAIN.value: ("sharepoint", "domain"),
     "DRIVE_ID": ("sharepoint", "drive_id"),
-    "SHAREPOINT_FOLDER": ("sharepoint", "folder"),
-    "SHAREPOINT_FOLDER_INPUT": ("sharepoint", "folder_input"),
-    "SHAREPOINT_FOLDER_OUTPUT": ("sharepoint", "folder_output"),
     "SHAREPOINT_LIST_GUID": ("sharepoint", "list_guid"),
     "SHAREPOINT_LIST_NAME": ("sharepoint", "list_name"),
-    "SITE_NAME": ("sharepoint", "site_name"),
+    SecretNames.SITE_NAME.value: ("sharepoint", "site_name"),
     "TENANT_ID": ("sharepoint", "tenant_id"),
     # smtp
     "SMTP_PASSWORD": ("smtp", "password"),
@@ -49,7 +47,7 @@ _SECRET_MAP = {
     "SMTP_SERVER": ("smtp", "server"),
     "SMTP_USERNAME": ("smtp", "username"),
     "SMTP_ADMIN_EMAIL": ("smtp", "admin_email"),
-    "SMTP_OWNER_EMAIL": ("smtp", "owner_email"),
+    SecretNames.SMTP_OWNER_EMAIL.value: ("smtp", "owner_email"),
 }
 
 

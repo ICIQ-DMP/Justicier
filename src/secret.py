@@ -16,10 +16,10 @@
 
 """Secret resolution from Docker secrets, local files, environment, and Vault."""
 
-import sys
 from pathlib import Path
 from typing import Callable
 
+from custom_except import SecretCouldNotBeReadFromAnySourceError
 from filesystem import read_file_content, read_env_var
 from logger import get_logger
 from vault import read_vault_secret
@@ -52,4 +52,4 @@ def read_secret(secret_name: str) -> str:
             continue
 
     log.error(f"Could not read {secret_name} from any source")
-    sys.exit(1)
+    raise SecretCouldNotBeReadFromAnySourceError
