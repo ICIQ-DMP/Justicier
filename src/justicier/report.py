@@ -24,7 +24,7 @@ from importlib.metadata import version, PackageNotFoundError
 from pyfiglet import Figlet
 
 from .dates import unparse_full_date, unparse_date
-from .defines import RLCType
+from .defines import RLCTypeFileName
 from .logger import get_logger
 
 log = get_logger(__name__)
@@ -121,8 +121,8 @@ class SalaryRLCConfig:
     track_quality: bool  # use something_wrong flag and emit a success/failure summary
 
 
-_RLC_TYPE_CONFIG: dict[RLCType, SalaryRLCConfig] = {
-    RLCType.SETTLEMENT: SalaryRLCConfig(
+_RLC_TYPE_CONFIG: dict[RLCTypeFileName, SalaryRLCConfig] = {
+    RLCTypeFileName.SETTLEMENT: SalaryRLCConfig(
         rlc_code="L13",
         salary_label="settlement salary",
         count_label="settlement salaries",
@@ -130,7 +130,7 @@ _RLC_TYPE_CONFIG: dict[RLCType, SalaryRLCConfig] = {
         report_missing=False,
         track_quality=False,
     ),
-    RLCType.DELAY: SalaryRLCConfig(
+    RLCTypeFileName.DELAY: SalaryRLCConfig(
         rlc_code="L03",
         salary_label="delay salary",
         count_label="delay salaries",
@@ -138,7 +138,7 @@ _RLC_TYPE_CONFIG: dict[RLCType, SalaryRLCConfig] = {
         report_missing=False,
         track_quality=False,
     ),
-    RLCType.REGULAR: SalaryRLCConfig(
+    RLCTypeFileName.REGULAR: SalaryRLCConfig(
         rlc_code="L00",
         salary_label="regular monthly salary",
         count_label="regular monthly salaries",
@@ -216,7 +216,7 @@ def _unparse_salary_rlc_for_type(
 
 
 def unparse_salary_rlc_result(
-    content: dict[RLCType, dict[datetime, list[bool]]], args: argparse.Namespace
+    content: dict[RLCTypeFileName, dict[datetime, list[bool]]], args: argparse.Namespace
 ) -> str:
     """Build the combined salary + RLC report section for all RLC types.
 
@@ -237,7 +237,7 @@ def unparse_salary_rlc_result(
 
 def unparse_salary_rnt_result(
     rnt: dict[datetime, bool],
-    salary: dict[RLCType, dict[datetime, list[bool]]],
+    salary: dict[RLCTypeFileName, dict[datetime, list[bool]]],
     args: argparse.Namespace,
 ) -> str:
     """Build the RNT cross-check report section.
@@ -252,7 +252,7 @@ def unparse_salary_rnt_result(
     """
     something_wrong = False
     rnt_results = rnt
-    salaries_result = salary[RLCType.REGULAR]
+    salaries_result = salary[RLCTypeFileName.REGULAR]
 
     log.trace(
         f"results previous to building report: RNT results: {rnt_results} salaries: {salaries_result}"
@@ -304,7 +304,7 @@ def unparse_proofs_result(report_content: None, args: argparse.Namespace) -> str
 
 
 def get_end_user_report(
-    salaries_with_rlcs_result: dict[RLCType, dict[datetime, list[bool]]],
+    salaries_with_rlcs_result: dict[RLCTypeFileName, dict[datetime, list[bool]]],
     contracts_result: bool,
     rnts_result: dict[datetime, bool],
     args: argparse.Namespace,

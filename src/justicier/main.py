@@ -17,7 +17,6 @@
 """Main entry point: orchestrates the full justification pipeline."""
 
 import argparse
-import datetime
 import logging
 import time
 from pathlib import Path
@@ -47,12 +46,12 @@ from .defines import (
     InputElementsNames,
     InputLocation,
     SecretNames,
-    DATETIME_FORMAT_COMMAS,
     SHAREPOINT_ROOT_INPUT_FOLDER_NAME,
     SHAREPOINT_DRIVE_NAME,
     SHAREPOINT_ADMIN_LOGS_FOLDER_PATH,
     SHAREPOINT_OUTPUT_FOLDER_PATH,
     SHAREPOINT_INPUT_FOLDER_PATH,
+    NOW_COMMAS,
 )
 from .filesystem import (
     remove_folder,
@@ -157,10 +156,8 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
                 f"corresponding row of the requests list. Internal error is: {str(e)}"
             )
 
-    now = datetime.datetime.now().strftime(DATETIME_FORMAT_COMMAS)
-
-    id_str = compute_id(now, args, naf_to_name)
-    impersonal_id_str = compute_impersonal_id(now, args, naf_to_name)
+    id_str = compute_id(NOW_COMMAS, args, naf_to_name)
+    impersonal_id_str = compute_impersonal_id(NOW_COMMAS, args, naf_to_name)
 
     (
         current_user_folder,

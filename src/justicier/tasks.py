@@ -46,9 +46,11 @@ from .defines import (
     SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
     SalaryType,
     RegularSalaryType,
-    RLCType,
+    RLCTypeFileName,
     SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME,
     SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
+    RLCSubType,
+    RLCType,
 )
 
 from .filesystem import flatten_dirs, list_dir
@@ -71,8 +73,8 @@ def process_rlc_aux(
     salary_date: datetime,
     rlc_folder_path: Path,
     months_found: dict[datetime, list[bool]],
-    rlc_subtype: str,
-    rlc_type: str,
+    rlc_subtype: RLCSubType,
+    rlc_type: RLCType,
 ) -> Path:
     """Locate one RLC sub-document (N or P) and mark it as found in *months_found*.
 
@@ -81,7 +83,7 @@ def process_rlc_aux(
         rlc_folder_path: Root folder containing RLC files.
         months_found: Per-month result structure to update in-place.
         rlc_subtype: Sub-document type, either ``"N"`` or ``"P"``.
-        rlc_type: RLC type code, e.g. ``"00"``, ``"03"``, ``"13"``.
+        rlc_type: RLC type code, e.g. ``"L00"``, ``"L03"``, ``"L13"``.
 
     Returns:
         Path to the found RLC file.
@@ -91,31 +93,30 @@ def process_rlc_aux(
     """
     month = unparse_month(salary_date)
     year = str(salary_date.year)
-    n_name = month + "_L" + rlc_type + rlc_subtype + "01.pdf"
+    n_name = month + "_" + rlc_type.value + rlc_subtype.value + "01.pdf"
     rlc_n_path = rlc_folder_path / year / n_name
     if rlc_n_path.exists():
         log.debug(f"The RLC {rlc_n_path} is present.")
-        if rlc_subtype == "N":
+        if rlc_subtype == RLCSubType.NOMINAL:
             months_found[salary_date][1] = True
-        elif rlc_subtype == "P":
+        elif rlc_subtype == RLCSubType.PAYMENT:
             months_found[salary_date][2] = True
         return rlc_n_path
     else:
         log.error(
-            f"Monthly salary was found, but the expected L{rlc_type} RLC of type "
-            f"{rlc_subtype} was not found in the expected location {rlc_n_path}. "
+            f"Monthly salary was found, but the expected L{rlc_type.value} RLC of type "
+            f"{rlc_subtype.value} was not found in the expected location {rlc_n_path}. "
             f"Skipping merge of this salary file."
         )
         raise ValueError("File was not detected")  # TODO custom except
 
 
 def process_generic_rlc(
-    rlc_type: str,
+    rlc_type: RLCType,
     salary_date: datetime,
     salary_file_path: Path,
     rlc_folder_path: Path,
     naf_dir: Path,
-    salary_output_path: Path,
     salaries_found: dict[datetime, list[bool]],
 ) -> None:
     """Locate and merge both RLC sub-documents (N and P) for a regular or settlement salary.
@@ -126,17 +127,16 @@ def process_generic_rlc(
         salary_file_path: Path to the salary PDF (for logging only).
         rlc_folder_path: Root folder containing RLC files.
         naf_dir: Output directory for the employee.
-        salary_output_path: Output path for the salary file (for logging only).
         salaries_found: Per-month result structure updated in-place.
     """
     salaries_found[salary_date][0] = True
     try:
         rlc_n_path = process_rlc_aux(
-            salary_date, rlc_folder_path, salaries_found, "N", rlc_type
+            salary_date, rlc_folder_path, salaries_found, RLCSubType.NOMINAL, rlc_type
         )
         log.debug(f"Expected RLC N path is: {rlc_n_path}")
         rlc_p_path = process_rlc_aux(
-            salary_date, rlc_folder_path, salaries_found, "P", rlc_type
+            salary_date, rlc_folder_path, salaries_found, RLCSubType.PAYMENT, rlc_type
         )
         log.debug(f"Expected RLC P path is: {rlc_p_path}")
     except ValueError:
@@ -149,8 +149,8 @@ def process_generic_rlc(
     pdf_merged_name = (
         str(salary_date.year)
         + unparse_month(salary_date)
-        + "_L"
-        + rlc_type
+        + "_"
+        + rlc_type.value
         + "Merge.pdf"
     )
     merge_pdfs(
@@ -166,7 +166,6 @@ def process_rlc_l03(
     salary_date: datetime,
     naf_dir: Path,
     rlc_folder_path: Path,
-    salary_output_path: Path,
     months_found: dict[datetime, list[bool]],
 ) -> None:
     """Locate and merge the L03 RLC documents matching a delay (atrasos) salary page.
@@ -178,7 +177,6 @@ def process_rlc_l03(
         salary_date: Date of the salary file.
         naf_dir: Output directory for the employee.
         rlc_folder_path: Root folder containing RLC files.
-        salary_output_path: Output path for the salary file (unused, kept for API parity).
         months_found: Per-month result structure updated in-place.
     """
     log.info(
@@ -203,19 +201,26 @@ def process_rlc_l03(
     )
 
     rlc_dir = naf_dir / rlc_folder_path / str(salary_date.year)
-    rlc_stem = unparse_month(salary_date) + "_L03"
+    rlc_stem = unparse_month(salary_date) + "_" + RLCType.DELAY.value
 
     suffix = 1
     while suffix < 100:
         str_suffix = str(suffix).zfill(2)
-        rlc_path_n = rlc_dir / (rlc_stem + "N" + str_suffix + ".pdf")
+        rlc_path_n = rlc_dir / (
+            rlc_stem + RLCSubType.NOMINAL.value + str_suffix + ".pdf"
+        )
         if not rlc_path_n.exists():
             log.debug(f"Breaking out of the bucle because {rlc_path_n} does not exist.")
             break
         if is_date_present_in_rlc_delay(delay_initial_date, delay_end_date, rlc_path_n):
             months_found[salary_date][1] = True
-            rlc_path_p = rlc_dir / (rlc_stem + "P" + str_suffix + ".pdf")
-            pdf_merged_name = f"{salary_date.year}{unparse_month(salary_date)}_L03Merge{str_suffix}.pdf"
+            rlc_path_p = rlc_dir / (
+                rlc_stem + RLCSubType.PAYMENT.value + str_suffix + ".pdf"
+            )
+            pdf_merged_name = (
+                f"{salary_date.year}{unparse_month(salary_date)}_"
+                f"{RLCType.DELAY.value}Merge{str_suffix}.pdf"
+            )
             pdf_output_path = (
                 naf_dir / SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME / pdf_merged_name
             )
@@ -236,7 +241,7 @@ def process_salaries_with_rlc(
     naf: NAF,
     begin: datetime,
     end: datetime,
-) -> dict[RLCType, dict[datetime, list[bool]]]:
+) -> dict[RLCTypeFileName, dict[datetime, list[bool]]]:
     """Extract salary pages for *naf* and locate their matching RLC documents.
 
     Args:
@@ -341,7 +346,6 @@ def process_salaries_with_rlc(
                     salary_date,
                     naf_dir,
                     rlc_folder_path,
-                    salary_output_path,
                     delay_salaries_rlcs_found,
                 )
             elif salary_type == SalaryType.REGULAR:
@@ -364,12 +368,11 @@ def process_salaries_with_rlc(
                         f"selected as regular monthly salary for date {unparse_date(salary_date)}"
                     )
                     process_generic_rlc(
-                        "00",
+                        RLCType.REGULAR,
                         salary_date,
                         salary_file_path,
                         rlc_folder_path,
                         naf_dir,
-                        salary_output_path,
                         regular_monthly_salaries_rlcs_found,
                     )
                 elif regular_salary_type == RegularSalaryType.SETTLEMENT:
@@ -378,12 +381,11 @@ def process_salaries_with_rlc(
                         f"selected as regular settlement salary for date {unparse_date(salary_date)}"
                     )
                     process_generic_rlc(
-                        "13",
+                        RLCType.SETTLEMENT,
                         salary_date,
                         salary_file_path,
                         rlc_folder_path,
                         naf_dir,
-                        salary_output_path,
                         regular_settlement_salaries_rlcs_found,
                     )
                 else:
@@ -407,9 +409,9 @@ def process_salaries_with_rlc(
                 )
 
     r = {
-        RLCType.REGULAR: regular_monthly_salaries_rlcs_found,
-        RLCType.SETTLEMENT: regular_settlement_salaries_rlcs_found,
-        RLCType.DELAY: delay_salaries_rlcs_found,
+        RLCTypeFileName.REGULAR: regular_monthly_salaries_rlcs_found,
+        RLCTypeFileName.SETTLEMENT: regular_settlement_salaries_rlcs_found,
+        RLCTypeFileName.DELAY: delay_salaries_rlcs_found,
     }
 
     return r

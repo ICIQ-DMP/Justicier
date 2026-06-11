@@ -81,6 +81,7 @@ LOCAL_GENERAL_INPUT_FOLDER = (
 
 NOW_DATA = datetime.datetime.now()
 NOW = NOW_DATA.strftime(DATETIME_FORMAT)
+NOW_COMMAS = NOW_DATA.strftime(DATETIME_FORMAT_COMMAS)
 
 
 class SecretNames(str, Enum):
@@ -190,12 +191,27 @@ def from_string(value: str) -> "DocType":
     raise ValueError(f"Unknown document type: {value}")
 
 
-class RLCType(Enum):
-    """Sub-types of RLC (payroll tax settlement) documents."""
+class RLCTypeFileName(Enum):
+    """Sub-types of RLC (payroll tax settlement) documents for folder names."""
 
     REGULAR = "regular"
     DELAY = "delay"
     SETTLEMENT = "settlement"
+
+
+class RLCType(Enum):
+    """Sub-types of RLC (payroll tax settlement) document."""
+
+    REGULAR = "L00"
+    DELAY = "L03"
+    SETTLEMENT = "L13"
+
+
+class RLCSubType(Enum):
+    """Sub-types of RLC (payroll tax settlement) documents."""
+
+    NOMINAL = "N"
+    PAYMENT = "P"
 
 
 class SalaryType(Enum):
