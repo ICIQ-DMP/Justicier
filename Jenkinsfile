@@ -30,7 +30,7 @@ pipeline {
                 sh '''
                     python3 -m venv venv
                     ./venv/bin/pip install --upgrade pip
-                    ./venv/bin/pip install -r requirements.txt
+                    ./venv/bin/pip install .
                 '''
             }
         }
@@ -51,7 +51,7 @@ pipeline {
             steps {
                 echo "Lanzando script con --id ${params.ID}"
                 sh """
-                    ./venv/bin/python3 ./src/main.py \
+                    ./venv/bin/python3 -m justicier \
                       --id "${params.ID}" \
                       --input-location "${INPUT_LOCATION}"
                 """
