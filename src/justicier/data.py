@@ -20,6 +20,8 @@ from datetime import datetime
 from typing import Dict, List, Any, TypeVar
 
 from . import logger
+from .custom_except import InvalidFilenameError
+from .defines import BankType, SalaryType, LaCaixaFolderSuffixes, BBVAFolderSuffixes
 from .naf import NAF
 from .name import Name
 from .nif import NIF
@@ -129,6 +131,115 @@ def complete_ids_with_naf(
     name = naf_to_name[naf]
     email = naf_to_email[naf]
     return dni, name, email
+
+
+def parse_bank_type_from_folder_name(bank_folder_name: str) -> BankType:
+    """Parse a Bank type from a bank folder name."""
+    try:
+        name_as_list_without_initial_date = bank_folder_name.split("_")[1:]
+    except KeyError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has an invalid name as it can't be split by _"
+            f""
+        ) from e
+    suffixes = [
+        BBVAFolderSuffixes.REGULAR.value,
+        BBVAFolderSuffixes.DELAY.value,
+        BBVAFolderSuffixes.EXTRA.value,
+        LaCaixaFolderSuffixes.REGULAR.value,
+        LaCaixaFolderSuffixes.DELAY.value,
+        LaCaixaFolderSuffixes.EXTRA.value,
+    ]
+    for suffix in suffixes:
+        if suffix in name_as_list_without_initial_date:
+            name_as_list_without_initial_date.remove(suffix)
+
+    bank_type_str = "_".join(name_as_list_without_initial_date)
+    try:
+        return BankType(bank_type_str)
+    except ValueError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has been processed into {bank_type_str} but that "
+            f"can't be mapped to any BankType"
+        ) from e
+
+
+def parse_proof_type_from_la_caixa_folder_name(
+    bank_folder_name: str,
+) -> LaCaixaFolderSuffixes:
+    """Parse a Bank proof type from a La Caixa bank folder name."""
+    try:
+        name_as_list_without_initial_date = bank_folder_name.split("_")[1:]
+    except KeyError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has an invalid name as it can't be split by _"
+            f""
+        ) from e
+
+    name_without_initial_date = "_".join(name_as_list_without_initial_date)
+    try:
+        name_without_initial_bank_name = name_without_initial_date.replace(
+            BankType.LA_CAIXA.value, ""
+        )
+    except IndexError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has an invalid name as when split by _ the list "
+            f"is empty"
+        ) from e
+    try:
+        return LaCaixaFolderSuffixes(name_without_initial_bank_name)
+    except ValueError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has been processed into "
+            f"{name_without_initial_bank_name} but that"
+            f" can't be mapped to any LaCaixaFolderSuffixes"
+        ) from e
+
+
+def parse_proof_type_from_bbva_folder_name(bank_folder_name: str) -> BBVAFolderSuffixes:
+    """Parse a Bank proof type from a BBVA folder name."""
+    try:
+        name_as_list_without_initial_date = bank_folder_name.split("_")[1:]
+    except KeyError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has an invalid name as it can't be split by _"
+            f""
+        ) from e
+
+    name_without_initial_date = "_".join(name_as_list_without_initial_date)
+    try:
+        name_without_initial_bank_name = name_without_initial_date.replace(
+            BankType.BBVA.value, ""
+        )
+    except IndexError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has an invalid name as when split by _ the list "
+            f"is empty"
+        ) from e
+    try:
+        return BBVAFolderSuffixes(name_without_initial_bank_name)
+    except ValueError as e:
+        raise InvalidFilenameError(
+            f"The bankproof {bank_folder_name} has been processed into "
+            f"{name_without_initial_bank_name} but that"
+            f" can't be mapped to any BBVAFolderSuffixes"
+        ) from e
+
+
+def map_folder_suffix_to_salary_type(
+    suffix: BBVAFolderSuffixes | LaCaixaFolderSuffixes,
+) -> SalaryType:
+    """Maps a bank folder suffix into the types of salaries that are in the folder."""
+    if suffix == BBVAFolderSuffixes.REGULAR or suffix == LaCaixaFolderSuffixes.REGULAR:
+        return SalaryType.REGULAR
+    elif suffix == BBVAFolderSuffixes.DELAY or suffix == LaCaixaFolderSuffixes.DELAY:
+        return SalaryType.DELAY
+    elif suffix == BBVAFolderSuffixes.EXTRA or suffix == LaCaixaFolderSuffixes.EXTRA:
+        return SalaryType.EXTRA
+    else:
+        raise ValueError(
+            f"{suffix} is not a valid BBVAFolderSuffixes or LaCaixaFolderSuffixes"
+        )
 
 
 def complete_ids(

@@ -40,7 +40,14 @@ from .custom_except import (
     UndefinedRegularSalaryTypeError,
     InvalidFilenameError,
 )
-from .data import get_rlc_monthly_result_structure, get_rnt_monthly_result_structure
+from .data import (
+    get_rlc_monthly_result_structure,
+    get_rnt_monthly_result_structure,
+    parse_bank_type_from_folder_name,
+    parse_proof_type_from_la_caixa_folder_name,
+    map_folder_suffix_to_salary_type,
+    parse_proof_type_from_bbva_folder_name,
+)
 from .defines import (
     SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
     SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
@@ -51,6 +58,7 @@ from .defines import (
     SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
     RLCSubType,
     RLCType,
+    BankType,
 )
 
 from .filesystem import flatten_dirs, list_dir
@@ -93,6 +101,7 @@ def process_rlc_aux(
     """
     month = unparse_month(salary_date)
     year = str(salary_date.year)
+    # TODO: I do not get the 01 suffix, maybe missing loop
     n_name = month + "_" + rlc_type.value + rlc_subtype.value + "01.pdf"
     rlc_n_path = rlc_folder_path / year / n_name
     if rlc_n_path.exists():
@@ -475,10 +484,10 @@ def process_proofs(
             )
 
     for bankproof_folder in bankproof_folders_selected:
-        bank = "_".join(bankproof_folder.name.split("_")[1:])
+        bank = parse_bank_type_from_folder_name(bankproof_folder.name)
         proof_date = parse_proof_folder_date(bankproof_folder.name)
         log.trace(f"Working with folder {bankproof_folder}. Bank type is {bank}")
-        if bank == "BBVA" or bank == "BBVA_endarreriments" or bank == "BBVA_FINIQUITO":
+        if bank == BankType.BBVA:
             for bankproof_file in list_dir(proofs_folder_path / bankproof_folder):
                 try:
                     page = get_matching_page(
@@ -492,18 +501,14 @@ def process_proofs(
                         f"{proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}"
                     )
                     continue
-                if bank == "BBVA_endarreriments":
-                    suffix = "Atrasos"
-                elif bank == "BBVA":
-                    suffix = "Nomines"
-                elif bank == "BBVA_FINIQUITO":
-                    suffix = "Extra"
-                else:
-                    suffix = "BBVA-UnknownSalaryType"
+                bbva_proof_type = parse_proof_type_from_bbva_folder_name(
+                    bankproof_folder.name
+                )
+                suffix = map_folder_suffix_to_salary_type(bbva_proof_type)
                 output_partial_path = proofs_output_path / unparse_year_month(
                     proof_date
                 )
-                output_path = compute_path(output_partial_path, suffix, ".pdf")
+                output_path = compute_path(output_partial_path, suffix.value, ".pdf")
                 log.info(
                     f"DNI {naf_to_dni[naf]} was detected in "
                     f"{proofs_folder_path / bankproof_folder / bankproof_file}. "
@@ -511,11 +516,7 @@ def process_proofs(
                 )
                 write_page(page, output_path)
 
-        elif (
-            bank == "LA_CAIXA"
-            or bank == "LA_CAIXA_EXTRA"
-            or bank == "LA_CAIXA_endarreriments"
-        ):
+        elif bank == BankType.LA_CAIXA:
             file_names = list_dir(proofs_folder_path / bankproof_folder)
             for file_name in file_names:
                 try:
@@ -530,18 +531,14 @@ def process_proofs(
                         f"{proofs_folder_path / bankproof_folder / file_name}. Error: {e}"
                     )
                     continue
-                if bank == "LA_CAIXA_endarreriments":
-                    suffix = "Atrasos"
-                elif bank == "LA_CAIXA":
-                    suffix = "Nomines"
-                elif bank == "LA_CAIXA_EXTRA":
-                    suffix = "Extra"
-                else:
-                    suffix = "LACAIXA-UnknownSalaryType"
+                la_caixa_proof_type = parse_proof_type_from_la_caixa_folder_name(
+                    bankproof_folder.name
+                )
+                suffix = map_folder_suffix_to_salary_type(la_caixa_proof_type)
                 output_partial_path = proofs_output_path / unparse_year_month(
                     proof_date
                 )
-                output_path = compute_path(output_partial_path, suffix, ".pdf")
+                output_path = compute_path(output_partial_path, suffix.value, ".pdf")
                 log.info(
                     f"DNI {naf_to_dni[naf]} was detected in "
                     f"{proofs_folder_path / bankproof_folder / file_name}. "

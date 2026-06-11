@@ -199,6 +199,13 @@ class RLCTypeFileName(Enum):
     SETTLEMENT = "settlement"
 
 
+class BankType(Enum):
+    """Types of Bank doing the bank proofs."""
+
+    BBVA = "BBVA"
+    LA_CAIXA = "LA_CAIXA"
+
+
 class RLCType(Enum):
     """Sub-types of RLC (payroll tax settlement) document."""
 
@@ -215,12 +222,28 @@ class RLCSubType(Enum):
 
 
 class SalaryType(Enum):
-    """Salary file types as encoded in their filenames."""
+    """Salary file and bank proof types as encoded in their filenames."""
 
     REGULAR = "Nomines"
     DELAY = "Atrasos"
     EXTRA = "Extres"
     LIQ = "LIQ"
+
+
+class LaCaixaFolderSuffixes(Enum):
+    """La Caixa bank proofs folder suffixes."""
+
+    REGULAR = ""
+    DELAY = "endarreriments"
+    EXTRA = "EXTRA"
+
+
+class BBVAFolderSuffixes(Enum):
+    """BBVA bank proofs folder suffixes."""
+
+    REGULAR = ""
+    DELAY = "endarreriments"
+    EXTRA = "FINIQUITO"
 
 
 class RegularSalaryType(Enum):
