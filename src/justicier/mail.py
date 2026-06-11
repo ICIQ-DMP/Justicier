@@ -21,6 +21,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 
 from .data import unparse_date
+from .defines import SecretNames
 from .logger import get_logger
 from .secret import read_secret
 
@@ -124,10 +125,10 @@ def send_mail_authenticated(
     body: str,
 ) -> dict[str, tuple[int, bytes]]:
     """Send a plain-text email via SMTP with STARTTLS with authentication handled."""
-    smtp_user = read_secret("SMTP_USERNAME")
-    smtp_password = read_secret("SMTP_PASSWORD")
-    smtp_server = read_secret("SMTP_SERVER")
-    smtp_port = int(read_secret("SMTP_PORT"))
+    smtp_user = read_secret(SecretNames.SMTP_USERNAME.value)
+    smtp_password = read_secret(SecretNames.SMTP_PASSWORD.value)
+    smtp_server = read_secret(SecretNames.SMTP_SERVER.value)
+    smtp_port = int(read_secret(SecretNames.SMTP_PORT.value))
 
     log.trace(f'user is: "{smtp_user}"')
     log.trace(f'pass is: "{smtp_password}"')

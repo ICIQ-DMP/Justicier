@@ -44,6 +44,7 @@ from .defines import (
     DATETIME_SHAREPOINT_FORMAT,
     DATE_DEFAULT_FORMAT,
     DEFAULT_TIMEZONE,
+    LOCAL_GENERAL_INPUT_FOLDER,
 )
 from .secret import read_secret
 from .sharepoint import get_parameters_from_list, SharepointItem
@@ -294,7 +295,7 @@ def parse_arguments() -> argparse.Namespace:
         "--location",
         type=parse_input_type,
         required=False,
-        default=InputLocation.SHAREPOINT.value,
+        default=InputLocation.LOCAL.value,
         help='Location of the input data. Possible values are: "sharepoint" to download from '
         'sharepoint location and "local" to use the local file system storage and read the input'
         " folder in the repository root folder.",
@@ -304,7 +305,7 @@ def parse_arguments() -> argparse.Namespace:
         "--input-location",
         type=parse_input_location,
         required=False,
-        default=None,
+        default=LOCAL_GENERAL_INPUT_FOLDER,
         help="Path location of input data. If used, --location local is assumed.",
     )
 
