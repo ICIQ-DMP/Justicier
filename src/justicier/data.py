@@ -17,7 +17,7 @@
 """Result-structure factories."""
 
 from datetime import datetime
-from typing import Dict, List, Any, TypeVar
+from typing import Dict, List, Any, TypeVar, Type
 
 from . import logger
 from .custom_except import InvalidFilenameError
@@ -164,66 +164,32 @@ def parse_bank_type_from_folder_name(bank_folder_name: str) -> BankType:
         ) from e
 
 
+_SuffixEnum = TypeVar("_SuffixEnum", BBVAFolderSuffixes, LaCaixaFolderSuffixes)
+
+
+def _parse_proof_type(
+    folder_name: str, bank_type: BankType, suffix_cls: Type[_SuffixEnum]
+) -> _SuffixEnum:
+    name_without_date = "_".join(folder_name.split("_")[1:])
+    suffix_str = name_without_date.replace(bank_type.value, "")
+    try:
+        return suffix_cls(suffix_str)
+    except ValueError as e:
+        raise InvalidFilenameError(
+            f"Bankproof folder '{folder_name}' maps to '{suffix_str}' which is not a valid {suffix_cls.__name__}"
+        ) from e
+
+
 def parse_proof_type_from_la_caixa_folder_name(
-    bank_folder_name: str,
+    folder_name: str,
 ) -> LaCaixaFolderSuffixes:
-    """Parse a Bank proof type from a La Caixa bank folder name."""
-    try:
-        name_as_list_without_initial_date = bank_folder_name.split("_")[1:]
-    except KeyError as e:
-        raise InvalidFilenameError(
-            f"The bankproof {bank_folder_name} has an invalid name as it can't be split by _"
-            f""
-        ) from e
-
-    name_without_initial_date = "_".join(name_as_list_without_initial_date)
-    try:
-        name_without_initial_bank_name = name_without_initial_date.replace(
-            BankType.LA_CAIXA.value, ""
-        )
-    except IndexError as e:
-        raise InvalidFilenameError(
-            f"The bankproof {bank_folder_name} has an invalid name as when split by _ the list "
-            f"is empty"
-        ) from e
-    try:
-        return LaCaixaFolderSuffixes(name_without_initial_bank_name)
-    except ValueError as e:
-        raise InvalidFilenameError(
-            f"The bankproof {bank_folder_name} has been processed into "
-            f"{name_without_initial_bank_name} but that"
-            f" can't be mapped to any LaCaixaFolderSuffixes"
-        ) from e
+    """Parse a bank proof type from a La Caixa folder name."""
+    return _parse_proof_type(folder_name, BankType.LA_CAIXA, LaCaixaFolderSuffixes)
 
 
-def parse_proof_type_from_bbva_folder_name(bank_folder_name: str) -> BBVAFolderSuffixes:
-    """Parse a Bank proof type from a BBVA folder name."""
-    try:
-        name_as_list_without_initial_date = bank_folder_name.split("_")[1:]
-    except KeyError as e:
-        raise InvalidFilenameError(
-            f"The bankproof {bank_folder_name} has an invalid name as it can't be split by _"
-            f""
-        ) from e
-
-    name_without_initial_date = "_".join(name_as_list_without_initial_date)
-    try:
-        name_without_initial_bank_name = name_without_initial_date.replace(
-            BankType.BBVA.value, ""
-        )
-    except IndexError as e:
-        raise InvalidFilenameError(
-            f"The bankproof {bank_folder_name} has an invalid name as when split by _ the list "
-            f"is empty"
-        ) from e
-    try:
-        return BBVAFolderSuffixes(name_without_initial_bank_name)
-    except ValueError as e:
-        raise InvalidFilenameError(
-            f"The bankproof {bank_folder_name} has been processed into "
-            f"{name_without_initial_bank_name} but that"
-            f" can't be mapped to any BBVAFolderSuffixes"
-        ) from e
+def parse_proof_type_from_bbva_folder_name(folder_name: str) -> BBVAFolderSuffixes:
+    """Parse a bank proof type from a BBVA folder name."""
+    return _parse_proof_type(folder_name, BankType.BBVA, BBVAFolderSuffixes)
 
 
 def map_folder_suffix_to_salary_type(

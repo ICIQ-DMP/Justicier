@@ -501,10 +501,16 @@ def process_proofs(
                         f"{proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}"
                     )
                     continue
-                bbva_proof_type = parse_proof_type_from_bbva_folder_name(
-                    bankproof_folder.name
-                )
-                suffix = map_folder_suffix_to_salary_type(bbva_proof_type)
+                try:
+                    bbva_proof_type = parse_proof_type_from_bbva_folder_name(
+                        bankproof_folder.name
+                    )
+                    suffix = map_folder_suffix_to_salary_type(bbva_proof_type)
+                except InvalidFilenameError as e:
+                    log.error(
+                        f"The file folder {str(bankproof_folder)} has an invalid name. Error: {str(e)}"
+                    )
+                    continue
                 output_partial_path = proofs_output_path / unparse_year_month(
                     proof_date
                 )
@@ -531,10 +537,16 @@ def process_proofs(
                         f"{proofs_folder_path / bankproof_folder / file_name}. Error: {e}"
                     )
                     continue
-                la_caixa_proof_type = parse_proof_type_from_la_caixa_folder_name(
-                    bankproof_folder.name
-                )
-                suffix = map_folder_suffix_to_salary_type(la_caixa_proof_type)
+                try:
+                    la_caixa_proof_type = parse_proof_type_from_la_caixa_folder_name(
+                        bankproof_folder.name
+                    )
+                    suffix = map_folder_suffix_to_salary_type(la_caixa_proof_type)
+                except InvalidFilenameError as e:
+                    log.error(
+                        f"The file folder {str(bankproof_folder)} has an invalid name. Error: {str(e)}"
+                    )
+                    continue
                 output_partial_path = proofs_output_path / unparse_year_month(
                     proof_date
                 )
