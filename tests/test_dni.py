@@ -18,7 +18,7 @@
 
 import pytest
 
-from justicier.NIF import NIF, parse_nif, NIFType
+from justicier.nif import NIF, parse_nif, NIFType
 from justicier.custom_except import ArgumentNafInvalidError
 
 

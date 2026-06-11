@@ -18,7 +18,7 @@
 
 import pytest
 
-from justicier.NAF import NAF, is_naf_format_correct, parse_naf
+from justicier.naf import NAF, is_naf_format_correct, parse_naf
 from justicier.custom_except import ArgumentNafInvalidError
 
 

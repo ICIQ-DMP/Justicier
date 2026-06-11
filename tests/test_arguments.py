@@ -26,6 +26,7 @@ from justicier.arguments import (
     get_compact_init,
 )
 from justicier.custom_except import ArgumentDateError
+from justicier.naf import NAF
 
 
 class TestParseBoolean:
@@ -107,8 +108,6 @@ class TestIDOverrides:
 
     def test_set_naf_is_detected(self, empty_args):
         """Setting naf on the Namespace should be detected as an override."""
-        from justicier.NAF import NAF
-
         empty_args.naf = NAF("431234567820")
         triggered = [
             name for name, was_set in _ID_OVERRIDES.items() if was_set(empty_args)
