@@ -19,10 +19,20 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import TypeVar
 
 import pypdf
 
+from .dates import (
+    unparse_month,
+    unparse_date,
+    parse_date_from_salary_filename,
+    parse_salary_filename_from_salary_path,
+    parse_salary_type,
+    parse_salary_type_from_salary_filename,
+    unparse_year_month,
+    unparse_year_month_short,
+    datetime_range,
+)
 from .nif import NIF
 from .naf import NAF
 from .name import Name
@@ -30,18 +40,7 @@ from .arguments import parse_date
 from .custom_except import (
     UndefinedRegularSalaryTypeError,
 )
-from .data import (
-    parse_date_from_salary_filename,
-    parse_salary_filename_from_salary_path,
-    unparse_date,
-    parse_salary_type,
-    unparse_month,
-    unparse_year_month,
-    unparse_year_month_short,
-    parse_salary_type_from_salary_filename,
-    get_rlc_monthly_result_structure,
-    get_rnt_monthly_result_structure,
-)
+from .data import get_rlc_monthly_result_structure, get_rnt_monthly_result_structure
 from .defines import (
     SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
     SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
@@ -50,7 +49,8 @@ from .defines import (
     RLCType,
     SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME,
     SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
-    SharepointListFields,
+    DATETIME_FORMAT_MONTH_YEAR,
+    DATETIME_FORMAT_YEAR_MONTH,
 )
 
 from .filesystem import flatten_dirs, list_dir
@@ -64,7 +64,6 @@ from .pdf import (
     parse_regular_salary_type,
     get_matching_pages,
 )
-from .sharepoint import update_list_item_field, resolve_user_to_sharepoint_id
 from .logger import get_logger
 
 log = get_logger(__name__)
@@ -458,7 +457,7 @@ def process_proofs(
 
     bankproof_folders_selected = []
     for bankproof_folder in all_bankproof_folders:
-        dir_date = parse_date(bankproof_folder.name[:6], "%m%Y")
+        dir_date = parse_date(bankproof_folder.name[:6], DATETIME_FORMAT_MONTH_YEAR)
         if begin <= dir_date <= end:
             bankproof_folders_selected.append(bankproof_folder)
             log.debug(
@@ -467,7 +466,7 @@ def process_proofs(
 
     for bankproof_folder in bankproof_folders_selected:
         bank = "_".join(bankproof_folder.name.split("_")[1:])
-        proof_date = parse_date(bankproof_folder.name[:6], "%m%Y")
+        proof_date = parse_date(bankproof_folder.name[:6], DATETIME_FORMAT_MONTH_YEAR)
         log.trace(f"Working with folder {bankproof_folder}. Bank type is {bank}")
         if bank == "BBVA" or bank == "BBVA_endarreriments" or bank == "BBVA_FINIQUITO":
             for bankproof_file in list_dir(proofs_folder_path / bankproof_folder):
@@ -491,7 +490,9 @@ def process_proofs(
                     suffix = "Extra"
                 else:
                     suffix = "BBVA-UnknownSalaryType"
-                output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
+                output_partial_path = proofs_output_path / proof_date.strftime(
+                    DATETIME_FORMAT_YEAR_MONTH
+                )
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
                     f"DNI {naf_to_dni[naf]} was detected in "
@@ -527,7 +528,9 @@ def process_proofs(
                     suffix = "Extra"
                 else:
                     suffix = "LACAIXA-UnknownSalaryType"
-                output_partial_path = proofs_output_path / proof_date.strftime("%Y%m")
+                output_partial_path = proofs_output_path / proof_date.strftime(
+                    DATETIME_FORMAT_YEAR_MONTH
+                )
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
                     f"DNI {naf_to_dni[naf]} was detected in "
@@ -562,12 +565,12 @@ def process_contracts(
         log.debug(f"contract file: {contracts_file}")
         naf_dirty = NAF(contracts_file.split("_")[0])
         dates = contracts_file.split(".")[0].split("_")
-        begin_date = parse_date("20" + dates[1], "%Y%m")
+        begin_date = parse_date("20" + dates[1], DATETIME_FORMAT_YEAR_MONTH)
         if len(dates) == 3:
             if dates[2] == "A":
                 end_date = datetime.max
             else:
-                end_date = parse_date("20" + dates[2], "%Y%m")
+                end_date = parse_date("20" + dates[2], DATETIME_FORMAT_YEAR_MONTH)
         elif len(dates) == 2:
             end_date = datetime.max
         else:
@@ -628,7 +631,9 @@ def process_rnts(
     rnt_files = flatten_dirs(rnts_folder_path)
     rnt_files.sort()
     for rnt_file in rnt_files:
-        file_date = parse_date("20" + rnt_file.name[:4], "%Y%m", return_naive=True)
+        file_date = parse_date(
+            "20" + rnt_file.name[:4], DATETIME_FORMAT_YEAR_MONTH, return_naive=True
+        )
         if begin <= file_date <= end:
             rnt_file_name = rnt_file.name
             rnt_file_name_without_extension = Path(rnt_file_name).stem
@@ -660,31 +665,6 @@ def process_rnts(
             )
 
     return rnts_found
-
-
-def datetime_range(begin: datetime, end: datetime) -> list[datetime]:
-    """Return a list of first-of-month datetimes covering the ``[begin, end]`` period.
-
-    Args:
-        begin: Start of the period.
-        end: End of the period.
-
-    Returns:
-        Ordered list of ``datetime`` values, one per calendar month.
-    """
-    current = datetime(begin.year, begin.month, 1)
-
-    result = []
-    while current <= end:
-        result.append(
-            datetime.strptime(str(current.year * 100 + current.month), "%Y%m")
-        )
-        if current.month == 12:
-            current = datetime(current.year + 1, 1, 1)
-        else:
-            current = datetime(current.year, current.month + 1, 1)
-
-    return result
 
 
 def merge_rnts_rlcs(
@@ -748,25 +728,6 @@ def merge_rnts_rlcs(
         log.trace(f"Merged PDFs: {paths_to_merge} -> {output_path}")
 
 
-_K = TypeVar("_K")
-_V = TypeVar("_V")
-
-
-def reverse_dict(d: dict[_K, _V]) -> dict[_V, _K]:
-    """Return a new dict with keys and values swapped.
-
-    Args:
-        d: Source dictionary to invert.
-
-    Returns:
-        Inverted dictionary mapping original values to original keys.
-    """
-    r = {}
-    for key, value in d.items():
-        r[value] = key
-    return r
-
-
 def complete_ids_with_naf(
     naf: NAF,
     naf_to_dni: dict[NAF, NIF],
@@ -788,29 +749,6 @@ def complete_ids_with_naf(
     name = naf_to_name[naf]
     email = naf_to_email[naf]
     return dni, name, email
-
-
-def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) -> None:
-    """Update the justification history list with NAF, DNI, and email identifiers.
-
-    Name is intentionally skipped because the A3 name format does not match SharePoint.
-
-    Args:
-        request: Numeric list item identifier for the justification request.
-        naf: Employee NAF to write.
-        dni: Employee NIF/DNI to write.
-        email: Employee email address to write.
-
-    Raises:
-        PersonDoesNotExistInSharepointError: If the employee no longer exists in SharePoint.
-    """
-    update_list_item_field(request, {SharepointListFields.NIF.value: str(dni)})
-    update_list_item_field(request, {SharepointListFields.NAF.value: str(naf)})
-    update_list_item_field(request, {SharepointListFields.TARGET_EMAIL.value: email})
-    sp_user_id = resolve_user_to_sharepoint_id(email)
-    update_list_item_field(
-        request, {SharepointListFields.TARGET_NAME.value + "LookupId": str(sp_user_id)}
-    )
 
 
 def complete_ids(

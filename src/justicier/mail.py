@@ -20,7 +20,7 @@ import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
 
-from .data import unparse_date
+from .dates import unparse_date
 from .defines import SecretNames
 from .logger import get_logger
 from .secret import read_secret

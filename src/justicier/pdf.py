@@ -27,7 +27,7 @@ import pypdf
 from pypdf import PdfReader, PdfWriter
 
 from .custom_except import UndefinedRegularSalaryTypeError
-from .data import unparse_month
+from .dates import unparse_month
 from .defines import RegularSalaryType
 from .filesystem import list_dir
 from .logger import get_logger

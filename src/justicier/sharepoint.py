@@ -25,6 +25,8 @@ from urllib.parse import quote
 import requests
 from requests.exceptions import HTTPError
 
+from .naf import NAF
+from .nif import NIF
 from .token_manager import TokenManager, get_token_manager
 from .custom_except import BadSharepointListUpdateRequestError
 from .defines import SharepointListFields
@@ -479,3 +481,26 @@ def _connect_sharepoint() -> tuple[TokenManager, str, str]:
     site_id = get_site_id(token_manager, sharepoint_domain, site_name)
     drive_id = get_drive_id(token_manager, site_id, drive_name="Documents")
     return token_manager, site_id, drive_id
+
+
+def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) -> None:
+    """Update the justification history list with NAF, DNI, and email identifiers.
+
+    Name is intentionally skipped because the A3 name format does not match SharePoint.
+
+    Args:
+        request: Numeric list item identifier for the justification request.
+        naf: Employee NAF to write.
+        dni: Employee NIF/DNI to write.
+        email: Employee email address to write.
+
+    Raises:
+        PersonDoesNotExistInSharepointError: If the employee no longer exists in SharePoint.
+    """
+    update_list_item_field(request, {SharepointListFields.NIF.value: str(dni)})
+    update_list_item_field(request, {SharepointListFields.NAF.value: str(naf)})
+    update_list_item_field(request, {SharepointListFields.TARGET_EMAIL.value: email})
+    sp_user_id = resolve_user_to_sharepoint_id(email)
+    update_list_item_field(
+        request, {SharepointListFields.TARGET_NAME.value + "LookupId": str(sp_user_id)}
+    )
