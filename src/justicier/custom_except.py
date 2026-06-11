@@ -52,3 +52,7 @@ class PersonDoesNotExistInSharepointError(Exception):
 
 class SecretCouldNotBeReadFromAnySourceError(Exception):
     """Raised when a secret cannot be read from any source."""
+
+
+class InvalidFilenameError(Exception):
+    """Raised when a document filename does not conform to the expected naming convention."""

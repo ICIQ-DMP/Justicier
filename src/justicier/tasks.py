@@ -25,20 +25,20 @@ import pypdf
 from .dates import (
     unparse_month,
     unparse_date,
-    parse_date_from_salary_filename,
-    parse_salary_filename_from_salary_path,
+    parse_salary_date,
     parse_salary_type,
-    parse_salary_type_from_salary_filename,
+    parse_proof_folder_date,
+    parse_rnt_date,
+    parse_contract_dates,
     unparse_year_month,
     unparse_year_month_short,
     datetime_range,
 )
 from .nif import NIF
 from .naf import NAF
-from .name import Name
-from .arguments import parse_date
 from .custom_except import (
     UndefinedRegularSalaryTypeError,
+    InvalidFilenameError,
 )
 from .data import get_rlc_monthly_result_structure, get_rnt_monthly_result_structure
 from .defines import (
@@ -49,8 +49,6 @@ from .defines import (
     RLCType,
     SHAREPOINT_CONTRACTS_OUTPUT_FOLDER_NAME,
     SHAREPOINT_RNTS_OUTPUT_FOLDER_NAME,
-    DATETIME_FORMAT_MONTH_YEAR,
-    DATETIME_FORMAT_YEAR_MONTH,
 )
 
 from .filesystem import flatten_dirs, list_dir
@@ -261,9 +259,11 @@ def process_salaries_with_rlc(
     salary_files = flatten_dirs(salaries_folder_path)
     salary_files_selected = []
     for salary_file in salary_files:
-        dir_date = parse_date_from_salary_filename(
-            parse_salary_filename_from_salary_path(salary_file)
-        )
+        try:
+            dir_date = parse_salary_date(salary_file)
+        except InvalidFilenameError as e:
+            log.error(f"Salary file {salary_file} has an invalid name, skipping: {e}")
+            continue
         if begin <= dir_date <= end:
             salary_files_selected.append(salary_file)
             log.info(
@@ -278,18 +278,20 @@ def process_salaries_with_rlc(
     for salary_file in salary_files_selected:
         log.debug(f"Processing file {salary_file}")
         salary_file_path = salaries_folder_path / salary_file
-        salary_file_name = parse_salary_filename_from_salary_path(salary_file_path)
-        salary_date = parse_date_from_salary_filename(salary_file_name)
-        salary_type_str = parse_salary_type_from_salary_filename(salary_file_name)
+        try:
+            salary_date = parse_salary_date(salary_file_path)
+            salary_type = parse_salary_type(salary_file_path)
+        except InvalidFilenameError as e:
+            log.error(f"Salary file {salary_file} has an invalid name, skipping: {e}")
+            continue
         salary_output_filename = (
-            f"{salary_date.year}{unparse_month(salary_date)}_{salary_type_str}"
+            f"{unparse_year_month(salary_date)}_{salary_type.value}"
         )
         # Liquidation files
-        if salary_type_str == "LIQ":
-            salary_file_name_no_extension = salary_file_name.split(".")[0]
-            salary_file_liq_naf = salary_file_name_no_extension.split("_")[2]
+        if salary_type == SalaryType.LIQ:
+            salary_file_liq_naf = salary_file_path.stem.split("_")[2]
             if salary_file_liq_naf != str(naf):
-                log.debug(
+                log.trace(
                     f"NAF {str(naf)} was not detected in the name of liquidation PDF {salary_file}. Skipping document."
                 )
                 continue
@@ -318,8 +320,7 @@ def process_salaries_with_rlc(
                 salary_output_path = (
                     naf_dir
                     / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
-                    / f"{salary_date.year}{unparse_month(salary_date)}_"
-                    f"{salary_file_name.split('_')[1].split('.')[0]}_{index}.pdf"
+                    / f"{unparse_year_month(salary_date)}_{salary_type.value}_{index}.pdf"
                 )
                 index += 1
 
@@ -331,7 +332,6 @@ def process_salaries_with_rlc(
                 f"further processing it."
             )
 
-            salary_type = parse_salary_type(salary_file_path)
             if salary_type == SalaryType.DELAY:
                 delay_salaries_rlcs_found[salary_date][0] = True
                 process_rlc_l03(
@@ -398,6 +398,8 @@ def process_salaries_with_rlc(
                     f"as extra salary for date {unparse_date(salary_date)}"
                 )
                 continue
+            elif salary_type == SalaryType.LIQ:
+                continue
             else:
                 log.error(
                     f"Detected type {str(salary_type)} that is not a recognized type. The current salary "
@@ -457,7 +459,13 @@ def process_proofs(
 
     bankproof_folders_selected = []
     for bankproof_folder in all_bankproof_folders:
-        dir_date = parse_date(bankproof_folder.name[:6], DATETIME_FORMAT_MONTH_YEAR)
+        try:
+            dir_date = parse_proof_folder_date(bankproof_folder.name)
+        except InvalidFilenameError as e:
+            log.error(
+                f"Proof folder {bankproof_folder} has an invalid name, skipping: {e}"
+            )
+            continue
         if begin <= dir_date <= end:
             bankproof_folders_selected.append(bankproof_folder)
             log.debug(
@@ -466,7 +474,7 @@ def process_proofs(
 
     for bankproof_folder in bankproof_folders_selected:
         bank = "_".join(bankproof_folder.name.split("_")[1:])
-        proof_date = parse_date(bankproof_folder.name[:6], DATETIME_FORMAT_MONTH_YEAR)
+        proof_date = parse_proof_folder_date(bankproof_folder.name)
         log.trace(f"Working with folder {bankproof_folder}. Bank type is {bank}")
         if bank == "BBVA" or bank == "BBVA_endarreriments" or bank == "BBVA_FINIQUITO":
             for bankproof_file in list_dir(proofs_folder_path / bankproof_folder):
@@ -490,8 +498,8 @@ def process_proofs(
                     suffix = "Extra"
                 else:
                     suffix = "BBVA-UnknownSalaryType"
-                output_partial_path = proofs_output_path / proof_date.strftime(
-                    DATETIME_FORMAT_YEAR_MONTH
+                output_partial_path = proofs_output_path / unparse_year_month(
+                    proof_date
                 )
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
@@ -528,8 +536,8 @@ def process_proofs(
                     suffix = "Extra"
                 else:
                     suffix = "LACAIXA-UnknownSalaryType"
-                output_partial_path = proofs_output_path / proof_date.strftime(
-                    DATETIME_FORMAT_YEAR_MONTH
+                output_partial_path = proofs_output_path / unparse_year_month(
+                    proof_date
                 )
                 output_path = compute_path(output_partial_path, suffix, ".pdf")
                 log.info(
@@ -563,22 +571,14 @@ def process_contracts(
     contracts_files.sort()
     for contracts_file in contracts_files:
         log.debug(f"contract file: {contracts_file}")
-        naf_dirty = NAF(contracts_file.split("_")[0])
-        dates = contracts_file.split(".")[0].split("_")
-        begin_date = parse_date("20" + dates[1], DATETIME_FORMAT_YEAR_MONTH)
-        if len(dates) == 3:
-            if dates[2] == "A":
-                end_date = datetime.max
-            else:
-                end_date = parse_date("20" + dates[2], DATETIME_FORMAT_YEAR_MONTH)
-        elif len(dates) == 2:
-            end_date = datetime.max
-        else:
+        try:
+            begin_date, end_date = parse_contract_dates(contracts_file)
+        except InvalidFilenameError as e:
             log.error(
-                f"expected 3 fields in the name of the file {contracts_file} but "
-                f"{len(dates)} have been found. The file will be ignored until it has proper format."
+                f"Contract file {contracts_file} has an invalid name, skipping: {e}"
             )
             continue
+        naf_dirty = NAF(contracts_file.split("_")[0])
 
         if naf_dirty == naf:
             log.debug(
@@ -631,9 +631,11 @@ def process_rnts(
     rnt_files = flatten_dirs(rnts_folder_path)
     rnt_files.sort()
     for rnt_file in rnt_files:
-        file_date = parse_date(
-            "20" + rnt_file.name[:4], DATETIME_FORMAT_YEAR_MONTH, return_naive=True
-        )
+        try:
+            file_date = parse_rnt_date(rnt_file.name)
+        except InvalidFilenameError as e:
+            log.error(f"RNT file {rnt_file} has an invalid name, skipping: {e}")
+            continue
         if begin <= file_date <= end:
             rnt_file_name = rnt_file.name
             rnt_file_name_without_extension = Path(rnt_file_name).stem
@@ -726,116 +728,3 @@ def merge_rnts_rlcs(
                 f"one RNTs or RLCs to merge (at least one is missing). Skipping"
             )
         log.trace(f"Merged PDFs: {paths_to_merge} -> {output_path}")
-
-
-def complete_ids_with_naf(
-    naf: NAF,
-    naf_to_dni: dict[NAF, NIF],
-    naf_to_name: dict[NAF, Name],
-    naf_to_email: dict[NAF, str],
-) -> tuple[NIF, Name, str]:
-    """Resolve NIF, Name, and email for the given NAF using the lookup tables.
-
-    Args:
-        naf: NAF identifier of the employee.
-        naf_to_dni: Mapping from NAF to NIF.
-        naf_to_name: Mapping from NAF to Name.
-        naf_to_email: Mapping from NAF to email address.
-
-    Returns:
-        Tuple of ``(nif, name, email)`` for the employee.
-    """
-    dni = naf_to_dni[naf]
-    name = naf_to_name[naf]
-    email = naf_to_email[naf]
-    return dni, name, email
-
-
-def complete_ids(
-    naf: NAF,
-    nif: NIF,
-    email: str,
-    name: Name,
-    name_to_naf: dict[Name, NAF],
-    naf_to_nif: dict[NAF, NIF],
-    nif_to_naf: dict[NIF, NAF],
-    naf_to_name: dict[NAF, Name],
-    email_to_naf: dict[str, NAF],
-    naf_to_email: dict[NAF, str],
-) -> tuple[NAF, NIF, Name, str]:
-    """Resolve all employee identifiers from whichever primary key is provided.
-
-    Precedence: NAF > email > NIF > name. Warns when a redundant identifier is
-    supplied alongside the primary key.
-
-    Args:
-        naf: NAF identifier (highest priority).
-        nif: NIF/DNI identifier.
-        email: Email address.
-        name: Employee name.
-        name_to_naf: Lookup table from Name to NAF.
-        naf_to_nif: Lookup table from NAF to NIF.
-        nif_to_naf: Lookup table from NIF to NAF.
-        naf_to_name: Lookup table from NAF to Name.
-        email_to_naf: Lookup table from email to NAF.
-        naf_to_email: Lookup table from NAF to email.
-
-    Returns:
-        Tuple of ``(naf, nif, name, email)`` with all fields resolved.
-
-    Raises:
-        ValueError: If none of the identifier arguments are provided.
-    """
-    if naf:
-        if nif:
-            log.warning(
-                "DNI is defined but NAF is also defined. Provided NIF will be ignored."
-            )
-        if name:
-            log.warning(
-                "Name is defined but NAF is also defined. Provided name will be ignored."
-            )
-        if email:
-            log.warning(
-                "Email is defined but NAF is also defined. Provided email will be ignored."
-            )
-
-    elif email:
-        if nif:
-            log.warning(
-                "DNI is defined but email is also defined. Provided NIF will be ignored."
-            )
-        if name:
-            log.warning(
-                "Name is defined but email is also defined. Provided name will be ignored."
-            )
-        naf = email_to_naf[email]
-
-    elif nif:
-        if name:
-            log.warning(
-                "Name is defined but NIF is also defined. Provided name will be ignored."
-            )
-        log.warning(
-            "Remember that "
-            "identifying employees using NIF is fragile and should be avoided. Using NAF or email for "
-            "employee "
-            "identification is the recommended configuration."
-        )
-        naf = nif_to_naf[nif]
-
-    elif name:
-        log.warning(
-            "Remember that "
-            "identifying employees using name is fragile and should be avoided. Using NAF or email for "
-            "employee "
-            "identification is the recommended configuration."
-        )
-        naf = name_to_naf[name]
-
-    else:
-        raise ValueError(
-            "An employee identifier was not supplied (NAF, DNI or name). Aborting."
-        )
-    nif, name, email = complete_ids_with_naf(naf, naf_to_nif, naf_to_name, naf_to_email)
-    return naf, nif, name, email

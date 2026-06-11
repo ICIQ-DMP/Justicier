@@ -204,6 +204,7 @@ class SalaryType(Enum):
     REGULAR = "Nomines"
     DELAY = "Atrasos"
     EXTRA = "Extres"
+    LIQ = "LIQ"
 
 
 class RegularSalaryType(Enum):

@@ -22,7 +22,7 @@ import logging
 import time
 from pathlib import Path
 
-from justicier.data import reverse_dict
+from justicier.data import reverse_dict, complete_ids
 from .naf import build_naf_to_dni, build_naf_to_name, build_naf_to_email
 from .token_manager import get_token_manager
 from .arguments import process_parse_arguments
@@ -79,7 +79,6 @@ from .sharepoint import (
     update_list_with_person_ids,
 )
 from .tasks import (
-    complete_ids,
     process_salaries_with_rlc,
     process_proofs,
     process_contracts,
