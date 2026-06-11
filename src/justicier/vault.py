@@ -23,8 +23,8 @@ import requests
 import urllib3
 from pathlib import Path
 
-from defines import SecretNames
-from logger import get_logger
+from .defines import SecretNames
+from .logger import get_logger
 
 _VAULT_BASE_PATH = "secret/data/justicier/runtime"
 

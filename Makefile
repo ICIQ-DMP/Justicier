@@ -101,7 +101,7 @@ fmt: $(DEV_STAMP)  ## Auto-format (black + ruff --fix)
 	@$(VENV_BIN)/ruff check --fix .
 
 test: $(DEV_STAMP)  ## Run tests
-	@PYTHONPATH=src PYTHONUNBUFFERED=1 $(VENV_BIN)/pytest -s -v
+	@PYTHONUNBUFFERED=1 $(VENV_BIN)/pytest -s -v
 
 
 # ---- run ------------------------------------------------------------------

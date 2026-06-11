@@ -18,8 +18,8 @@
 
 import pytest
 
-from NAF import NAF, is_naf_format_correct, parse_naf
-from custom_except import ArgumentNafInvalidError
+from justicier.NAF import NAF, is_naf_format_correct, parse_naf
+from justicier.custom_except import ArgumentNafInvalidError
 
 
 class TestNAFParsing:

@@ -14,30 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Shared pytest fixtures for the Justicier test suite."""
+"""Package entrypoint."""
 
-import argparse
-import pytest
+from .main import main
 
-from justicier.arguments import get_compact_init
-
-
-@pytest.fixture
-def empty_args():
-    """Minimal argparse Namespace with all local args unset — simulates a bare parse."""
-    args = argparse.Namespace(
-        request=None,
-        naf=None,
-        name=None,
-        email=None,
-        nif=None,
-        begin=None,
-        end=None,
-        author=None,
-        merge_result=get_compact_init(),
-        merge_salary=False,
-        merge_rnt_rlc=False,
-        location="sharepoint",
-        input_location=None,
-    )
-    return args
+main()

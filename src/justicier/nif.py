@@ -19,7 +19,7 @@
 import re
 from enum import Enum
 
-from custom_except import ArgumentNafInvalidError
+from .custom_except import ArgumentNafInvalidError
 
 
 class NIFType(Enum):

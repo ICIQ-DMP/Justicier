@@ -19,8 +19,13 @@
 import datetime
 import pytest
 
-from arguments import parse_boolean, parse_date, _ID_OVERRIDES, get_compact_init
-from custom_except import ArgumentDateError
+from justicier.arguments import (
+    parse_boolean,
+    parse_date,
+    _ID_OVERRIDES,
+    get_compact_init,
+)
+from justicier.custom_except import ArgumentDateError
 
 
 class TestParseBoolean:
@@ -102,7 +107,7 @@ class TestIDOverrides:
 
     def test_set_naf_is_detected(self, empty_args):
         """Setting naf on the Namespace should be detected as an override."""
-        from NAF import NAF
+        from justicier.NAF import NAF
 
         empty_args.naf = NAF("431234567820")
         triggered = [

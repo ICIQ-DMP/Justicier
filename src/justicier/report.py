@@ -23,9 +23,9 @@ from importlib.metadata import version, PackageNotFoundError
 
 from pyfiglet import Figlet
 
-from data import unparse_date, unparse_full_date
-from defines import RLCType
-from logger import get_logger
+from .data import unparse_date, unparse_full_date
+from .defines import RLCType
+from .logger import get_logger
 
 log = get_logger(__name__)
 

@@ -25,11 +25,12 @@ from urllib.parse import quote
 import requests
 from requests.exceptions import HTTPError
 
-from TokenManager import TokenManager, get_token_manager
-from custom_except import BadSharepointListUpdateRequestError
-from defines import SharepointListFields
-from logger import get_logger
-from secret import read_secret
+from .token_manager import TokenManager, get_token_manager
+from .custom_except import BadSharepointListUpdateRequestError
+from .defines import SharepointListFields
+from .logger import get_logger
+from .secret import read_secret
+from .custom_except import PersonDoesNotExistInSharepointError
 
 # Type alias for a Microsoft Graph / SharePoint JSON field value
 SharepointListFieldType = str | int | bool | None
@@ -371,8 +372,6 @@ def resolve_user_to_sharepoint_id(email: str) -> int:
         PersonDoesNotExistInSharepointError: If the user does not exist in Microsoft 365
             or cannot be added to the SharePoint site.
     """
-    from custom_except import PersonDoesNotExistInSharepointError
-
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
 

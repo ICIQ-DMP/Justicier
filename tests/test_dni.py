@@ -18,8 +18,8 @@
 
 import pytest
 
-from NIF import NIF, parse_nif, NIFType
-from custom_except import ArgumentNafInvalidError
+from justicier.NIF import NIF, parse_nif, NIFType
+from justicier.custom_except import ArgumentNafInvalidError
 
 
 class TestDNIParsing:

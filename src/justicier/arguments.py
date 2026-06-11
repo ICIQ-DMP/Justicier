@@ -22,19 +22,19 @@ import sys
 from pathlib import Path
 from typing import Callable, Iterable, Any
 
-from logger import get_logger
+from .logger import get_logger
 
 from zoneinfo import ZoneInfo  # Python 3.9+
 
-from NAF import NAF, is_naf_present, build_naf_to_dni, parse_naf
-from custom_except import (
+from .naf import NAF, is_naf_present, build_naf_to_dni, parse_naf
+from .custom_except import (
     ArgumentDateError,
     UndefinedInputTypeError,
     ArgumentNafInvalidError,
     ArgumentNafNotPresentError,
     ArgumentAuthorError,
 )
-from defines import (
+from .defines import (
     DocType,
     SharepointListFields,
     from_string,
@@ -45,10 +45,10 @@ from defines import (
     DATE_DEFAULT_FORMAT,
     DEFAULT_TIMEZONE,
 )
-from secret import read_secret
-from sharepoint import get_parameters_from_list, SharepointItem
-from NIF import NIF, parse_nif
-from Name import Name, parse_name_sharepoint, parse_name_a3, parse_email_a3
+from .secret import read_secret
+from .sharepoint import get_parameters_from_list, SharepointItem
+from .nif import NIF, parse_nif
+from .name import Name, parse_name_sharepoint, parse_name_a3, parse_email_a3
 
 log = get_logger(__name__)
 
@@ -206,8 +206,8 @@ def expand_job_id(job_id: int) -> SharepointItem:
     Returns:
         SharepointItem containing all field values for the request.
     """
-    sharepoint_domain = read_secret(SecretNames.SHAREPOINT_DOMAIN)
-    site_name = read_secret(SecretNames.SITE_NAME)
+    sharepoint_domain = read_secret(SecretNames.SHAREPOINT_DOMAIN.value)
+    site_name = read_secret(SecretNames.SITE_NAME.value)
     list_name = SHAREPOINT_LIST_NAME
 
     return get_parameters_from_list(sharepoint_domain, site_name, list_name, job_id)

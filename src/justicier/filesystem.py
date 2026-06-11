@@ -21,10 +21,10 @@ import os
 import shutil
 from pathlib import Path
 
-from NAF import NAF
-from Name import Name
+from .naf import NAF
+from .name import Name
 
-from defines import (
+from .defines import (
     LOCAL_GENERAL_OUTPUT_FOLDER_PATH,
     LOCAL_ADMIN_LOG_FOLDER_PATH,
     LOCAL_SUPERVISOR_LOG_FOLDER_PATH,
@@ -36,7 +36,7 @@ from defines import (
     SHAREPOINT_SALARIES_AND_PROOFS_OUTPUT_FOLDER_NAME,
     DATE_DEFAULT_FORMAT,
 )
-from logger import get_logger
+from .logger import get_logger
 
 log = get_logger(__name__)
 

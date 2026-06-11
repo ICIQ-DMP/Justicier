@@ -20,9 +20,9 @@ import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
 
-from data import unparse_date
-from logger import get_logger
-from secret import read_secret
+from .data import unparse_date
+from .logger import get_logger
+from .secret import read_secret
 
 log = get_logger(__name__)
 

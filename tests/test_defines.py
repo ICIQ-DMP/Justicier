@@ -18,7 +18,7 @@
 
 import pytest
 
-from defines import DocType, from_string
+from justicier.defines import DocType, from_string
 
 
 class TestFromString:

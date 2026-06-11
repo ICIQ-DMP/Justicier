@@ -16,7 +16,7 @@
 
 """Employee name parsing and representation."""
 
-from custom_except import ArgumentNafInvalidError
+from .custom_except import ArgumentNafInvalidError
 
 
 class Name:

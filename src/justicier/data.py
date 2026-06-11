@@ -20,8 +20,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any
 
-import logger
-from defines import SalaryType
+from . import logger
+from .defines import SalaryType
 
 log = logger.get_logger(__name__)
 

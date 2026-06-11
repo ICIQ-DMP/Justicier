@@ -22,15 +22,15 @@ import logging
 import time
 from pathlib import Path
 
-from NAF import build_naf_to_dni, build_naf_to_name, build_naf_to_email
-from TokenManager import get_token_manager
-from arguments import process_parse_arguments
-from chrono import elapsed_time
-from custom_except import (
+from .naf import build_naf_to_dni, build_naf_to_name, build_naf_to_email
+from .token_manager import get_token_manager
+from .arguments import process_parse_arguments
+from .chrono import elapsed_time
+from .custom_except import (
     PersonDoesNotExistInSharepointError,
     SecretCouldNotBeReadFromAnySourceError,
 )
-from defines import (
+from .defines import (
     SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
     SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME,
     SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
@@ -53,7 +53,7 @@ from defines import (
     SHAREPOINT_OUTPUT_FOLDER_PATH,
     SHAREPOINT_INPUT_FOLDER_PATH,
 )
-from filesystem import (
+from .filesystem import (
     remove_folder,
     compute_id,
     compute_impersonal_id,
@@ -61,12 +61,12 @@ from filesystem import (
     ensure_file_structure,
     get_first_file_path_in_folder,
 )
-from logger import get_logger, setup_logging
-from mail import mail_process
-from pdf import merge_pdfs, compact_folder, merge_equal_files_from_two_folders
-from report import get_end_user_report, get_initial_user_report
-from secret import read_secret
-from sharepoint import (
+from .logger import get_logger, setup_logging
+from .mail import mail_process
+from .pdf import merge_pdfs, compact_folder, merge_equal_files_from_two_folders
+from .report import get_end_user_report, get_initial_user_report
+from .secret import read_secret
+from .sharepoint import (
     download_input_folder,
     upload_folder_recursive,
     upload_file,
@@ -76,7 +76,7 @@ from sharepoint import (
     get_sharepoint_web_url,
     _connect_sharepoint,
 )
-from tasks import (
+from .tasks import (
     reverse_dict,
     complete_ids,
     process_salaries_with_rlc,

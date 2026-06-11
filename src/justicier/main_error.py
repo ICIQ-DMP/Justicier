@@ -16,13 +16,13 @@
 
 """Error handler entry point: marks the request as failed and uploads the admin log."""
 
-from arguments import parse_arguments
-from mail import send_mail_authenticated, build_admin_error_mail_body
-from sharepoint import (
+from .arguments import parse_arguments
+from .mail import send_mail_authenticated, build_admin_error_mail_body
+from .sharepoint import (
     update_list_item_field,
 )
-from secret import read_secret
-from defines import (
+from .secret import read_secret
+from .defines import (
     SharepointListFieldWorkflowState,
     SharepointListFields,
 )

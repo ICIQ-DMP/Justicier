@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Optional, Any, cast
 from rich.logging import RichHandler
 
-from defines import DATE_FORMAT, LOCAL_ADMIN_LOG_FOLDER_PATH, NOW
+from .defines import DATE_FORMAT, LOCAL_ADMIN_LOG_FOLDER_PATH, NOW
 
 # ---- extend the logging module with TRACE
 TRACE_LEVEL_NUM = 1

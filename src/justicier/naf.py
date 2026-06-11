@@ -22,13 +22,13 @@ from typing import Callable, Iterable, TypeVar
 
 import pandas as pd
 
-from NIF import NIF, parse_nif
+from .nif import NIF, parse_nif
 
 
-from Name import Name, parse_name_a3, parse_email_a3
-from custom_except import ArgumentNafInvalidError
-from defines import NAFFileColumn
-from logger import get_logger
+from .name import Name, parse_name_a3, parse_email_a3
+from .custom_except import ArgumentNafInvalidError
+from .defines import NAFFileColumn
+from .logger import get_logger
 
 log = get_logger(__name__)
 

@@ -45,7 +45,7 @@ DEFAULT_TIMEZONE = "Europe/Madrid"
 
 SHAREPOINT_DRIVE_NAME = "Documents"
 
-ROOT_FOLDER_PATH: Path = Path(__file__).resolve().parent.parent
+ROOT_FOLDER_PATH: Path = Path(__file__).resolve().parent.parent.parent
 
 LOCAL_GENERAL_OUTPUT_FOLDER_PATH: Path = (
     ROOT_FOLDER_PATH / SHAREPOINT_ROOT_OUTPUT_FOLDER_NAME

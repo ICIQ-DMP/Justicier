@@ -19,12 +19,11 @@
 from pathlib import Path
 from typing import Callable
 
-from custom_except import SecretCouldNotBeReadFromAnySourceError
-from filesystem import read_file_content, read_env_var
-from logger import get_logger
-from vault import read_vault_secret
-
-_PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
+from .custom_except import SecretCouldNotBeReadFromAnySourceError
+from .defines import ROOT_FOLDER_PATH
+from .filesystem import read_file_content, read_env_var
+from .logger import get_logger
+from .vault import read_vault_secret
 
 log = get_logger(__name__)
 
@@ -40,7 +39,7 @@ def read_secret(secret_name: str) -> str:
     """
     sources: list[Callable[[], str]] = [
         lambda: read_file_content(Path("/run/secrets") / secret_name),
-        lambda: read_file_content(_PROJECT_ROOT / "secrets" / secret_name),
+        lambda: read_file_content(ROOT_FOLDER_PATH / "secrets" / secret_name),
         lambda: read_env_var(secret_name),
         lambda: read_vault_secret(secret_name),
     ]

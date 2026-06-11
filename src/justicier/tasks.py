@@ -23,14 +23,14 @@ from typing import TypeVar
 
 import pypdf
 
-from NIF import NIF
-from NAF import NAF
-from Name import Name
-from arguments import parse_date
-from custom_except import (
+from .nif import NIF
+from .naf import NAF
+from .name import Name
+from .arguments import parse_date
+from .custom_except import (
     UndefinedRegularSalaryTypeError,
 )
-from data import (
+from .data import (
     parse_date_from_salary_filename,
     parse_salary_filename_from_salary_path,
     unparse_date,
@@ -42,7 +42,7 @@ from data import (
     get_rlc_monthly_result_structure,
     get_rnt_monthly_result_structure,
 )
-from defines import (
+from .defines import (
     SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
     SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME,
     SalaryType,
@@ -53,9 +53,9 @@ from defines import (
     SharepointListFields,
 )
 
-from filesystem import flatten_dirs, list_dir
+from .filesystem import flatten_dirs, list_dir
 
-from pdf import (
+from .pdf import (
     get_matching_page,
     write_page,
     parse_dates_from_delayed_salary,
@@ -64,8 +64,8 @@ from pdf import (
     parse_regular_salary_type,
     get_matching_pages,
 )
-from sharepoint import update_list_item_field, resolve_user_to_sharepoint_id
-from logger import get_logger
+from .sharepoint import update_list_item_field, resolve_user_to_sharepoint_id
+from .logger import get_logger
 
 log = get_logger(__name__)
 

@@ -21,7 +21,7 @@ from typing import Optional
 
 import requests
 
-from secret import read_secret
+from .secret import read_secret
 
 
 class TokenManager:
