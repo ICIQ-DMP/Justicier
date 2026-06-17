@@ -70,7 +70,7 @@ class TokenManager:
             "grant_type": "client_credentials",
             "client_id": self.client_id,
             "client_secret": self.client_secret,
-            "scope": "https://graph.microsoft.com/.default",
+            "scope": self.scope,
         }
         response = requests.post(self.token_url, data=token_data)
         response.raise_for_status()
@@ -86,6 +86,31 @@ def _create_token_manager() -> TokenManager:
     client_secret = read_secret("CLIENT_SECRET")
     return TokenManager(
         tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
+    )
+
+
+def _create_sharepoint_token_manager(sharepoint_domain: str) -> TokenManager:
+    """Create a TokenManager scoped to the SharePoint REST API.
+
+    The SharePoint REST API (``_api/*``) rejects Graph API tokens. This manager
+    requests a token against the SharePoint-specific resource so that calls like
+    ``ensureUser`` receive a correctly-scoped Bearer token.
+
+    Args:
+        sharepoint_domain: The SharePoint tenant domain,
+            e.g. ``"contoso.sharepoint.com"``.
+
+    Returns:
+        A fresh TokenManager targeting the SharePoint REST API scope.
+    """
+    tenant_id = read_secret("TENANT_ID")
+    client_id = read_secret("CLIENT_ID")
+    client_secret = read_secret("CLIENT_SECRET")
+    return TokenManager(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        client_secret=client_secret,
+        scope=f"https://{sharepoint_domain}/.default",
     )
 
 

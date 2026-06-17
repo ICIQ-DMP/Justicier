@@ -362,7 +362,7 @@ def update_list_item_field(
 
 
 def resolve_user_to_sharepoint_id(email: str) -> int:
-    """Resolve an email address to its SharePoint integer user ID via ensureUser.
+    """Resolve an email address to its SharePoint integer user ID via the User Information List.
 
     Args:
         email: Microsoft 365 email address of the user to resolve.
@@ -377,26 +377,45 @@ def resolve_user_to_sharepoint_id(email: str) -> int:
     sharepoint_domain = read_secret("SHAREPOINT_DOMAIN")
     site_name = read_secret("SITE_NAME")
 
+    # Use the Graph API to query the hidden "User Information List" that every
+    # SharePoint site maintains. This avoids the SharePoint REST ensureUser endpoint
+    # which consistently returns 401 with app-only (client_credentials) tokens even
+    # when Sites.FullControl.All is granted.
     token_manager = get_token_manager()
-    access_token = token_manager.get_token()
+    site_id = get_site_id(token_manager, sharepoint_domain, site_name)
 
-    url = f"https://{sharepoint_domain}/sites/{site_name}/_api/web/ensureuser"
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/User Information List/items"
     headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json;odata=verbose",
-        "Content-Type": "application/json;odata=verbose",
+        "Authorization": f"Bearer {token_manager.get_token()}",
+        "Prefer": "HonorNonIndexedQueriesWarningMayFailRandomly",
     }
-    body = {"logonName": f"i:0#.f|membership|{email}"}
+    params = {
+        "$expand": "fields($select=EMail,Id)",
+        "$filter": f"fields/EMail eq '{email}'",
+    }
 
-    response = requests.post(url, headers=headers, json=body)
+    response = requests.get(url, headers=headers, params=params)
 
     if response.status_code != 200:
         raise PersonDoesNotExistInSharepointError(
-            f"User '{email}' not found in Microsoft 365 or could not be added to the site: "
-            f"Error code: {response.status_code} - {str(response)}"
+            f"Could not query User Information List for '{email}': "
+            f"Error code: {response.status_code} - {response.text}"
         )
 
-    sp_user_id: int = response.json()["d"]["Id"]
+    items = response.json().get("value", [])
+    if not items:
+        raise PersonDoesNotExistInSharepointError(
+            f"User '{email}' not found in SharePoint User Information List. "
+            "The user may exist in M365 but has never accessed this site."
+        )
+
+    try:
+        sp_user_id: int = int(items[0]["fields"]["id"])
+    except IndexError as e:
+        raise PersonDoesNotExistInSharepointError(
+            f"Error parsing the response from Microsoft API, the content was {str(items[0])}"
+        ) from e
+
     log.trace(f"Resolved '{email}' to SharePoint user ID {sp_user_id}")
     return sp_user_id
 
@@ -500,6 +519,7 @@ def update_list_with_person_ids(request: int, naf: NAF, dni: NIF, email: str) ->
     update_list_item_field(request, {SharepointListFields.NIF.value: str(dni)})
     update_list_item_field(request, {SharepointListFields.NAF.value: str(naf)})
     update_list_item_field(request, {SharepointListFields.TARGET_EMAIL.value: email})
+
     sp_user_id = resolve_user_to_sharepoint_id(email)
     update_list_item_field(
         request, {SharepointListFields.TARGET_NAME.value + "LookupId": str(sp_user_id)}
