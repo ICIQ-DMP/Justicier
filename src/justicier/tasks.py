@@ -21,13 +21,13 @@ from datetime import datetime
 from pathlib import Path
 
 import pypdf
+from dateutil.relativedelta import relativedelta
 
 from .dates import (
     unparse_month,
     unparse_date,
     parse_salary_date,
     parse_salary_type,
-    parse_proof_folder_date,
     parse_rnt_date,
     parse_contract_dates,
     unparse_year_month,
@@ -43,10 +43,7 @@ from .custom_except import (
 from .data import (
     get_rlc_monthly_result_structure,
     get_rnt_monthly_result_structure,
-    parse_bank_type_from_folder_name,
-    parse_proof_type_from_la_caixa_folder_name,
-    map_folder_suffix_to_salary_type,
-    parse_proof_type_from_bbva_folder_name,
+    parse_proof_folder_name,
 )
 from .defines import (
     SHAREPOINT_RLCS_OUTPUT_FOLDER_NAME,
@@ -250,7 +247,7 @@ def process_salaries_with_rlc(
     naf: NAF,
     begin: datetime,
     end: datetime,
-) -> dict[RLCTypeFileName, dict[datetime, list[bool]]]:
+) -> tuple[dict[RLCTypeFileName, dict[datetime, list[bool]]], bool]:
     """Extract salary pages for *naf* and locate their matching RLC documents.
 
     Args:
@@ -288,6 +285,7 @@ def process_salaries_with_rlc(
                 f"Salary file {salary_file} is not selected, because its date is {unparse_date(dir_date, '-')}."
             )
 
+    scanned_liquidation_salary_found = False
     salary_files_selected.sort()
     for salary_file in salary_files_selected:
         log.debug(f"Processing file {salary_file}")
@@ -315,6 +313,7 @@ def process_salaries_with_rlc(
                 / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
                 / (salary_output_filename + ".pdf"),
             )
+            scanned_liquidation_salary_found = True
 
         salary_pages = get_matching_pages(salary_file_path, naf.slash_dash_str())
         if len(salary_pages) == 0:
@@ -423,7 +422,7 @@ def process_salaries_with_rlc(
         RLCTypeFileName.DELAY: delay_salaries_rlcs_found,
     }
 
-    return r
+    return r, scanned_liquidation_salary_found
 
 
 def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
@@ -448,6 +447,39 @@ def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
     return output_path
 
 
+def process_proof(
+    proof_folder: Path,
+    proofs_output_path: Path,
+    nif: NIF,
+    proof_date: datetime,
+    bank: BankType,
+    proof_type: SalaryType,
+) -> None:
+    """Processes a specific proof directory, that contain proof documents."""
+    for bankproof_file in list_dir(proof_folder):
+        try:
+            page = get_matching_page(
+                proof_folder / bankproof_file,
+                nif.no_dash_str(),
+                "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
+            )
+        except ValueError as e:
+            log.trace(
+                f"DNI {nif} not detected in "
+                f"{proof_folder / bankproof_file}. Error: {e}"
+            )
+            continue
+
+        output_partial_path = proofs_output_path / unparse_year_month(proof_date)
+        output_path = compute_path(output_partial_path, proof_type.value, ".pdf")
+        log.info(
+            f"DNI {nif} was detected in "
+            f"{proof_folder / bankproof_file}. "
+            f"Writing page to {output_path}."
+        )
+        write_page(page, output_path)
+
+
 def process_proofs(
     proofs_folder_path: Path,
     proofs_output_path: Path,
@@ -455,6 +487,7 @@ def process_proofs(
     begin: datetime,
     end: datetime,
     naf_to_dni: dict[NAF, NIF],
+    look_for_liquidation_payments: bool,
 ) -> None:
     """Extract bank-proof pages matching *naf*'s DNI from the proofs folder.
 
@@ -465,101 +498,56 @@ def process_proofs(
         begin: Start of the justification period.
         end: End of the justification period.
         naf_to_dni: Mapping from NAF to NIF for DNI lookup.
+        look_for_liquidation_payments: Look for liquidation payments from a previous month from begin to the next month
+        of end.
     """
     all_bankproof_folders = flatten_dirs(proofs_folder_path)
 
-    bankproof_folders_selected = []
     for bankproof_folder in all_bankproof_folders:
         try:
-            dir_date = parse_proof_folder_date(bankproof_folder.name)
+            dir_date, bank, proof_type = parse_proof_folder_name(bankproof_folder.name)
         except InvalidFilenameError as e:
             log.error(
                 f"Proof folder {bankproof_folder} has an invalid name, skipping: {e}"
             )
             continue
-        if begin <= dir_date <= end:
-            bankproof_folders_selected.append(bankproof_folder)
-            log.debug(
-                f"Proof folder {bankproof_folder} is selected, because its date is {unparse_date(dir_date, '-')}."
-            )
 
-    for bankproof_folder in bankproof_folders_selected:
-        bank = parse_bank_type_from_folder_name(bankproof_folder.name)
-        proof_date = parse_proof_folder_date(bankproof_folder.name)
-        log.trace(f"Working with folder {bankproof_folder}. Bank type is {bank}")
-        if bank == BankType.BBVA:
-            for bankproof_file in list_dir(proofs_folder_path / bankproof_folder):
-                try:
-                    page = get_matching_page(
-                        proofs_folder_path / bankproof_folder / bankproof_file,
-                        naf_to_dni[naf].no_dash_str(),
-                        "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
-                    )
-                except ValueError as e:
-                    log.trace(
-                        f"DNI {naf_to_dni[naf]} not detected in "
-                        f"{proofs_folder_path / bankproof_folder / bankproof_file}. Error: {e}"
-                    )
-                    continue
-                try:
-                    bbva_proof_type = parse_proof_type_from_bbva_folder_name(
-                        bankproof_folder.name
-                    )
-                    suffix = map_folder_suffix_to_salary_type(bbva_proof_type)
-                except InvalidFilenameError as e:
-                    log.error(
-                        f"The file folder {str(bankproof_folder)} has an invalid name. Error: {str(e)}"
-                    )
-                    continue
-                output_partial_path = proofs_output_path / unparse_year_month(
-                    proof_date
-                )
-                output_path = compute_path(output_partial_path, suffix.value, ".pdf")
-                log.info(
-                    f"DNI {naf_to_dni[naf]} was detected in "
-                    f"{proofs_folder_path / bankproof_folder / bankproof_file}. "
-                    f"Writing page to {output_path}."
-                )
-                write_page(page, output_path)
-
-        elif bank == BankType.LA_CAIXA:
-            file_names = list_dir(proofs_folder_path / bankproof_folder)
-            for file_name in file_names:
-                try:
-                    page = get_matching_page(
-                        proofs_folder_path / bankproof_folder / file_name,
-                        naf_to_dni[naf].no_dash_str(),
-                        "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
-                    )
-                except ValueError as e:
+        if proof_type is SalaryType.SETTLEMENT:
+            if look_for_liquidation_payments:
+                # Only select a payment that is settlement if the flag is active
+                if (
+                    begin - relativedelta(months=1)
+                    <= dir_date
+                    <= end + relativedelta(months=1)
+                ):
+                    # When selecting, select the range plus two months offset, one from the beginning one from the end
                     log.debug(
-                        f"DNI {naf_to_dni[naf]} not detected in "
-                        f"{proofs_folder_path / bankproof_folder / file_name}. Error: {e}"
+                        f"Proof folder {bankproof_folder} is selected, because its date is "
+                        f"{unparse_date(dir_date, '-')}."
                     )
-                    continue
-                try:
-                    la_caixa_proof_type = parse_proof_type_from_la_caixa_folder_name(
-                        bankproof_folder.name
+                    process_proof(
+                        bankproof_folder,
+                        proofs_output_path,
+                        naf_to_dni[naf],
+                        dir_date,
+                        bank,
+                        proof_type,
                     )
-                    suffix = map_folder_suffix_to_salary_type(la_caixa_proof_type)
-                except InvalidFilenameError as e:
-                    log.error(
-                        f"The file folder {str(bankproof_folder)} has an invalid name. Error: {str(e)}"
-                    )
-                    continue
-                output_partial_path = proofs_output_path / unparse_year_month(
-                    proof_date
-                )
-                output_path = compute_path(output_partial_path, suffix.value, ".pdf")
-                log.info(
-                    f"DNI {naf_to_dni[naf]} was detected in "
-                    f"{proofs_folder_path / bankproof_folder / file_name}. "
-                    f"Writing page to {output_path}."
-                )
-                write_page(page, output_path)
+
         else:
-            log.error(f"{bank} is a bad bank. Skipping to next bank proof.")
-            continue
+            # If it is not a settlement, the flag does not affect to selection.
+            if begin <= dir_date <= end:
+                log.debug(
+                    f"Proof folder {bankproof_folder} is selected, because its date is {unparse_date(dir_date, '-')}."
+                )
+                process_proof(
+                    bankproof_folder,
+                    proofs_output_path,
+                    naf_to_dni[naf],
+                    dir_date,
+                    bank,
+                    proof_type,
+                )
 
 
 def process_contracts(

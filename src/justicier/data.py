@@ -16,12 +16,19 @@
 
 """Result-structure factories."""
 
+import re
 from datetime import datetime
-from typing import Dict, List, Any, TypeVar, Type
+from typing import Dict, List, Any, TypeVar, Type, Union
 
 from . import logger
 from .custom_except import InvalidFilenameError
-from .defines import BankType, SalaryType, LaCaixaFolderSuffixes, BBVAFolderSuffixes
+from .defines import (
+    BankType,
+    SalaryType,
+    LaCaixaFolderSuffixes,
+    BBVAFolderSuffixes,
+    DATETIME_FORMAT_MONTH_YEAR,
+)
 from .naf import NAF
 from .name import Name
 from .nif import NIF
@@ -142,13 +149,8 @@ def parse_bank_type_from_folder_name(bank_folder_name: str) -> BankType:
             f"The bankproof {bank_folder_name} has an invalid name as it can't be split by _"
             f""
         ) from e
-    suffixes = [
-        BBVAFolderSuffixes.REGULAR.value,
-        BBVAFolderSuffixes.DELAY.value,
-        BBVAFolderSuffixes.EXTRA.value,
-        LaCaixaFolderSuffixes.REGULAR.value,
-        LaCaixaFolderSuffixes.DELAY.value,
-        LaCaixaFolderSuffixes.EXTRA.value,
+    suffixes = [s.value for s in BBVAFolderSuffixes] + [
+        s.value for s in LaCaixaFolderSuffixes
     ]
     for suffix in suffixes:
         if suffix in name_as_list_without_initial_date:
@@ -180,6 +182,56 @@ def _parse_proof_type(
         ) from e
 
 
+def parse_proof_folder_name(folder_name: str) -> tuple[datetime, BankType, SalaryType]:
+    """Parse date, bank type, and salary type from a bank-proof folder name.
+
+    The regex is built dynamically from the BankType, BBVAFolderSuffixes, and
+    LaCaixaFolderSuffixes enum values, so adding a new member to any of those
+    enums is automatically reflected here.
+
+    Expected format: ``MMYYYY_<BankType>[_<suffix>]``
+    """
+    bank_type_to_suffix_cls: dict[
+        BankType, Union[Type[BBVAFolderSuffixes], Type[LaCaixaFolderSuffixes]]
+    ] = {
+        BankType.BBVA: BBVAFolderSuffixes,
+        BankType.LA_CAIXA: LaCaixaFolderSuffixes,
+    }
+
+    bank_type_alts = "|".join(
+        re.escape(b.value)
+        for b in sorted(BankType, key=lambda b: len(b.value), reverse=True)
+    )
+    all_suffixes = list(
+        dict.fromkeys(
+            s.value
+            for the_class in bank_type_to_suffix_cls.values()
+            for s in the_class
+            if s.value
+        )
+    )
+    suffix_alts = "|".join(
+        re.escape(s) for s in sorted(all_suffixes, key=len, reverse=True)
+    )
+
+    pattern = re.compile(rf"^(\d{{6}})_({bank_type_alts})(?:_({suffix_alts}))?$")
+
+    m = pattern.match(folder_name)
+    if not m:
+        raise InvalidFilenameError(
+            f"Bank-proof folder name '{folder_name}' does not match the expected format"
+        )
+
+    date_str, bank_type_str, suffix_str = m.group(1), m.group(2), m.group(3)
+
+    date = datetime.strptime(date_str, DATETIME_FORMAT_MONTH_YEAR)
+    bank_type = BankType(bank_type_str)
+    suffix_cls = bank_type_to_suffix_cls[bank_type]
+    suffix = suffix_cls(suffix_str if suffix_str is not None else "")
+
+    return date, bank_type, map_folder_suffix_to_salary_type(suffix)
+
+
 def parse_proof_type_from_la_caixa_folder_name(
     folder_name: str,
 ) -> LaCaixaFolderSuffixes:
@@ -202,6 +254,8 @@ def map_folder_suffix_to_salary_type(
         return SalaryType.DELAY
     elif suffix == BBVAFolderSuffixes.EXTRA or suffix == LaCaixaFolderSuffixes.EXTRA:
         return SalaryType.EXTRA
+    elif suffix == BBVAFolderSuffixes.SETTLEMENT:
+        return SalaryType.SETTLEMENT
     else:
         raise ValueError(
             f"{suffix} is not a valid BBVAFolderSuffixes or LaCaixaFolderSuffixes"

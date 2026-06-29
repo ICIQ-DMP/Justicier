@@ -553,10 +553,13 @@ def process_parse_arguments() -> argparse.Namespace:
         args.location = InputLocation.LOCAL.value
 
     # Set time to first second of day, so we do select all documents produced the same day as the beginning
-    args.begin = args.begin.replace(hour=0, minute=0, second=0, microsecond=0)
-    args.end = args.end.replace(hour=23, minute=59, second=59, microsecond=999999)
-    if args.begin >= args.end:
-        raise ValueError(f"Begin date {args.begin} can not be after {args.end}")
+    if args.begin:
+        args.begin = args.begin.replace(hour=0, minute=0, second=0, microsecond=0)
+    if args.end:
+        args.end = args.end.replace(hour=23, minute=59, second=59, microsecond=999999)
+    if args.begin and args.end:
+        if args.begin >= args.end:
+            raise ValueError(f"Begin date {args.begin} can not be after {args.end}")
     return args
 
 

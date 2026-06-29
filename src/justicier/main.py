@@ -186,7 +186,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
     salary_output_path: Path = (
         current_justification_folder / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
     )
-    salaries_with_rlcs_result = process_salaries_with_rlc(
+    salaries_with_rlcs_result, scanned_liquidation_found = process_salaries_with_rlc(
         salaries_folder,
         rlcs_folder,
         current_justification_folder,
@@ -200,7 +200,13 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         current_justification_folder / SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME
     )
     process_proofs(
-        proofs_folder, proof_output_path, args.naf, args.begin, args.end, naf_to_dni
+        proofs_folder,
+        proof_output_path,
+        args.naf,
+        args.begin,
+        args.end,
+        naf_to_dni,
+        scanned_liquidation_found,
     )
 
     rlc_output_path: Path = (

@@ -197,6 +197,9 @@ def download_folder_recursive(
         local_root: Local root path where files are mirrored.
     """
     items = list_folder_contents(token_manager, drive_id, remote_path)
+
+    print(items)
+    input()
     for item in items:
         name = Path(item["name"])
         item_path = remote_path / name

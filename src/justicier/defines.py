@@ -228,6 +228,7 @@ class SalaryType(Enum):
     DELAY = "Atrasos"
     EXTRA = "Extres"
     LIQ = "LIQ"
+    SETTLEMENT = "BESTRETA_QUITANÇA"
 
 
 class LaCaixaFolderSuffixes(Enum):
@@ -244,6 +245,7 @@ class BBVAFolderSuffixes(Enum):
     REGULAR = ""
     DELAY = "endarreriments"
     EXTRA = "FINIQUITO"
+    SETTLEMENT = "BESTRETA_QUITANÇA"
 
 
 class RegularSalaryType(Enum):
