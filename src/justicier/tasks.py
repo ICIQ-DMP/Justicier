@@ -501,9 +501,13 @@ def process_proofs(
         look_for_liquidation_payments: Look for liquidation payments from a previous month from begin to the next month
         of end.
     """
+    if look_for_liquidation_payments:
+        log.trace("Looking for liquidation payments")
     all_bankproof_folders = flatten_dirs(proofs_folder_path)
+    # all_bankproof_folders.sort()  # Optional, improves readibility
 
     for bankproof_folder in all_bankproof_folders:
+        process_current = False
         try:
             dir_date, bank, proof_type = parse_proof_folder_name(bankproof_folder.name)
         except InvalidFilenameError as e:
@@ -513,41 +517,34 @@ def process_proofs(
             continue
 
         if proof_type is SalaryType.SETTLEMENT:
+            # Only select a payment that is settlement if the flag is active
             if look_for_liquidation_payments:
-                # Only select a payment that is settlement if the flag is active
+                # When selecting, select the range plus two months offset, one from the beginning one from the end
                 if (
                     begin - relativedelta(months=1)
                     <= dir_date
                     <= end + relativedelta(months=1)
                 ):
-                    # When selecting, select the range plus two months offset, one from the beginning one from the end
-                    log.debug(
-                        f"Proof folder {bankproof_folder} is selected, because its date is "
-                        f"{unparse_date(dir_date, '-')}."
-                    )
-                    process_proof(
-                        bankproof_folder,
-                        proofs_output_path,
-                        naf_to_dni[naf],
-                        dir_date,
-                        bank,
-                        proof_type,
-                    )
+                    process_current = True
 
         else:
             # If it is not a settlement, the flag does not affect to selection.
             if begin <= dir_date <= end:
-                log.debug(
-                    f"Proof folder {bankproof_folder} is selected, because its date is {unparse_date(dir_date, '-')}."
-                )
-                process_proof(
-                    bankproof_folder,
-                    proofs_output_path,
-                    naf_to_dni[naf],
-                    dir_date,
-                    bank,
-                    proof_type,
-                )
+                process_current = True
+
+        if process_current:
+            log.debug(
+                f"Proof folder {bankproof_folder} is selected, because its date is {unparse_date(dir_date, '-')}."
+            )
+
+            process_proof(
+                proofs_folder_path / bankproof_folder,
+                proofs_output_path,
+                naf_to_dni[naf],
+                dir_date,
+                bank,
+                proof_type,
+            )
 
 
 def process_contracts(
