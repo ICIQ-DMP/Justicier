@@ -582,7 +582,7 @@ def process_contracts(
             )
             if begin <= end_date and begin_date <= end:
                 log.info(
-                    f"{contracts_file} with date {unparse_date(begin_date, '-')}, "
+                    f"{contracts_file} that starts at {unparse_date(begin_date, '-')} and ends at "
                     f"{unparse_date(end_date, '-')} is in range of "
                     f"{unparse_date(begin, '-')}, {unparse_date(end, '-')}. Copying it to {naf_dir}"
                 )
