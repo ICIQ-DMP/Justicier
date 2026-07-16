@@ -296,7 +296,7 @@ def process_salaries_with_rlc(
         except InvalidFilenameError as e:
             log.error(f"Salary file {salary_file} has an invalid name, skipping: {e}")
             continue
-        salary_output_filename = (
+        salary_output_filename_base = (
             f"{unparse_year_month(salary_date)}_{salary_type.value}"
         )
         # Liquidation files
@@ -311,7 +311,7 @@ def process_salaries_with_rlc(
                 src=salary_file_path,
                 dst=naf_dir
                 / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
-                / (salary_output_filename + ".pdf"),
+                / (salary_output_filename_base + ".pdf"),
             )
             scanned_liquidation_salary_found = True
 
@@ -325,7 +325,7 @@ def process_salaries_with_rlc(
             salary_output_path = (
                 naf_dir
                 / SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME
-                / salary_output_filename
+                / (salary_output_filename_base + ".pdf")
             )
 
             index = 1
