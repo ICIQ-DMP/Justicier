@@ -119,10 +119,10 @@ def reverse_dict(d: dict[_K, _V]) -> dict[_V, _K]:
 
 def complete_ids_with_naf(
     naf: NAF,
-    naf_to_dni: dict[NAF, NIF],
+    naf_to_dni: dict[NAF, list[NIF]],
     naf_to_name: dict[NAF, Name],
     naf_to_email: dict[NAF, str],
-) -> tuple[NIF, Name, str]:
+) -> tuple[list[NIF], Name, str]:
     """Resolve NIF, Name, and email for the given NAF using the lookup tables.
 
     Args:
@@ -268,12 +268,12 @@ def complete_ids(
     email: str,
     name: Name,
     name_to_naf: dict[Name, NAF],
-    naf_to_nif: dict[NAF, NIF],
+    naf_to_nif: dict[NAF, list[NIF]],
     nif_to_naf: dict[NIF, NAF],
     naf_to_name: dict[NAF, Name],
     email_to_naf: dict[str, NAF],
     naf_to_email: dict[NAF, str],
-) -> tuple[NAF, NIF, Name, str]:
+) -> tuple[NAF, list[NIF], Name, str]:
     """Resolve all employee identifiers from whichever primary key is provided.
 
     Precedence: NAF > email > NIF > name. Warns when a redundant identifier is
@@ -348,5 +348,7 @@ def complete_ids(
         raise ValueError(
             "An employee identifier was not supplied (NAF, DNI or name). Aborting."
         )
-    nif, name, email = complete_ids_with_naf(naf, naf_to_nif, naf_to_name, naf_to_email)
-    return naf, nif, name, email
+    nifs, name, email = complete_ids_with_naf(
+        naf, naf_to_nif, naf_to_name, naf_to_email
+    )
+    return naf, nifs, name, email

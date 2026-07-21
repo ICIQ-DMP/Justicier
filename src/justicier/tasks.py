@@ -450,34 +450,36 @@ def compute_path(partial_path: Path, suffix: str, extension: str) -> Path:
 def process_proof(
     proof_folder: Path,
     proofs_output_path: Path,
-    nif: NIF,
+    nifs: list[NIF],
     proof_date: datetime,
     bank: BankType,
     proof_type: SalaryType,
 ) -> None:
     """Processes a specific proof directory, that contain proof documents."""
     for bankproof_file in list_dir(proof_folder):
-        try:
-            page = get_matching_page(
-                proof_folder / bankproof_file,
-                nif.no_dash_str(),
-                "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
-            )
-        except ValueError as e:
-            log.trace(
-                f"DNI {nif} not detected in "
-                f"{proof_folder / bankproof_file}. Error: {e}"
-            )
-            continue
+        for nif in nifs:
+            try:
+                page = get_matching_page(
+                    proof_folder / bankproof_file,
+                    nif.no_dash_str(),
+                    "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
+                )
+            except ValueError as e:
+                log.trace(
+                    f"DNI {nifs} not detected in "
+                    f"{proof_folder / bankproof_file}. Error: {e}"
+                )
+                continue
 
-        output_partial_path = proofs_output_path / unparse_year_month(proof_date)
-        output_path = compute_path(output_partial_path, proof_type.value, ".pdf")
-        log.info(
-            f"DNI {nif} was detected in "
-            f"{proof_folder / bankproof_file}. "
-            f"Writing page to {output_path}."
-        )
-        write_page(page, output_path)
+            output_partial_path = proofs_output_path / unparse_year_month(proof_date)
+            output_path = compute_path(output_partial_path, proof_type.value, ".pdf")
+            log.info(
+                f"DNI {nifs} was detected in "
+                f"{proof_folder / bankproof_file}. "
+                f"Writing page to {output_path}."
+            )
+            write_page(page, output_path)
+            break  # If we have matched the current document, we do not need to keep lookign with another nif
 
 
 def process_proofs(
@@ -486,7 +488,7 @@ def process_proofs(
     naf: NAF,
     begin: datetime,
     end: datetime,
-    naf_to_dni: dict[NAF, NIF],
+    naf_to_dni: dict[NAF, list[NIF]],
     look_for_liquidation_payments: bool,
 ) -> None:
     """Extract bank-proof pages matching *naf*'s DNI from the proofs folder.

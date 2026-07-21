@@ -16,9 +16,9 @@
 
 """File-system helpers: directory creation, path computation, and output structure."""
 
-import argparse
 import os
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 from .naf import NAF
@@ -141,29 +141,49 @@ def flatten_dirs(folder_to_flat: Path) -> list[Path]:
     return flatted_folders
 
 
-def compute_id(now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]) -> str:
+def compute_id(
+    now: str,
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
+    request: str,
+    author: str,
+    naf_to_name: dict[NAF, Name],
+) -> str:
     """Compute the full run identifier, including the requesting author.
 
     Args:
         now: Timestamp string for the current run.
-        args: Parsed CLI arguments.
+        naf: NAF of the employee being justified.
+        begin: Start of the requested period.
+        end: End of the requested period.
+        request: ID of the justification request.
+        author: Email of the user doing the request.
         naf_to_name: Mapping from NAF to employee Name.
 
     Returns:
         Unique identifier string for this run including the author email.
     """
-    id_str = compute_impersonal_id(now, args, naf_to_name)
-    return f"{id_str}_{args.author}"
+    id_str = compute_impersonal_id(now, naf, begin, end, request, naf_to_name)
+    return f"{id_str}_{author}"
 
 
 def compute_impersonal_id(
-    now: str, args: argparse.Namespace, naf_to_name: dict[NAF, Name]
+    now: str,
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
+    request: str,
+    naf_to_name: dict[NAF, Name],
 ) -> str:
     """Compute the run identifier without the requesting author.
 
     Args:
         now: Timestamp string for the current run.
-        args: Parsed CLI arguments.
+        naf: NAF of the employee being justified.
+        begin: Start of the requested period.
+        end: End of the requested period.
+        request: ID of the justification request.
         naf_to_name: Mapping from NAF to employee Name.
 
     Returns:
@@ -173,29 +193,29 @@ def compute_impersonal_id(
         KeyError: If the NAF is not found in *naf_to_name*.
     """
     id_str = ""
-    if args.request:
-        id_str = f"_{args.request}"
+    if request:
+        id_str = f"_{request}"
     try:
-        name = str(naf_to_name[args.naf])
+        name = str(naf_to_name[naf])
     except KeyError:
         log.debug(
-            f"NAF provided was not possible to be translated into name, NAF is: {args.naf}"
+            f"NAF provided was not possible to be translated into name, NAF is: {naf}"
         )
         raise KeyError
     r = (
-        f"{now}_{args.naf}_{name.replace(' ', '_')}"
-        f"_{args.begin.strftime(DATE_DEFAULT_FORMAT)}_{args.end.strftime(DATE_DEFAULT_FORMAT)}{id_str}"
+        f"{now}_{naf}_{name.replace(' ', '_')}"
+        f"_{begin.strftime(DATE_DEFAULT_FORMAT)}_{end.strftime(DATE_DEFAULT_FORMAT)}{id_str}"
     )
     return r
 
 
 def compute_paths(
-    args: argparse.Namespace, id_str: str, impersonal_id_str: str
+    author: str, id_str: str, impersonal_id_str: str
 ) -> tuple[Path, Path, Path, Path, Path]:
     """Compute all output and log paths for a justification run.
 
     Args:
-        args: Parsed CLI arguments (uses ``args.author``).
+        author: Email of the user doing the request.
         id_str: Full run identifier (including author).
         impersonal_id_str: Run identifier without author.
 
@@ -209,7 +229,7 @@ def compute_paths(
     admin_log_path: Path = LOCAL_ADMIN_LOG_FOLDER_PATH / log_filename
     supervisor_log_path: Path = LOCAL_SUPERVISOR_LOG_FOLDER_PATH / log_filename
 
-    current_user_folder: Path = LOCAL_GENERAL_OUTPUT_FOLDER_PATH / args.author
+    current_user_folder: Path = LOCAL_GENERAL_OUTPUT_FOLDER_PATH / author
     justification_name = impersonal_id_str
     current_justification_folder: Path = current_user_folder / justification_name
     user_report_file: Path = current_justification_folder / log_filename_impersonal
