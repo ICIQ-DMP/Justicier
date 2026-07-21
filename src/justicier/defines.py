@@ -119,7 +119,7 @@ class NAFFileColumn(str, Enum):
 
     NAME = "Nombre Completo"
     NASS = "NASS"
-    NIF = "NIF"
+    NIF = "NIF ACTUAL"
     EMAIL = "E-mail profesional"
 
 
