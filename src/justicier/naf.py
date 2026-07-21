@@ -135,7 +135,7 @@ def parse_columns(
         raise
     try:
         values: list[list[_V]] = [
-            [func_apply_value(v) for v in row]
+            [func_apply_value(v) for v in row if not pd.isna(v)]
             for row in zip(*(df[col] for col in value))
         ]
     except Exception as e:
@@ -174,7 +174,15 @@ def build_naf_to_dni(path: Path) -> dict[NAF, list[NIF]]:
     """
     df = read_dataframe(path, 0, 0)
     return parse_columns(
-        df, NAFFileColumn.NASS, [NAFFileColumn.NIF_CURRENT], parse_naf, parse_nif
+        df,
+        NAFFileColumn.NASS,
+        [
+            NAFFileColumn.NIF_CURRENT,
+            NAFFileColumn.NIF_PREVIOUS,
+            NAFFileColumn.NIF_BEFORE_PREVIOUS,
+        ],
+        parse_naf,
+        parse_nif,
     )
 
 

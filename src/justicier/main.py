@@ -150,6 +150,8 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         naf_to_email,
     )
 
+    nifs = naf_to_dni[args.naf]
+
     if args.request:
         try:
             update_list_with_person_ids(args.request, args.naf, nifs[0], args.email)

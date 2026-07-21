@@ -462,11 +462,11 @@ def process_proof(
                 page = get_matching_page(
                     proof_folder / bankproof_file,
                     nif.no_dash_str(),
-                    "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]",
+                    "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]|\\[A-Z][A-Z]d{7}",
                 )
             except ValueError as e:
                 log.trace(
-                    f"DNI {nifs} not detected in "
+                    f"DNI {nif.no_dash_str()} not detected in "
                     f"{proof_folder / bankproof_file}. Error: {e}"
                 )
                 continue
@@ -474,7 +474,7 @@ def process_proof(
             output_partial_path = proofs_output_path / unparse_year_month(proof_date)
             output_path = compute_path(output_partial_path, proof_type.value, ".pdf")
             log.info(
-                f"DNI {nifs} was detected in "
+                f"DNI {nif.no_dash_str()} was detected in "
                 f"{proof_folder / bankproof_file}. "
                 f"Writing page to {output_path}."
             )

@@ -129,8 +129,10 @@ class NIF:
         """Return the identifier as a single string with no dashes or separators."""
         if self.dni_type == NIFType.DNI:
             return f"{self.number}{self.letter}"
-        if self.dni_type in (NIFType.TEMPORAL_NIE, NIFType.PASSPORT):
+        if self.dni_type == NIFType.TEMPORAL_NIE:
             return f"{self.initial}{self.letter}{self.number}"
+        if self.dni_type == NIFType.PASSPORT:
+            return f"{self.initial}{self.number}{self.letter}"  # TODO: not parsed correctly
         return f"{self.initial}{self.number}{self.letter}"
 
 
