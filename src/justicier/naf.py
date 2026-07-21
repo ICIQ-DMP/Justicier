@@ -171,7 +171,7 @@ def build_naf_to_dni(path: Path) -> dict[NAF, NIF]:
     """
     df = read_dataframe(path, 0, 0)
     return parse_two_columns(
-        df, NAFFileColumn.NASS, NAFFileColumn.NIF, parse_naf, parse_nif
+        df, NAFFileColumn.NASS, NAFFileColumn.NIF_CURRENT, parse_naf, parse_nif
     )
 
 
