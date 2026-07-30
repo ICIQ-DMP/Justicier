@@ -456,13 +456,16 @@ def process_proof(
     proof_type: SalaryType,
 ) -> None:
     """Processes a specific proof directory, that contain proof documents."""
-    for bankproof_file in list_dir(proof_folder):
+    files = list_dir(proof_folder)
+    files.sort()
+    for bankproof_file in files:
         for nif in nifs:
             try:
+                pattern = "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]|[A-Z][A-Z]\\d{7}"
                 page = get_matching_page(
                     proof_folder / bankproof_file,
                     nif.no_dash_str(),
-                    "[A-Z]\\d{7}[A-Z]|\\d{8}[A-Z]|\\[A-Z][A-Z]d{7}",
+                    pattern,
                 )
             except ValueError as e:
                 log.trace(
