@@ -106,13 +106,13 @@ _K = TypeVar("_K")
 _V = TypeVar("_V")
 
 
-def parse_two_columns(
+def parse_columns(
     df: pd.DataFrame,
     key: str,
-    value: str,
+    value: list[str],
     func_apply_key: Callable[[str], _K],
     func_apply_value: Callable[[str], _V],
-) -> dict[_K, _V]:
+) -> dict[_K, list[_V]]:
     """Build a typed dictionary by applying transform functions to two DataFrame columns.
 
     Args:
@@ -134,7 +134,10 @@ def parse_two_columns(
         log.error(f"func apply key failed with exception:  {e}")
         raise
     try:
-        values: list[_V] = [func_apply_value(v) for v in df[value]]
+        values: list[list[_V]] = [
+            [func_apply_value(v) for v in row if not pd.isna(v)]
+            for row in zip(*(df[col] for col in value))
+        ]
     except Exception as e:
         log.error(f"func apply value failed with exception: {e}")
         raise
@@ -160,7 +163,7 @@ def read_dataframe(path: Path, skiprows: int, header: int | None) -> pd.DataFram
     )
 
 
-def build_naf_to_dni(path: Path) -> dict[NAF, NIF]:
+def build_naf_to_dni(path: Path) -> dict[NAF, list[NIF]]:
     """Build a NAF → NIF mapping from the employee Excel file.
 
     Args:
@@ -170,9 +173,29 @@ def build_naf_to_dni(path: Path) -> dict[NAF, NIF]:
         Dictionary mapping each NAF to its corresponding NIF.
     """
     df = read_dataframe(path, 0, 0)
-    return parse_two_columns(
-        df, NAFFileColumn.NASS, NAFFileColumn.NIF, parse_naf, parse_nif
+    return parse_columns(
+        df,
+        NAFFileColumn.NASS,
+        [
+            NAFFileColumn.NIF_CURRENT,
+            NAFFileColumn.NIF_PREVIOUS,
+            NAFFileColumn.NIF_BEFORE_PREVIOUS,
+        ],
+        parse_naf,
+        parse_nif,
     )
+
+
+def flatten_dict_list(d: dict[_K, list[_V]]) -> dict[_K, _V]:
+    """Return a new dict mapping each key to the first element of its value list.
+
+    Args:
+        d: Source dictionary mapping keys to lists of values.
+
+    Returns:
+        Dictionary mapping each key to the first item of its original list.
+    """
+    return {key: values[0] for key, values in d.items()}
 
 
 def build_naf_to_name(path: Path) -> dict[NAF, Name]:
@@ -185,8 +208,10 @@ def build_naf_to_name(path: Path) -> dict[NAF, Name]:
         Dictionary mapping each NAF to its corresponding Name.
     """
     df = read_dataframe(path, 0, 0)
-    return parse_two_columns(
-        df, NAFFileColumn.NASS, NAFFileColumn.NAME, parse_naf, parse_name_a3
+    return flatten_dict_list(
+        parse_columns(
+            df, NAFFileColumn.NASS, [NAFFileColumn.NAME], parse_naf, parse_name_a3
+        )
     )
 
 
@@ -200,8 +225,10 @@ def build_naf_to_email(path: Path) -> dict[NAF, str]:
         Dictionary mapping each NAF to its corresponding email address.
     """
     df = read_dataframe(path, 0, 0)
-    return parse_two_columns(
-        df, NAFFileColumn.NASS, NAFFileColumn.EMAIL, parse_naf, parse_email_a3
+    return flatten_dict_list(
+        parse_columns(
+            df, NAFFileColumn.NASS, [NAFFileColumn.EMAIL], parse_naf, parse_email_a3
+        )
     )
 
 

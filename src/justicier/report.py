@@ -16,7 +16,6 @@
 
 """User-facing report builders for justification results."""
 
-import argparse
 from dataclasses import dataclass
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
@@ -24,7 +23,8 @@ from importlib.metadata import version, PackageNotFoundError
 from pyfiglet import Figlet
 
 from .dates import unparse_full_date, unparse_date
-from .defines import RLCTypeFileName
+from .defines import RLCTypeFileName, DocType
+from .naf import NAF
 from .logger import get_logger
 
 log = get_logger(__name__)
@@ -36,11 +36,27 @@ def format_line(content: str, width: int = 119) -> str:
     return f"* {content.ljust(width - 4)} *\n"
 
 
-def get_initial_user_report(args: argparse.Namespace) -> str:
+def get_initial_user_report(
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
+    merge_result: dict[DocType, bool],
+    merge_salary: bool,
+    merge_rnt_rlc: bool,
+    author: str,
+    request: str,
+) -> str:
     """Build the ASCII-banner header section of the user report.
 
     Args:
-        args: Parsed CLI arguments containing request metadata.
+        naf: NAF of the employee being justified.
+        begin: Start of the requested period.
+        end: End of the requested period.
+        merge_result: Mapping from document category to whether it should be merged.
+        merge_salary: Whether salaries are merged with their corresponding bankproof.
+        merge_rnt_rlc: Whether RNTs and RLCs of each month are merged.
+        author: Email of the user doing the request.
+        request: ID of the justification request.
 
     Returns:
         Formatted multi-line string with the logo, version, and request parameters.
@@ -56,9 +72,9 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
             line = f"=                                     {line.ljust(77)}   ="  # Pad to 120 and then add "="
         ascii_logo += line + "\n"
 
-    compact_something = any(args.merge_result.values())
+    compact_something = any(merge_result.values())
     if compact_something:
-        compact_text = ",".join(str(key.value) for key in args.merge_result.keys())
+        compact_text = ",".join(str(key.value) for key in merge_result.keys())
     else:
         compact_text = "No document categories to merge"
 
@@ -89,20 +105,18 @@ def get_initial_user_report(args: argparse.Namespace) -> str:
     user_report += "*                                                USER REQUEST DETAILS                                                 *\n"  # noqa: E501
     user_report += border
     user_report += "* PARAMETERS:                                                                                                         *\n"  # noqa: E501
-    user_report += format_line(f"- NAF requested: {args.naf}")
-    user_report += format_line(f"- Initial date: {unparse_full_date(args.begin)}")
-    user_report += format_line(f"- End date: {unparse_full_date(args.end)}")
+    user_report += format_line(f"- NAF requested: {naf}")
+    user_report += format_line(f"- Initial date: {unparse_full_date(begin)}")
+    user_report += format_line(f"- End date: {unparse_full_date(end)}")
     user_report += "* OPTIONS:                                                                                                            *\n"  # noqa: E501
     user_report += format_line(
-        f"- Merge salaries with corresponding bankproof: {args.merge_salary}"
+        f"- Merge salaries with corresponding bankproof: {merge_salary}"
     )
-    user_report += format_line(
-        f"- Merge RNTs and RLCs of each month: {args.merge_rnt_rlc}"
-    )
+    user_report += format_line(f"- Merge RNTs and RLCs of each month: {merge_rnt_rlc}")
     user_report += format_line("- Document categories to merge: " + compact_text)
     user_report += "* IDENTIFICATION:                                                                                                     *\n"  # noqa: E501
-    user_report += format_line("- Email of the user doing the request: " + args.author)
-    user_report += format_line(f"- Request id: {args.request}")
+    user_report += format_line("- Email of the user doing the request: " + author)
+    user_report += format_line(f"- Request id: {request}")
     user_report += border
     user_report += "\n"
 
@@ -152,14 +166,18 @@ _RLC_TYPE_CONFIG: dict[RLCTypeFileName, SalaryRLCConfig] = {
 def _unparse_salary_rlc_for_type(
     content: dict[datetime, list[bool]],
     config: SalaryRLCConfig,
-    args: argparse.Namespace,
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
 ) -> str:
     """Build the report section for one RLC type using its configuration.
 
     Args:
         content: Per-month result structure for this RLC type.
         config: Display and tracking configuration for this RLC type.
-        args: Parsed CLI arguments containing NAF and date range.
+        naf: NAF of the employee being justified.
+        begin: Start of the requested period.
+        end: End of the requested period.
 
     Returns:
         Formatted report string for this RLC type.
@@ -171,25 +189,25 @@ def _unparse_salary_rlc_for_type(
         if values[0]:
             salaries_found += 1
             if config.report_found:
-                msg += f"A {config.salary_label} for NAF {args.naf} was found for month {unparse_date(key, '-')}\n"
+                msg += f"A {config.salary_label} for NAF {naf} was found for month {unparse_date(key, '-')}\n"
             if not values[1]:
                 something_wrong = True
                 msg += (
                     f"The corresponding RLC {config.rlc_code} N for the "
-                    f"{config.salary_label} for NAF {args.naf} was not found "
+                    f"{config.salary_label} for NAF {naf} was not found "
                     f"during month {unparse_date(key, '-')}\n"
                 )
             if not values[2]:
                 something_wrong = True
                 msg += (
                     f"The corresponding RLC {config.rlc_code} P for the "
-                    f"{config.salary_label} for NAF {args.naf} was not found "
+                    f"{config.salary_label} for NAF {naf} was not found "
                     f"during month {unparse_date(key, '-')}\n"
                 )
         elif config.report_missing:
             something_wrong = True
             msg += (
-                f"{config.salary_label.capitalize()} for NAF {args.naf} "
+                f"{config.salary_label.capitalize()} for NAF {naf} "
                 f"was not found during month {unparse_date(key, '-')}\n"
             )
 
@@ -198,8 +216,8 @@ def _unparse_salary_rlc_for_type(
         if salaries_found != total:
             something_wrong = True
             msg += (
-                f"In the period from {unparse_date(args.begin, '-')} to "
-                f"{unparse_date(args.end, '-')} there are {total} months, "
+                f"In the period from {unparse_date(begin, '-')} to "
+                f"{unparse_date(end, '-')} there are {total} months, "
                 f"but only {salaries_found} {config.count_label} were found.\n"
             )
         if not something_wrong:
@@ -209,20 +227,25 @@ def _unparse_salary_rlc_for_type(
             )
     else:
         msg += (
-            f"In the period from {unparse_date(args.begin, '-')} to "
-            f"{unparse_date(args.end, '-')} there are {salaries_found} {config.count_label}.\n"
+            f"In the period from {unparse_date(begin, '-')} to "
+            f"{unparse_date(end, '-')} there are {salaries_found} {config.count_label}.\n"
         )
     return msg
 
 
 def unparse_salary_rlc_result(
-    content: dict[RLCTypeFileName, dict[datetime, list[bool]]], args: argparse.Namespace
+    content: dict[RLCTypeFileName, dict[datetime, list[bool]]],
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
 ) -> str:
     """Build the combined salary + RLC report section for all RLC types.
 
     Args:
         content: Mapping from RLCType to its per-month result structure.
-        args: Parsed CLI arguments containing NAF and date range.
+        naf: NAF of the employee being justified.
+        begin: Start of the requested period.
+        end: End of the requested period.
 
     Returns:
         Formatted report string covering all RLC types.
@@ -231,21 +254,19 @@ def unparse_salary_rlc_result(
     for rlc_type, type_content in content.items():
         config = _RLC_TYPE_CONFIG[rlc_type]
         msg += f"**** Salaries and RLC {config.rlc_code} \n"
-        msg += _unparse_salary_rlc_for_type(type_content, config, args)
+        msg += _unparse_salary_rlc_for_type(type_content, config, naf, begin, end)
     return msg
 
 
 def unparse_salary_rnt_result(
     rnt: dict[datetime, bool],
     salary: dict[RLCTypeFileName, dict[datetime, list[bool]]],
-    args: argparse.Namespace,
 ) -> str:
     """Build the RNT cross-check report section.
 
     Args:
         rnt: Per-month bool indicating whether each RNT was found.
         salary: Full salary+RLC result structure (only the REGULAR type is used).
-        args: Parsed CLI arguments.
 
     Returns:
         Formatted report string noting any months with a salary but no RNT.
@@ -270,31 +291,36 @@ def unparse_salary_rnt_result(
     return msg
 
 
-def unparse_contract_result(content: bool, args: argparse.Namespace) -> str:
+def unparse_contract_result(
+    content: bool, naf: NAF, begin: datetime, end: datetime
+) -> str:
     """Build the contract-found/not-found report line.
 
     Args:
         content: True if a contract was found for the requested NAF and period.
-        args: Parsed CLI arguments containing NAF and date range.
+        naf: NAF of the employee being justified.
+        begin: Start of the requested period.
+        end: End of the requested period.
 
     Returns:
         Single-line report string.
     """
-    period = f"In the period from {unparse_date(args.begin, '-')} to {unparse_date(args.end, '-')}"
+    period = (
+        f"In the period from {unparse_date(begin, '-')} to {unparse_date(end, '-')}"
+    )
     msg = ""
     if content:
-        msg += f"{period} a contract has been found for naf {args.naf} :D\n"
+        msg += f"{period} a contract has been found for naf {naf} :D\n"
     else:
-        msg += f"{period} a contract has not been found for naf {args.naf}\n"
+        msg += f"{period} a contract has not been found for naf {naf}\n"
     return msg
 
 
-def unparse_proofs_result(report_content: None, args: argparse.Namespace) -> str:
+def unparse_proofs_result(report_content: None) -> str:
     """Return a placeholder message for the bank-proof section of the report.
 
     Args:
         report_content: Unused; reserved for future proof-result data.
-        args: Parsed CLI arguments (unused; reserved for future use).
 
     Returns:
         Fixed placeholder string noting that proof checks are not yet implemented.
@@ -307,7 +333,9 @@ def get_end_user_report(
     salaries_with_rlcs_result: dict[RLCTypeFileName, dict[datetime, list[bool]]],
     contracts_result: bool,
     rnts_result: dict[datetime, bool],
-    args: argparse.Namespace,
+    naf: NAF,
+    begin: datetime,
+    end: datetime,
 ) -> str:
     """Build the complete end-of-run summary section of the user report.
 
@@ -315,18 +343,22 @@ def get_end_user_report(
         salaries_with_rlcs_result: Full salary+RLC result structure.
         contracts_result: True if a contract was found.
         rnts_result: Per-month RNT found/not-found results.
-        args: Parsed CLI arguments.
+        naf: NAF of the employee being justified.
+        begin: Start of the requested period.
+        end: End of the requested period.
 
     Returns:
         Formatted multi-line report string covering salaries, proofs, RNTs, and contracts.
     """
     msg = ""
     msg += "****** Salaries and RLC ****** \n" + unparse_salary_rlc_result(
-        salaries_with_rlcs_result, args
+        salaries_with_rlcs_result, naf, begin, end
     )
-    msg += "****** Bank proofs ****** \n" + unparse_proofs_result(None, args)
+    msg += "****** Bank proofs ****** \n" + unparse_proofs_result(None)
     msg += "****** RNT ****** \n" + unparse_salary_rnt_result(
-        rnts_result, salaries_with_rlcs_result, args
+        rnts_result, salaries_with_rlcs_result
     )
-    msg += "****** CONTRACT ****** \n" + unparse_contract_result(contracts_result, args)
+    msg += "****** CONTRACT ****** \n" + unparse_contract_result(
+        contracts_result, naf, begin, end
+    )
     return "\n" + msg

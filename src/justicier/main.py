@@ -22,7 +22,12 @@ import time
 from pathlib import Path
 
 from justicier.data import reverse_dict, complete_ids
-from .naf import build_naf_to_dni, build_naf_to_name, build_naf_to_email
+from .naf import (
+    build_naf_to_dni,
+    build_naf_to_name,
+    build_naf_to_email,
+    flatten_dict_list,
+)
 from .token_manager import get_token_manager
 from .arguments import process_parse_arguments
 from .chrono import elapsed_time
@@ -126,13 +131,13 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         download_input_folder(token_manager, drive_id, carpeta_sharepoint, input_folder)
 
     naf_to_dni = build_naf_to_dni(naf_data_path)
-    dni_to_naf = reverse_dict(naf_to_dni)
+    dni_to_naf = reverse_dict(flatten_dict_list(naf_to_dni))
     naf_to_name = build_naf_to_name(naf_data_path)
     name_to_naf = reverse_dict(naf_to_name)
     naf_to_email = build_naf_to_email(naf_data_path)
     email_to_naf = reverse_dict(naf_to_email)
 
-    args.naf, args.nif, args.name, args.email = complete_ids(
+    args.naf, nifs, args.name, args.email = complete_ids(
         args.naf,
         args.nif,
         args.email,
@@ -145,9 +150,11 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         naf_to_email,
     )
 
+    nifs = naf_to_dni[args.naf]
+
     if args.request:
         try:
-            update_list_with_person_ids(args.request, args.naf, args.nif, args.email)
+            update_list_with_person_ids(args.request, args.naf, nifs[0], args.email)
         except PersonDoesNotExistInSharepointError as e:
             log.warning(
                 "The person to be justified does not exist in the Sharepoint database. This means that the person"
@@ -156,8 +163,18 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
                 f"corresponding row of the requests list. Internal error is: {str(e)}"
             )
 
-    id_str = compute_id(NOW_COMMAS, args, naf_to_name)
-    impersonal_id_str = compute_impersonal_id(NOW_COMMAS, args, naf_to_name)
+    id_str = compute_id(
+        NOW_COMMAS,
+        args.naf,
+        args.begin,
+        args.end,
+        args.request,
+        args.author,
+        naf_to_name,
+    )
+    impersonal_id_str = compute_impersonal_id(
+        NOW_COMMAS, args.naf, args.begin, args.end, args.request, naf_to_name
+    )
 
     (
         current_user_folder,
@@ -165,7 +182,7 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         user_report_file,
         admin_log_path,
         supervisor_log_path,
-    ) = compute_paths(args, id_str, impersonal_id_str)
+    ) = compute_paths(args.author, id_str, impersonal_id_str)
 
     ensure_file_structure(current_user_folder, current_justification_folder)
 
@@ -176,7 +193,18 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         supervisor_log_file=supervisor_log_path,
     )
 
-    log.info(get_initial_user_report(args))
+    log.info(
+        get_initial_user_report(
+            args.naf,
+            args.begin,
+            args.end,
+            args.merge_result,
+            args.merge_salary,
+            args.merge_rnt_rlc,
+            args.author,
+            args.request,
+        )
+    )
 
     end_time = elapsed_time(start_time)
     log.info(f"Time elapsed for obtaining and validating input data: {end_time}.")
@@ -299,7 +327,9 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         salaries_with_rlcs_result=salaries_with_rlcs_result,
         contracts_result=contracts_result,
         rnts_result=rnts_result,
-        args=args,
+        naf=args.naf,
+        begin=args.begin,
+        end=args.end,
     )
     log.info(report_text)
 
