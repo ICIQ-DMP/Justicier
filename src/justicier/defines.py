@@ -22,7 +22,7 @@ from pathlib import Path
 
 SHAREPOINT_ROOT_FOLDER_NAME = Path("Documentació Nomines, Seguretat Social")
 SHAREPOINT_ROOT_INPUT_FOLDER_NAME = Path("input")
-SHAREPOINT_ROOT_OUTPUT_FOLDER_NAME = Path("output")
+SHAREPOINT_ROOT_OUTPUT_FOLDER_NAME = Path("_output")
 
 SHAREPOINT_SALARIES_OUTPUT_FOLDER_NAME = Path("Nòmines")
 SHAREPOINT_PROOFS_OUTPUT_FOLDER_NAME = Path("Justificants")

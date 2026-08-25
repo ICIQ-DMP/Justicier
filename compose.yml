@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      onedrive:
+      onedrive_justicier:
         condition: service_healthy
     volumes:
       - ./service/onedrive_data:/service/onedrive_data
@@ -21,9 +21,9 @@ services:
       timeout: 5s
       retries: 3
 
-  onedrive:
+  onedrive_justicier:
     image: docker.io/driveone/onedrive:edge
-    container_name: onedrive
+    container_name: onedrive_justicier
     userns_mode: keep-id
     volumes:
       - ./service/onedrive_conf:/onedrive/conf

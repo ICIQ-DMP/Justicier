@@ -57,6 +57,7 @@ from .defines import (
     SHAREPOINT_OUTPUT_FOLDER_PATH,
     SHAREPOINT_INPUT_FOLDER_PATH,
     NOW_COMMAS,
+    SHAREPOINT_ADMIN_LOGS_OUTPUT_FOLDER_NAME,
 )
 from .filesystem import (
     remove_folder,
@@ -343,7 +344,10 @@ def process(args: argparse.Namespace, input_folder: Path) -> tuple[str, str]:
         remote_output_path = (
             f"{SHAREPOINT_OUTPUT_FOLDER_PATH}/{args.author}/{impersonal_id_str}"
         )
-        remote_log_path = f"{SHAREPOINT_OUTPUT_FOLDER_PATH}/{LOCAL_ADMIN_LOG_FOLDER_PATH}/{admin_log_path.name}"
+        remote_log_path = (
+            f"{SHAREPOINT_OUTPUT_FOLDER_PATH}/"
+            f"{SHAREPOINT_ADMIN_LOGS_OUTPUT_FOLDER_NAME}/{admin_log_path.name}"
+        )
 
         upload_folder_recursive(
             token_manager=token_manager,
