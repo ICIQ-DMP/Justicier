@@ -83,7 +83,7 @@ docker compose run --remove-orphans onedrive
 
 ### Execute a justification in developer env with params in Sharepoint list
 ```shell
-./venv/bin/python src/main.py --id 159 --input-location service/onedrive_data/Documentació\ Nomines\,\ Seguretat\ Social/input/
+./venv/bin/python src/main.py --id 159 --input-location service/data/Documentació\ Nomines\,\ Seguretat\ Social/input/
 ```
 
 ### Execute a justification in developer env with params in Sharepoint list

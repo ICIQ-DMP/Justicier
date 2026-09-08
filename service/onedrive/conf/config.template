@@ -1,5 +1,6 @@
 sync_dir = "/onedrive/data"
-drive_id = "b!DBr0-g9kt0yiC24huNSQRygN2jp0uu1LuLHdfD8wx_3n_8Rkg41LSY25TQTmrzYb"
+drive_id = "__DRIVE_ID__"
+
 log_dir = "/onedrive/logs/"
 
 sync_dir_permissions = "755"
@@ -10,5 +11,8 @@ cleanup_local_files = "true"
 
 bypass_data_preservation = "true"
 
+# Uncomment me to perform resync with docker compose run -it onedrive
 resync = "true"
+
 resync_auth = "true"
+

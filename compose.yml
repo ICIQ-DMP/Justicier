@@ -7,7 +7,7 @@ services:
       onedrive_justicier:
         condition: service_healthy
     volumes:
-      - ./service/onedrive_data:/service/onedrive_data
+      - ./service/data:/service/data
       - ./output:/app/output
     secrets:
       - VAULT_ADDR
@@ -26,9 +26,9 @@ services:
     container_name: onedrive_justicier
     userns_mode: keep-id
     volumes:
-      - ./service/onedrive_conf:/onedrive/conf
-      - ./service/onedrive_data:/onedrive/data
-      - ./service/onedrive_logs:/onedrive/logs
+      - ./service/conf:/onedrive/conf
+      - ./service/data:/onedrive/data
+      - ./service/logs:/onedrive/logs
     networks:
       - justicier_net
     healthcheck:
@@ -50,5 +50,5 @@ secrets:
     file: ./secrets/vault.crt
 
 networks:
-  justicier_net:
-    driver: bridge
+  jenkins_net:
+    external: true
